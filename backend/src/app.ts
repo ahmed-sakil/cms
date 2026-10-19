@@ -27,9 +27,18 @@ export const createApp = () => {
       crossOriginResourcePolicy: { policy: "cross-origin" },
     })
   );
+  const allowedOrigins = ENV.CLIENT_URL.split(",").map((url) => url.trim());
   app.use(
     cors({
-      origin: ENV.CLIENT_URL,
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        if (origin.endsWith(".vercel.app") && allowedOrigins.some((o) => o.includes("vercel.app"))) {
+          return callback(null, true);
+        }
+        return callback(null, true);
+      },
       credentials: true,
     })
   );
