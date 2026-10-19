@@ -1,0 +1,51 @@
+import type { Request, Response, NextFunction } from "express";
+import { PublicService } from "./public.service.js";
+import { ResponseUtil } from "../../common/utils/apiResponse.js";
+
+export class PublicController {
+  static async getLandingData(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await PublicService.getLandingData();
+      ResponseUtil.success(res, data, "Landing page data fetched successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async submitInquiry(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await PublicService.submitInquiry(req.body);
+      ResponseUtil.success(res, result, "Your inquiry has been submitted successfully", 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getExamResults(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const batchId = req.query.batchId as string | undefined;
+      const results = await PublicService.getPublicExamResults(batchId);
+      ResponseUtil.success(res, results, "Public exam results retrieved successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async submitReview(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await PublicService.submitReview(req.body);
+      ResponseUtil.success(res, result, "Thank you for your feedback!", 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getBranches(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const branches = await PublicService.getBranches();
+      ResponseUtil.success(res, branches, "Active branches retrieved successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+}

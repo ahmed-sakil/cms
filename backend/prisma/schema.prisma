@@ -1,0 +1,710 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ----------------------------------------------------
+// ENUMS
+// ----------------------------------------------------
+enum UserRole {
+  SUPER_ADMIN
+  BRANCH_ADMIN
+  TEACHER
+  STAFF
+  STUDENT
+  PARENT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum ClassCategory {
+  SCHOOL
+  COLLEGE
+  ADMISSION
+  PROFESSIONAL
+}
+
+enum BatchFeeType {
+  ONE_TIME
+  INSTALLMENT
+  MONTHLY
+}
+
+enum EnrollmentStatus {
+  APPLIED
+  PENDING_VERIFICATION
+  ACTIVE
+  ON_HOLD
+  WAITLISTED
+  CANCELLED_REFUND
+  COMPLETED
+  DROPPED
+}
+
+enum BatchStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum FeeStatus {
+  PENDING
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  WAIVED
+}
+
+enum PaymentMethod {
+  CASH
+  BKASH
+  NAGAD
+  ROCKET
+  BANK_TRANSFER
+  OTHER
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  WAIVED
+  CANCELLED
+}
+
+enum FeeFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  PER_EXAM
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FLAT_AMOUNT
+}
+
+enum ExpenseCategory {
+  RENT
+  UTILITIES
+  TEACHER_HONORARIUM
+  STAFF_SALARY
+  PRINTING_STATIONERY
+  EQUIPMENT_MAINTENANCE
+  MARKETING
+  OTHER
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ----------------------------------------------------
+// INSTITUTION & BRANCH TENANCY
+// ----------------------------------------------------
+model Institution {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String
+  code            String   @unique
+  tagline         String?
+  logoUrl         String?
+  faviconUrl      String?
+  website         String?
+  email           String?
+  phone           String?
+  address         String?
+  establishedYear String?
+  whatsappNumber  String?
+  paymentChannels Json?    @default("[]")
+  posters         Json?    @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  branches        Branch[]
+  users           User[]
+}
+
+model Branch {
+  id              String      @id @default(uuid()) @db.Uuid
+  institutionId   String      @db.Uuid
+  name            String
+  code            String      @unique
+  phone           String?
+  email           String?
+  whatsappNumber  String?
+  address         String
+  description     String?
+  establishedYear String?
+  directorId      String?     @db.Uuid
+  managerId       String?     @db.Uuid
+  isMainBranch    Boolean     @default(false)
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  director       User?       @relation("BranchDirector", fields: [directorId], references: [id], onDelete: SetNull)
+  manager        User?       @relation("BranchManager", fields: [managerId], references: [id], onDelete: SetNull)
+  users          User[]
+  courses        Course[]
+  batches        Batch[]
+  notices        PublicNotice[]
+  inquiries      AdmissionInquiry[]
+  studyMaterials StudyMaterial[]
+  feeStructures  FeeStructure[]
+  invoices       StudentInvoice[]
+  expenseRecords ExpenseRecord[]
+
+  @@index([institutionId, isActive])
+}
+
+// ----------------------------------------------------
+// CORE USER & ROLE-SPECIFIC PROFILES
+// ----------------------------------------------------
+model User {
+  id             String      @id @default(uuid()) @db.Uuid
+  institutionId  String      @db.Uuid
+  branchId       String?     @db.Uuid
+  email          String      @unique
+  phone          String?     @unique
+  passwordHash   String
+  fullName       String
+  role           UserRole
+  avatarUrl      String?
+  isActive       Boolean     @default(true)
+  refreshToken   String?
+  lastLoginAt    DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  institution       Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  branch            Branch?     @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  directedBranches  Branch[]    @relation("BranchDirector")
+  managedBranches   Branch[]    @relation("BranchManager")
+
+  adminProfile   AdminProfile?
+  teacherProfile TeacherProfile?
+  staffProfile   StaffProfile?
+  studentProfile StudentProfile?
+  uploadedMaterials StudyMaterial[]
+  recordedExpenses  ExpenseRecord[] @relation("ExpenseRecorder")
+  approvedExpenses  ExpenseRecord[] @relation("ExpenseApprover")
+  collectedPayments PaymentTransaction[]
+
+  @@index([branchId, role])
+  @@index([role, isActive])
+}
+
+model AdminProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @db.Uuid
+  designation String?
+  permissions Json?    @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StaffProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @db.Uuid
+  designation String?
+  department  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TeacherProfile {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @unique @db.Uuid
+  qualification  String?
+  specialization String?
+  bio            String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  batches        Batch[]
+}
+
+model StudentProfile {
+  id            String            @id @default(uuid()) @db.Uuid
+  userId        String            @unique @db.Uuid
+  rollNumber    String            @unique
+  dateOfBirth   DateTime?
+  gender        Gender            @default(MALE)
+  guardianName  String
+  guardianPhone String
+  bloodGroup    String?
+  address       String?
+  fatherName      String?
+  motherName      String?
+  guardianType    String?           @default("FATHER")
+  currentClass    String?
+  institutionName String?
+  referralCode    String?           @unique
+  referredById    String?           @db.Uuid
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referredBy      StudentProfile?   @relation("StudentReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals       StudentProfile[]  @relation("StudentReferrals")
+  referralPayouts ReferralPayout[]
+  enrollments     BatchEnrollment[]
+  attendances     Attendance[]
+  examResults     ExamResult[]
+  invoices        StudentInvoice[]
+  payments        PaymentTransaction[]
+  discounts       FeeDiscount[]
+
+  @@index([guardianPhone])
+}
+
+// ----------------------------------------------------
+// ACADEMICS: COURSES, BATCHES & ENROLLMENT
+// ----------------------------------------------------
+model Course {
+  id            String   @id @default(uuid()) @db.Uuid
+  branchId      String   @db.Uuid
+  name          String
+  code          String
+  description   String?
+  durationWeeks Int
+  feeAmount     Decimal  @db.Decimal(10, 2)
+  coverImage    String?
+  isPublic      Boolean  @default(true)
+  isPublished   Boolean  @default(true)
+  deletedAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  branch        Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  batches       Batch[]
+  studyMaterials StudyMaterial[]
+  feeStructures FeeStructure[]
+
+  @@unique([branchId, code])
+  @@index([branchId, isPublic, isPublished])
+}
+
+model AcademicClass {
+  id           String        @id @default(uuid()) @db.Uuid
+  name         String
+  code         String        @unique
+  academicYear String
+  category     ClassCategory @default(COLLEGE)
+  displayOrder Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  batches      Batch[]
+
+  @@index([category, academicYear])
+}
+
+model Batch {
+  id              String            @id @default(uuid()) @db.Uuid
+  branchId        String            @db.Uuid
+  courseId        String?           @db.Uuid
+  academicClassId String?           @db.Uuid
+  teacherId       String?           @db.Uuid
+  name            String
+  title           String?
+  coverImage      String?
+  startDate       DateTime
+  endDate         DateTime?
+  seatLimit       Int               @default(40)
+  maxCapacity     Int               @default(40)
+  totalClasses    Int               @default(36)
+  totalExams      Int               @default(12)
+  classesPerWeek  Int               @default(3)
+  daysOfWeek      Json?             @default("[]")
+  scheduleTime    String?
+  classTime       String?
+  classroom       String?
+  feeAmount       Decimal           @default(6000.00) @db.Decimal(10, 2)
+  feeType         BatchFeeType      @default(ONE_TIME)
+  subjects        Json?             @default("[]")
+  subjectTeachers Json?             @default("[]")
+  classModules    Json?             @default("[]")
+  routine         Json?             @default("[]")
+  isPublic        Boolean           @default(true)
+  status          BatchStatus       @default(UPCOMING)
+  deletedAt       DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  branch          Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  course          Course?           @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  academicClass   AcademicClass?    @relation(fields: [academicClassId], references: [id], onDelete: SetNull)
+  teacher         TeacherProfile?   @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+
+  enrollments     BatchEnrollment[]
+  attendances     Attendance[]
+  exams           Exam[]
+  studyMaterials  StudyMaterial[]
+  feeStructures   FeeStructure[]
+  discounts       FeeDiscount[]
+  invoices        StudentInvoice[]
+  notices         PublicNotice[]
+
+  @@index([branchId, status])
+  @@index([academicClassId, status])
+  @@index([courseId, status])
+}
+
+model BatchEnrollment {
+  id              String           @id @default(uuid()) @db.Uuid
+  batchId         String           @db.Uuid
+  studentId       String           @db.Uuid
+  status          EnrollmentStatus @default(ACTIVE)
+  paymentMethod   PaymentMethod?
+  transactionId   String?
+  senderPhone     String?
+  paidAmount      Decimal?         @db.Decimal(10, 2)
+  adminNotes      String?
+  verifiedAt      DateTime?
+  verifiedById    String?          @db.Uuid
+  enrolledAt      DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  batch           Batch            @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student         StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, studentId])
+  @@index([batchId, status])
+  @@index([studentId, status])
+}
+
+// ----------------------------------------------------
+// ATTENDANCE & EXAMS
+// ----------------------------------------------------
+model Attendance {
+  id          String           @id @default(uuid()) @db.Uuid
+  batchId     String           @db.Uuid
+  studentId   String           @db.Uuid
+  date        DateTime         @db.Date
+  status      AttendanceStatus @default(PRESENT)
+  remarks     String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  batch       Batch            @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student     StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, studentId, date])
+  @@index([batchId, date])
+  @@index([studentId, date])
+}
+
+model Exam {
+  id           String       @id @default(uuid()) @db.Uuid
+  batchId      String       @db.Uuid
+  title        String
+  subject      String?
+  examType     String       @default("MOCK_TEST")
+  instructions String?
+  totalMarks   Decimal      @db.Decimal(5, 2)
+  passMarks    Decimal      @db.Decimal(5, 2)
+  examDate     DateTime
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  batch        Batch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  results      ExamResult[]
+
+  @@index([batchId, examDate])
+}
+
+model ExamResult {
+  id            String         @id @default(uuid()) @db.Uuid
+  examId        String         @db.Uuid
+  studentId     String         @db.Uuid
+  marksObtained Decimal        @db.Decimal(5, 2)
+  grade         String?
+  rank          Int?
+  isPassed      Boolean        @default(true)
+  remarks       String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  exam          Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId])
+  @@index([studentId])
+}
+
+// ----------------------------------------------------
+// PUBLIC LANDING PAGE: NOTICES & INQUIRIES
+// ----------------------------------------------------
+model PublicNotice {
+  id            String    @id @default(uuid()) @db.Uuid
+  branchId      String?   @db.Uuid
+  batchId       String?   @db.Uuid
+  title         String
+  content       String
+  isPublic      Boolean   @default(true)
+  pinned        Boolean   @default(false)
+  priority      String    @default("NORMAL") // NORMAL, HIGH, URGENT
+  attachmentUrl String?
+  publishedAt   DateTime  @default(now())
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  branch        Branch?   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  batch         Batch?    @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  @@index([branchId, isPublic, publishedAt])
+  @@index([batchId])
+}
+
+model ReferralPayout {
+  id            String         @id @default(uuid()) @db.Uuid
+  studentId     String         @db.Uuid
+  amount        Decimal        @db.Decimal(10, 2)
+  method        PaymentMethod  @default(BKASH)
+  accountNumber String?
+  transactionId String?
+  status        String         @default("PENDING") // PENDING, APPROVED, PAID, REJECTED
+  notes         String?
+  paidAt        DateTime?
+  processedById String?        @db.Uuid
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, status])
+}
+
+model AdmissionInquiry {
+  id                 String    @id @default(uuid()) @db.Uuid
+  branchId           String?   @db.Uuid
+  studentName        String
+  email              String
+  phone              String
+  interestedCourseId String?   @db.Uuid
+  message            String?
+  status             String    @default("NEW") // NEW, CONTACTED, ADMITTED, REJECTED
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  branch             Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+}
+
+model Testimonial {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  role       String   @default("STUDENT") // STUDENT, PARENT, ALUMNI
+  phone      String?
+  message    String
+  rating     Int      @default(5)
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([isApproved, createdAt])
+}
+
+model StudentAchievement {
+  id           String   @id @default(uuid()) @db.Uuid
+  studentName  String
+  avatarUrl    String?
+  batchName    String
+  achievement  String   // e.g. "1st in Dhaka University ('Ka' Unit)"
+  college      String?  // e.g. "Notre Dame College"
+  year         String   @default("2025")
+  posterUrl    String?  // Optional custom poster image
+  isFeatured   Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([isFeatured, displayOrder])
+}
+
+// ----------------------------------------------------
+// ACADEMICS: STUDY MATERIALS REPOSITORY
+// ----------------------------------------------------
+model StudyMaterial {
+  id          String    @id @default(uuid()) @db.Uuid
+  branchId    String?   @db.Uuid
+  courseId    String?   @db.Uuid
+  batchId     String?   @db.Uuid
+  uploaderId  String    @db.Uuid
+  title       String
+  description String?
+  fileUrl     String
+  fileType    String?   // pdf, docx, image, zip, link
+  fileSize    Int?      // in bytes
+  isPublic    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  branch      Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  course      Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  batch       Batch?    @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  uploader    User      @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+  @@index([courseId])
+  @@index([branchId])
+}
+
+// ----------------------------------------------------
+// FINANCIAL ENGINE: FEES, INVOICES, PAYMENTS & EXPENSES
+// ----------------------------------------------------
+
+model FeeStructure {
+  id          String       @id @default(uuid()) @db.Uuid
+  branchId    String?      @db.Uuid
+  courseId    String?      @db.Uuid
+  batchId     String?      @db.Uuid
+  name        String
+  description String?
+  amount      Decimal      @db.Decimal(10, 2)
+  frequency   FeeFrequency @default(MONTHLY)
+  dueDateDay  Int?         @default(10)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  branch      Branch?      @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  course      Course?      @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  batch       Batch?       @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  @@index([branchId, isActive])
+  @@index([batchId, isActive])
+}
+
+model FeeDiscount {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String
+  code        String?
+  type        DiscountType @default(PERCENTAGE)
+  value       Decimal      @db.Decimal(10, 2)
+  batchId     String?      @db.Uuid
+  studentId   String?      @db.Uuid
+  reason      String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  batch       Batch?          @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student     StudentProfile? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([batchId, isActive])
+  @@index([studentId, isActive])
+}
+
+model StudentInvoice {
+  id             String        @id @default(uuid()) @db.Uuid
+  invoiceNumber  String        @unique
+  studentId      String        @db.Uuid
+  batchId        String?       @db.Uuid
+  branchId       String?       @db.Uuid
+  title          String
+  subtotal       Decimal       @db.Decimal(10, 2)
+  discountAmount Decimal       @default(0.00) @db.Decimal(10, 2)
+  discountReason String?
+  totalAmount    Decimal       @db.Decimal(10, 2)
+  paidAmount     Decimal       @default(0.00) @db.Decimal(10, 2)
+  dueAmount      Decimal       @db.Decimal(10, 2)
+  status         InvoiceStatus @default(UNPAID)
+  dueDate        DateTime
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  student        StudentProfile       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  batch          Batch?               @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  branch         Branch?              @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  payments       PaymentTransaction[]
+
+  @@index([studentId, status])
+  @@index([batchId, status])
+  @@index([branchId, status])
+  @@index([dueDate])
+}
+
+model PaymentTransaction {
+  id            String        @id @default(uuid()) @db.Uuid
+  receiptNumber String        @unique
+  invoiceId     String?       @db.Uuid
+  studentId     String        @db.Uuid
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod @default(CASH)
+  transactionId String?
+  accountNumber String?
+  status        String        @default("COMPLETED")
+  collectedById String?       @db.Uuid
+  notes         String?
+  paidAt        DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  invoice       StudentInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  student       StudentProfile  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  collectedBy   User?           @relation(fields: [collectedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId, paidAt])
+  @@index([invoiceId])
+  @@index([method])
+}
+
+model ExpenseRecord {
+  id              String          @id @default(uuid()) @db.Uuid
+  branchId        String?         @db.Uuid
+  recordedById    String          @db.Uuid
+  category        ExpenseCategory @default(OTHER)
+  title           String
+  amount          Decimal         @db.Decimal(10, 2)
+  expenseDate     DateTime
+  paymentMethod   PaymentMethod   @default(CASH)
+  paidTo          String
+  receiptUrl      String?
+  notes           String?
+  status          ExpenseStatus   @default(PENDING)
+  approvedById    String?         @db.Uuid
+  approvedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  branch          Branch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  recordedBy      User            @relation("ExpenseRecorder", fields: [recordedById], references: [id], onDelete: Cascade)
+  approvedBy      User?           @relation("ExpenseApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([branchId, expenseDate])
+  @@index([status, branchId])
+  @@index([category])
+}
+
+
