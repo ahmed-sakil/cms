@@ -15,6 +15,8 @@ import { uploadRouter } from "./modules/upload/upload.routes.js";
 import batchRoutes from "./modules/batches/batch.routes.js";
 import financeRoutes from "./modules/finance/finance.routes.js";
 import opsRoutes from "./modules/academic-ops/academic-ops.routes.js";
+import { authRateLimiter, publicRateLimiter } from "./middleware/rateLimiter.js";
+
 
 export const createApp = () => {
   const app = express();
@@ -58,9 +60,10 @@ export const createApp = () => {
   });
 
   // Mount Domain-Driven API Endpoints
-  app.use("/api/v1/auth", authRoutes);
-  app.use("/api/v1/public", publicRoutes);
+  app.use("/api/v1/auth", authRateLimiter, authRoutes);
+  app.use("/api/v1/public", publicRateLimiter, publicRoutes);
   app.use("/api/v1/branches", publicRoutes);
+
   app.use("/api/v1/admin", adminRoutes);
   app.use("/api/v1/student", studentRoutes);
   app.use("/api/v1/students", studentRoutes);

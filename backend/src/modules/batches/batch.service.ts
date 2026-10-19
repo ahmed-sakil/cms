@@ -1,7 +1,9 @@
 import { prisma } from "../../config/prisma.js";
-import { BadRequestError, NotFoundError } from "../../common/errors/appError.js";
+import { BadRequestError, NotFoundError, ForbiddenError } from "../../common/errors/appError.js";
 import { BatchStatus, EnrollmentStatus, PaymentMethod, InvoiceStatus } from "@prisma/client";
 import { generateInvoiceNumber, generateReceiptNumber } from "../../common/utils/identifierGenerator.js";
+import { UserRole, type JwtUserPayload } from "../../types/index.js";
+
 
 import type {
   CreateCourseInput,
@@ -740,11 +742,27 @@ export class BatchService {
     });
   }
 
-  static async deleteStudyMaterial(id: string) {
+  static async deleteStudyMaterial(id: string, operator: JwtUserPayload) {
     const item = await prisma.studyMaterial.findUnique({ where: { id } });
     if (!item) throw new NotFoundError("Study material not found");
+
+    if (operator.role !== UserRole.SUPER_ADMIN) {
+      if (operator.role === UserRole.TEACHER) {
+        if (item.uploaderId !== operator.userId) {
+          throw new ForbiddenError("You can only delete study materials you uploaded personally.");
+        }
+      } else if (operator.role === UserRole.BRANCH_ADMIN) {
+        if (!item.branchId || item.branchId !== operator.branchId) {
+          throw new ForbiddenError("You do not have permission to delete study materials from other branches.");
+        }
+      } else {
+        throw new ForbiddenError("You do not have permission to delete this study material.");
+      }
+    }
+
     return prisma.studyMaterial.delete({ where: { id } });
   }
+
 
   static async getStudentMaterials(studentUserId: string) {
     const profile = await prisma.studentProfile.findUnique({

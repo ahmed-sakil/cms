@@ -8,7 +8,9 @@ import {
   RequestReferralPayoutInput,
   SettleReferralPayoutInput,
 } from "./academic-ops.schema.js";
-import { BadRequestError, NotFoundError } from "../../common/errors/appError.js";
+import { BadRequestError, NotFoundError, ForbiddenError } from "../../common/errors/appError.js";
+import { UserRole, type JwtUserPayload } from "../../types/index.js";
+
 
 export class AcademicOpsService {
   // ========================================================
@@ -102,11 +104,24 @@ export class AcademicOpsService {
     });
   }
 
-  static async deleteNotice(id: string) {
+  static async deleteNotice(id: string, operator: JwtUserPayload) {
     const existing = await prisma.publicNotice.findUnique({ where: { id } });
     if (!existing) throw new NotFoundError("Notice not found");
+
+    if (operator.role === UserRole.BRANCH_ADMIN) {
+      if (!existing.branchId) {
+        throw new ForbiddenError("Only super administrators can delete global notices.");
+      }
+      if (existing.branchId !== operator.branchId) {
+        throw new ForbiddenError("You do not have permission to delete notices for other branches.");
+      }
+    } else if (operator.role !== UserRole.SUPER_ADMIN) {
+      throw new ForbiddenError("You do not have permission to delete notices.");
+    }
+
     return prisma.publicNotice.delete({ where: { id } });
   }
+
 
   static async togglePin(id: string) {
     const existing = await prisma.publicNotice.findUnique({ where: { id } });
@@ -419,38 +434,46 @@ export class AcademicOpsService {
   }
 
   static async requestReferralPayout(userId: string, input: RequestReferralPayoutInput) {
-    const student = await prisma.studentProfile.findUnique({
-      where: { userId },
-      include: {
-        referrals: true,
-        referralPayouts: true,
+    return prisma.$transaction(
+      async (tx) => {
+        const student = await tx.studentProfile.findUnique({
+          where: { userId },
+          include: {
+            referrals: true,
+            referralPayouts: true,
+          },
+        });
+        if (!student) throw new NotFoundError("Student not found");
+
+        const totalEarned = student.referrals.length * 500;
+        const existingWithdrawn = student.referralPayouts
+          .filter((p) => p.status !== "REJECTED")
+          .reduce((acc, p) => acc + Number(p.amount), 0);
+
+        const available = totalEarned - existingWithdrawn;
+        if (input.amount > available) {
+          throw new BadRequestError(
+            `Insufficient referral earnings. Available balance is ৳${available}`
+          );
+        }
+
+        return tx.referralPayout.create({
+          data: {
+            studentId: student.id,
+            amount: input.amount,
+            method: input.method,
+            accountNumber: input.accountNumber,
+            notes: input.notes || null,
+            status: "PENDING",
+          },
+        });
       },
-    });
-    if (!student) throw new NotFoundError("Student not found");
-
-    const totalEarned = student.referrals.length * 500;
-    const existingWithdrawn = student.referralPayouts
-      .filter((p) => p.status !== "REJECTED")
-      .reduce((acc, p) => acc + Number(p.amount), 0);
-
-    const available = totalEarned - existingWithdrawn;
-    if (input.amount > available) {
-      throw new BadRequestError(
-        `Insufficient referral earnings. Available balance is ৳${available}`
-      );
-    }
-
-    return prisma.referralPayout.create({
-      data: {
-        studentId: student.id,
-        amount: input.amount,
-        method: input.method,
-        accountNumber: input.accountNumber,
-        notes: input.notes || null,
-        status: "PENDING",
-      },
-    });
+      {
+        isolationLevel: "Serializable",
+      }
+    );
   }
+
 
   static async listReferralPayouts(status?: string) {
     return prisma.referralPayout.findMany({

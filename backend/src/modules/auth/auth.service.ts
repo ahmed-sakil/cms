@@ -52,6 +52,7 @@ export class AuthService {
 
     return {
       accessToken,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -62,6 +63,68 @@ export class AuthService {
       },
     };
   }
+
+  static async refresh(refreshToken: string): Promise<AuthSessionResponse> {
+    if (!refreshToken || typeof refreshToken !== "string") {
+      throw new UnauthorizedError("Refresh token is required");
+    }
+
+    let payload: JwtUserPayload;
+    try {
+      payload = jwt.verify(refreshToken, ENV.JWT_REFRESH_SECRET) as JwtUserPayload;
+    } catch {
+      throw new UnauthorizedError("Invalid or expired refresh token. Please sign in again.");
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      include: {
+        branch: { select: { id: true, name: true, code: true } },
+      },
+    });
+
+    if (!user || user.deletedAt || !user.isActive || user.refreshToken !== refreshToken) {
+      throw new UnauthorizedError("Session has been revoked or expired. Please sign in again.");
+    }
+
+    const newPayload: JwtUserPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role as unknown as UserRole,
+      branchId: user.branchId,
+      institutionId: user.institutionId,
+    };
+
+    const newAccessToken = jwt.sign(newPayload, ENV.JWT_ACCESS_SECRET, {
+      expiresIn: ENV.JWT_ACCESS_EXPIRES_IN as any,
+    });
+
+    const newRefreshToken = jwt.sign(newPayload, ENV.JWT_REFRESH_SECRET, {
+      expiresIn: ENV.JWT_REFRESH_EXPIRES_IN as any,
+    });
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        refreshToken: newRefreshToken,
+        lastLoginAt: new Date(),
+      },
+    });
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role as unknown as UserRole,
+        branchId: user.branchId,
+        avatarUrl: user.avatarUrl,
+      },
+    };
+  }
+
 
   static async registerStudent(input: StudentSelfRegisterInput): Promise<AuthSessionResponse> {
     // 1. Verify branch exists
@@ -162,8 +225,18 @@ export class AuthService {
       expiresIn: ENV.JWT_ACCESS_EXPIRES_IN as any,
     });
 
+    const refreshToken = jwt.sign(payload, ENV.JWT_REFRESH_SECRET, {
+      expiresIn: ENV.JWT_REFRESH_EXPIRES_IN as any,
+    });
+
+    await prisma.user.update({
+      where: { id: newUser.id },
+      data: { refreshToken },
+    });
+
     return {
       accessToken,
+      refreshToken,
       user: {
         id: newUser.id,
         email: newUser.email,
@@ -174,6 +247,7 @@ export class AuthService {
       },
     };
   }
+
 
   static async getProfile(userId: string) {
     const user = await prisma.user.findUnique({

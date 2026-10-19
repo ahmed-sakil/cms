@@ -300,9 +300,10 @@ export class PublicService {
         role: input.role || "STUDENT",
         message: input.message,
         rating: Math.min(5, Math.max(1, input.rating || 5)),
-        isApproved: true,
+        isApproved: false,
       },
     });
+
   }
 
   static async submitInquiry(input: AdmissionInquiryInput) {

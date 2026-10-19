@@ -62,20 +62,14 @@ export const AdminLayout: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  // Ensure active session exists. If token is missing, redirect to login
-  useEffect(() => {
-    const token = localStorage.getItem("cms_token");
-    if (!token) {
-      navigate("/login");
-    }
-  }, [navigate]);
-
   const handleSignOut = () => {
     localStorage.removeItem("cms_token");
+    localStorage.removeItem("cms_refresh_token");
     localStorage.removeItem("cms_user");
     toast.info("Signed out of administrative console");
     navigate("/login");
   };
+
 
   const getInitials = (name?: string) => {
     if (!name) return "AD";

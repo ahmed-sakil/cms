@@ -127,4 +127,6 @@ export interface AuthSessionResponse {
     avatarUrl?: string | null;
   };
   accessToken: string;
+  refreshToken?: string;
 }
+

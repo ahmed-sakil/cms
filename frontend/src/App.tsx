@@ -29,6 +29,8 @@ import { StudentMaterialsPage } from "./modules/student/StudentMaterialsPage.js"
 import { StudentFeesPage } from "./modules/student/StudentFeesPage.js";
 import { StudentExamsPage } from "./modules/student/StudentExamsPage.js";
 import { StudentReferralsPage } from "./modules/student/StudentReferralsPage.js";
+import { RoleRouteGuard } from "./components/common/RoleRouteGuard.js";
+import { UserRole } from "./types/index.js";
 
 export function App() {
   return (
@@ -48,7 +50,21 @@ export function App() {
         <Route path="/register" element={<RegisterPage />} />
 
         {/* Protected Admin Portal */}
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route
+          path="/admin"
+          element={
+            <RoleRouteGuard
+              allowedRoles={[
+                UserRole.SUPER_ADMIN,
+                UserRole.BRANCH_ADMIN,
+                UserRole.TEACHER,
+                UserRole.STAFF,
+              ]}
+            >
+              <AdminLayout />
+            </RoleRouteGuard>
+          }
+        >
           <Route index element={<AdminDashboard />} />
           <Route path="students" element={<StudentsManagement />} />
           <Route path="branches" element={<BranchesManagement />} />
@@ -65,7 +81,14 @@ export function App() {
         </Route>
 
         {/* Protected Student Portal */}
-        <Route path="/student" element={<StudentLayout />}>
+        <Route
+          path="/student"
+          element={
+            <RoleRouteGuard allowedRoles={[UserRole.STUDENT]}>
+              <StudentLayout />
+            </RoleRouteGuard>
+          }
+        >
           <Route index element={<StudentDashboard />} />
           <Route path="materials" element={<StudentMaterialsPage />} />
           <Route path="profile" element={<StudentProfilePage />} />
@@ -81,5 +104,6 @@ export function App() {
     </BrowserRouter>
   );
 }
+
 
 export default App;

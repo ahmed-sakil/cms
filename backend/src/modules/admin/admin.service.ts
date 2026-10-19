@@ -966,4 +966,34 @@ export class AdminService {
       },
     });
   }
+
+  // ========================================================
+  // TESTIMONIALS MODERATION
+  // ========================================================
+  static async listTestimonials(isApproved?: boolean) {
+    const where: any = {};
+    if (typeof isApproved === "boolean") {
+      where.isApproved = isApproved;
+    }
+    return prisma.testimonial.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  static async updateTestimonialStatus(id: string, isApproved: boolean) {
+    const existing = await prisma.testimonial.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundError("Testimonial not found");
+    return prisma.testimonial.update({
+      where: { id },
+      data: { isApproved },
+    });
+  }
+
+  static async deleteTestimonial(id: string) {
+    const existing = await prisma.testimonial.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundError("Testimonial not found");
+    return prisma.testimonial.delete({ where: { id } });
+  }
 }
+

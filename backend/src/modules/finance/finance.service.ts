@@ -7,9 +7,10 @@ import {
   CollectPaymentInput,
   CreateExpenseInput,
 } from "./finance.schema.js";
-import { InvoiceStatus, DiscountType } from "../../types/index.js";
-import { NotFoundError, BadRequestError } from "../../common/errors/appError.js";
+import { InvoiceStatus, DiscountType, ExpenseStatus, UserRole, type JwtUserPayload } from "../../types/index.js";
+import { NotFoundError, BadRequestError, ForbiddenError } from "../../common/errors/appError.js";
 import { generateInvoiceNumber, generateReceiptNumber } from "../../common/utils/identifierGenerator.js";
+
 
 
 export class FinanceService {
@@ -524,11 +525,24 @@ export class FinanceService {
     });
   }
 
-  static async deleteExpense(id: string) {
+  static async deleteExpense(id: string, operator: JwtUserPayload) {
     const existing = await prisma.expenseRecord.findUnique({ where: { id } });
     if (!existing) throw new NotFoundError("Expense record not found");
+
+    if (operator.role === UserRole.BRANCH_ADMIN) {
+      if (existing.branchId !== operator.branchId) {
+        throw new ForbiddenError("You do not have permission to delete expenses from other branches.");
+      }
+      if (existing.status === ExpenseStatus.APPROVED) {
+        throw new ForbiddenError("Approved expenses are locked and cannot be deleted by branch administrators.");
+      }
+    } else if (operator.role !== UserRole.SUPER_ADMIN) {
+      throw new ForbiddenError("You do not have permission to delete expense records.");
+    }
+
     return prisma.expenseRecord.delete({ where: { id } });
   }
+
 
   // ========================================================
   // 6. FINANCIAL ANALYTICS & OVERVIEW

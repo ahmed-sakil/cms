@@ -69,4 +69,10 @@ router.post("/students", validateRequest(createStudentSchema), AdminController.c
 router.get("/students", AdminController.listStudents);
 router.get("/students/:id", AdminController.getStudent);
 
+// Testimonials Moderation
+router.get("/testimonials", AdminController.listTestimonials);
+router.patch("/testimonials/:id/status", AdminController.updateTestimonialStatus);
+router.delete("/testimonials/:id", AdminController.deleteTestimonial);
+
 export default router;
+

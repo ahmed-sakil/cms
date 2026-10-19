@@ -205,4 +205,42 @@ export class AdminController {
       next(error);
     }
   }
+
+  // ========================================================
+  // TESTIMONIALS MODERATION
+  // ========================================================
+  static async listTestimonials(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const isApproved =
+        req.query.isApproved === "true"
+          ? true
+          : req.query.isApproved === "false"
+          ? false
+          : undefined;
+      const list = await AdminService.listTestimonials(isApproved);
+      ResponseUtil.success(res, list, "Testimonials retrieved");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateTestimonialStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { isApproved } = req.body;
+      const updated = await AdminService.updateTestimonialStatus(req.params.id, Boolean(isApproved));
+      ResponseUtil.success(res, updated, `Testimonial ${isApproved ? "approved" : "unapproved"}`);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteTestimonial(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await AdminService.deleteTestimonial(req.params.id);
+      ResponseUtil.success(res, null, "Testimonial deleted");
+    } catch (error) {
+      next(error);
+    }
+  }
 }
+

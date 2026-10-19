@@ -49,12 +49,14 @@ export class AcademicOpsController {
 
   static async deleteNotice(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await AcademicOpsService.deleteNotice(req.params.id);
+      if (!req.user) throw new UnauthorizedError();
+      await AcademicOpsService.deleteNotice(req.params.id, req.user);
       ResponseUtil.success(res, null, "Notice deleted successfully");
     } catch (error) {
       next(error);
     }
   }
+
 
   static async togglePinNotice(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {

@@ -55,11 +55,15 @@ export const LoginPage: React.FC = () => {
         throw new Error(json.message || "Invalid credentials");
       }
 
-      const { accessToken, user } = json.data;
+      const { accessToken, refreshToken, user } = json.data;
 
       // Store credentials in localStorage for all API requests
       localStorage.setItem("cms_token", accessToken);
+      if (refreshToken) {
+        localStorage.setItem("cms_refresh_token", refreshToken);
+      }
       localStorage.setItem("cms_user", JSON.stringify(user));
+
 
       toast.success(`Welcome back, ${user.fullName}!`);
 

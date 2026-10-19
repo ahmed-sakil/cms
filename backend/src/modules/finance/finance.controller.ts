@@ -178,12 +178,14 @@ export class FinanceController {
 
   static async deleteExpense(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await FinanceService.deleteExpense(req.params.id);
+      if (!req.user) throw new UnauthorizedError();
+      await FinanceService.deleteExpense(req.params.id, req.user);
       ResponseUtil.success(res, null, "Expense record deleted");
     } catch (error) {
       next(error);
     }
   }
+
 
   // 6. Overview & Analytics
   static async getOverview(req: Request, res: Response, next: NextFunction): Promise<void> {

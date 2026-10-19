@@ -22,7 +22,18 @@ export class AuthController {
     }
   }
 
+  static async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const refreshToken = req.body?.refreshToken || (req.headers["x-refresh-token"] as string);
+      const result = await AuthService.refresh(refreshToken);
+      ResponseUtil.success(res, result, "Session refreshed successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async me(req: Request, res: Response, next: NextFunction): Promise<void> {
+
     try {
       if (!req.user) {
         throw new UnauthorizedError();

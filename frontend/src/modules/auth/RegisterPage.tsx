@@ -183,11 +183,15 @@ export const RegisterPage: React.FC = () => {
         throw new Error(json.message || "Registration failed");
       }
 
-      const { accessToken, user } = json.data;
+      const { accessToken, refreshToken, user } = json.data;
       if (accessToken) {
         localStorage.setItem("cms_token", accessToken);
+        if (refreshToken) {
+          localStorage.setItem("cms_refresh_token", refreshToken);
+        }
         localStorage.setItem("cms_user", JSON.stringify(user));
       }
+
 
       toast.success("Registration successful! Welcome to your student portal.");
       navigate("/student");

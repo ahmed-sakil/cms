@@ -261,12 +261,14 @@ export class BatchController {
 
   static async deleteStudyMaterial(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await BatchService.deleteStudyMaterial(req.params.id);
+      if (!req.user) throw new UnauthorizedError();
+      await BatchService.deleteStudyMaterial(req.params.id, req.user);
       ResponseUtil.success(res, null, "Study material deleted");
     } catch (error) {
       next(error);
     }
   }
+
 
   static async getStudentMaterials(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {

@@ -12,6 +12,8 @@ router.post(
   validateRequest(studentSelfRegisterSchema),
   AuthController.registerStudent
 );
+router.post("/refresh", AuthController.refresh);
 router.get("/me", authGuard, AuthController.me);
+
 
 export default router;

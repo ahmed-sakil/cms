@@ -51,20 +51,14 @@ export const StudentLayout: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  // Ensure active session exists. If token is missing, redirect to login
-  useEffect(() => {
-    const token = localStorage.getItem("cms_token");
-    if (!token) {
-      navigate("/login");
-    }
-  }, [navigate]);
-
   const handleSignOut = () => {
     localStorage.removeItem("cms_token");
+    localStorage.removeItem("cms_refresh_token");
     localStorage.removeItem("cms_user");
     toast.info("Signed out of student portal");
     navigate("/login");
   };
+
 
   const navLinks = [
     { label: "Dashboard Overview", path: "/student", icon: LayoutDashboard, hasSubActions: false },
