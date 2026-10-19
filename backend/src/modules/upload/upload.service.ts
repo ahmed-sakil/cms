@@ -2,10 +2,41 @@ import path from "path";
 import fs from "fs";
 import { createClient } from "@supabase/supabase-js";
 import { BadRequestError } from "../../common/errors/appError.js";
+import { ENV } from "../../config/env.js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL || "https://ajsldyyvaspkxtnvfsxx.supabase.co";
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
-const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || "cms-assets";
+const SUPABASE_URL = ENV.SUPABASE_URL || "https://ajsldyyvaspkxtnvfsxx.supabase.co";
+const SUPABASE_KEY = ENV.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
+const BUCKET_NAME = ENV.SUPABASE_STORAGE_BUCKET || "cms-assets";
+
+const ALLOWED_EXTENSIONS = new Set([
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".gif",
+  ".pdf",
+  ".doc",
+  ".docx",
+]);
+
+const DANGEROUS_EXTENSIONS = new Set([
+  ".html",
+  ".htm",
+  ".svg",
+  ".js",
+  ".jsx",
+  ".ts",
+  ".tsx",
+  ".sh",
+  ".exe",
+  ".php",
+  ".bat",
+  ".cmd",
+  ".ps1",
+  ".vbs",
+  ".jar",
+  ".py",
+]);
 
 export interface UploadResult {
   url: string;
@@ -28,12 +59,19 @@ export class UploadService {
       throw new BadRequestError("No file provided for upload");
     }
 
-    const cleanFolderName = folder.replace(/[^a-zA-Z0-9_-]/g, "");
     const ext = path.extname(file.originalname).toLowerCase();
+    if (DANGEROUS_EXTENSIONS.has(ext) || !ALLOWED_EXTENSIONS.has(ext)) {
+      throw new BadRequestError(
+        `File extension '${ext}' is not permitted. Only images (.jpg, .jpeg, .png, .webp, .gif) and documents (.pdf, .doc, .docx) are allowed.`
+      );
+    }
+
+    const cleanFolderName = folder.replace(/[^a-zA-Z0-9_-]/g, "");
     const cleanBaseName = path
       .basename(file.originalname, ext)
       .replace(/[^a-zA-Z0-9_-]/g, "_")
       .slice(0, 40);
+
     const uniqueFileName = `${cleanBaseName}_${Date.now()}${ext}`;
     const storagePath = `${cleanFolderName}/${uniqueFileName}`;
 

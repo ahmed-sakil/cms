@@ -11,6 +11,8 @@ import type {
   CreateStaffInput,
   UpdateStaffInput,
 } from "../../schemas/index.js";
+import { generateRollNumber } from "../../common/utils/identifierGenerator.js";
+
 
 export class AdminService {
   static async getOverviewMetrics(branchId?: string | null) {
@@ -151,8 +153,9 @@ export class AdminService {
       const count = await prisma.studentProfile.count({
         where: { user: { branchId: input.branchId } },
       });
-      rollNumber = `${year}-${branch.code}-${String(count + 1).padStart(4, "0")}`;
+      rollNumber = generateRollNumber(year, branch.code, count + 1);
     } else {
+
       const existingRoll = await prisma.studentProfile.findUnique({
         where: { rollNumber },
       });

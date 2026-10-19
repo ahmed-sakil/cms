@@ -9,6 +9,8 @@ import {
 } from "./finance.schema.js";
 import { InvoiceStatus, DiscountType } from "../../types/index.js";
 import { NotFoundError, BadRequestError } from "../../common/errors/appError.js";
+import { generateInvoiceNumber, generateReceiptNumber } from "../../common/utils/identifierGenerator.js";
+
 
 export class FinanceService {
   // ========================================================
@@ -196,10 +198,10 @@ export class FinanceService {
     });
     if (!student) throw new NotFoundError("Student record not found");
 
-    const count = await prisma.studentInvoice.count();
-    const invoiceNumber = `INV-${new Date().getFullYear()}-${String(count + 1001).padStart(5, "0")}`;
+    const invoiceNumber = generateInvoiceNumber();
 
     const totalAmount = Math.max(0, input.subtotal - input.discountAmount);
+
     const dueAmount = totalAmount;
 
     return prisma.studentInvoice.create({
@@ -256,7 +258,6 @@ export class FinanceService {
       },
     });
 
-    let currentCount = await prisma.studentInvoice.count();
     const createdInvoices = [];
 
     for (const enrollment of batch.enrollments) {
@@ -279,9 +280,9 @@ export class FinanceService {
         discountReason = `${studentDiscount.name} (${studentDiscount.type === DiscountType.PERCENTAGE ? `${studentDiscount.value}%` : `৳${studentDiscount.value}`})`;
       }
 
-      currentCount += 1;
-      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(currentCount + 1000).padStart(5, "0")}`;
+      const invoiceNumber = generateInvoiceNumber();
       const totalAmount = Math.max(0, input.amount - discountAmount);
+
 
       const inv = await prisma.studentInvoice.create({
         data: {
@@ -322,10 +323,10 @@ export class FinanceService {
     });
     if (!student) throw new NotFoundError("Student not found");
 
-    const paymentCount = await prisma.paymentTransaction.count();
-    const receiptNumber = `RCPT-${new Date().getFullYear()}-${String(paymentCount + 1001).padStart(5, "0")}`;
+    const receiptNumber = generateReceiptNumber();
 
     // Perform transaction to update invoice if linked
+
     const payment = await prisma.$transaction(async (tx: any) => {
       let linkedInvoice = null;
 

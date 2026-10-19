@@ -7,18 +7,53 @@ import { BadRequestError } from "../../common/errors/appError.js";
 
 const uploadRouter = Router();
 
-// Configure multer with memory storage (50MB limit)
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+// Configure multer with memory storage capped at 10MB and strict MIME filtering
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB
+    fileSize: 10 * 1024 * 1024, // 10MB
+  },
+  fileFilter: (_req, file, cb) => {
+    if (!ALLOWED_MIME_TYPES.has(file.mimetype.toLowerCase())) {
+      return cb(
+        new BadRequestError(
+          "Invalid file type. Only images (JPG, PNG, WebP, GIF) and documents (PDF, DOC, DOCX) are permitted."
+        )
+      );
+    }
+    cb(null, true);
   },
 });
+
+const handleMulterUpload = (req: Request, res: Response, next: NextFunction) => {
+  upload.single("file")(req, res, (err: any) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return next(new BadRequestError("File size exceeds the maximum allowed limit of 10MB."));
+        }
+        return next(new BadRequestError(`Upload error: ${err.message}`));
+      }
+      return next(err);
+    }
+    next();
+  });
+};
 
 uploadRouter.post(
   "/",
   authGuard,
-  upload.single("file"),
+  handleMulterUpload,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.file) {
@@ -46,3 +81,4 @@ uploadRouter.post(
 );
 
 export { uploadRouter };
+

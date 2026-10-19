@@ -35,7 +35,14 @@ export const createApp = () => {
   app.use(express.urlencoded({ extended: true }));
 
   // Static directory for uploaded files fallback
-  app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
+  app.use(
+    "/uploads",
+    express.static(path.resolve(process.cwd(), "uploads"), {
+      setHeaders: (res) => {
+        res.setHeader("X-Content-Type-Options", "nosniff");
+      },
+    })
+  );
 
   if (ENV.NODE_ENV !== "test") {
     app.use(morgan("dev"));

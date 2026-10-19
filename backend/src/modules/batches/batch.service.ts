@@ -1,6 +1,8 @@
 import { prisma } from "../../config/prisma.js";
 import { BadRequestError, NotFoundError } from "../../common/errors/appError.js";
-import { BatchStatus, EnrollmentStatus, PaymentMethod } from "@prisma/client";
+import { BatchStatus, EnrollmentStatus, PaymentMethod, InvoiceStatus } from "@prisma/client";
+import { generateInvoiceNumber, generateReceiptNumber } from "../../common/utils/identifierGenerator.js";
+
 import type {
   CreateCourseInput,
   CreateBatchInput,
@@ -503,85 +505,99 @@ export class BatchService {
     adminUserId: string,
     adminNotes?: string
   ) {
-    const enrollment = await prisma.batchEnrollment.findUnique({
-      where: { id: enrollmentId },
-      include: {
-        batch: {
+    if (action === "APPROVE") {
+      return prisma.$transaction(async (tx) => {
+        const enrollment = await tx.batchEnrollment.findUnique({
+          where: { id: enrollmentId },
           include: {
-            enrollments: {
-              where: { status: EnrollmentStatus.ACTIVE },
-              select: { id: true },
+            batch: true,
+            student: {
+              include: { user: true },
             },
           },
-        },
-        student: {
-          include: { user: true },
-        },
-      },
-    });
+        });
 
-    if (!enrollment) {
-      throw new NotFoundError("Enrollment application not found");
-    }
+        if (!enrollment) {
+          throw new NotFoundError("Enrollment application not found");
+        }
 
-    if (action === "APPROVE") {
-      const seatLimit = enrollment.batch.seatLimit || enrollment.batch.maxCapacity || 40;
-      if (enrollment.batch.enrollments.length >= seatLimit) {
-        throw new BadRequestError(
-          `Cannot approve: Physical seat capacity (${seatLimit} seats) for this batch has already been reached.`
-        );
-      }
+        if (enrollment.status === EnrollmentStatus.ACTIVE) {
+          throw new BadRequestError("This enrollment application has already been verified and approved.");
+        }
 
-      const updated = await prisma.batchEnrollment.update({
-        where: { id: enrollmentId },
-        data: {
-          status: EnrollmentStatus.ACTIVE,
-          verifiedAt: new Date(),
-          verifiedById: adminUserId,
-          adminNotes: adminNotes || "Payment verified and seat officially locked.",
-        },
-      });
+        const seatLimit = enrollment.batch.seatLimit || enrollment.batch.maxCapacity || 40;
+        const currentActiveCount = await tx.batchEnrollment.count({
+          where: {
+            batchId: enrollment.batchId,
+            status: EnrollmentStatus.ACTIVE,
+          },
+        });
 
-      // Automatically create verified invoice & payment record
-      try {
+        if (currentActiveCount >= seatLimit) {
+          throw new BadRequestError(
+            `Cannot approve: Physical seat capacity (${seatLimit} seats) for this batch has already been reached.`
+          );
+        }
+
+        const updated = await tx.batchEnrollment.update({
+          where: { id: enrollmentId },
+          data: {
+            status: EnrollmentStatus.ACTIVE,
+            verifiedAt: new Date(),
+            verifiedById: adminUserId,
+            adminNotes: adminNotes || "Payment verified and seat officially locked.",
+          },
+        });
+
         const feeAmount = Number(enrollment.paidAmount || enrollment.batch.feeAmount);
-        const invoice = await prisma.studentInvoice.create({
+        const invoiceNumber = generateInvoiceNumber();
+        const receiptNumber = generateReceiptNumber();
+
+        const invoice = await tx.studentInvoice.create({
           data: {
             studentId: enrollment.studentId,
             batchId: enrollment.batchId,
             branchId: enrollment.batch.branchId,
-            invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
+            invoiceNumber,
             title: `Batch Admission Fee - ${enrollment.batch.name}`,
             subtotal: feeAmount,
             totalAmount: feeAmount,
             paidAmount: feeAmount,
             dueAmount: 0,
-            status: "PAID",
+            status: InvoiceStatus.PAID,
             dueDate: new Date(),
           },
         });
 
-        await prisma.paymentTransaction.create({
+        const payment = await tx.paymentTransaction.create({
           data: {
             invoiceId: invoice.id,
             studentId: enrollment.studentId,
-            receiptNumber: `RCPT-${Date.now().toString().slice(-6)}`,
+            receiptNumber,
             amount: feeAmount,
             method: (enrollment.paymentMethod as any) || PaymentMethod.CASH,
             transactionId: enrollment.transactionId || `TRX-${Date.now()}`,
             collectedById: adminUserId,
           },
         });
-      } catch (err) {
-        console.warn("Could not auto-generate invoice record:", err);
-      }
 
-      return {
-        message: "Admission verified and seat officially reserved!",
-        enrollment: updated,
-      };
+        return {
+          message: "Admission verified and seat officially reserved!",
+          enrollment: updated,
+          invoice,
+          payment,
+        };
+      });
     } else {
       // REJECT_REFUND
+      const enrollment = await prisma.batchEnrollment.findUnique({
+        where: { id: enrollmentId },
+      });
+
+      if (!enrollment) {
+        throw new NotFoundError("Enrollment application not found");
+      }
+
       const updated = await prisma.batchEnrollment.update({
         where: { id: enrollmentId },
         data: {

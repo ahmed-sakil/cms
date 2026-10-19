@@ -5,6 +5,8 @@ import { ENV } from "../../config/env.js";
 import { UnauthorizedError, NotFoundError, BadRequestError } from "../../common/errors/appError.js";
 import { UserRole, type JwtUserPayload, type AuthSessionResponse } from "../../types/index.js";
 import type { LoginInput, StudentSelfRegisterInput } from "../../schemas/index.js";
+import { generateRollNumber, generateReferralCode } from "../../common/utils/identifierGenerator.js";
+
 
 export class AuthService {
   static async login(input: LoginInput): Promise<AuthSessionResponse> {
@@ -88,13 +90,14 @@ export class AuthService {
     // 3. Hash student's strong password
     const passwordHash = await bcrypt.hash(input.password, 10);
 
-    // 4. Auto-generate student roll number & unique referral code
+    // 4. Auto-generate collision-resistant student roll number & unique referral code
     const year = new Date().getFullYear();
     const count = await prisma.studentProfile.count({
       where: { user: { branchId: input.branchId } },
     });
-    const rollNumber = `${year}-${branch.code}-${String(count + 1).padStart(4, "0")}`;
-    const referralCode = `REF-${year}-${branch.code}-${String(count + 1).padStart(4, "0")}`;
+    const rollNumber = generateRollNumber(year, branch.code, count + 1);
+    const referralCode = generateReferralCode(year, branch.code, count + 1);
+
 
     // 4b. Auto-link referring student if referral code provided
     let referredById: string | null = null;
