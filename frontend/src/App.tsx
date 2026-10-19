@@ -45,6 +45,9 @@ const TeachersManagement = lazy(() =>
 const BatchesManagement = lazy(() =>
   import("./modules/admin/BatchesManagement.js").then((m) => ({ default: m.BatchesManagement }))
 );
+const CoursesManagement = lazy(() =>
+  import("./modules/admin/CoursesManagement.js").then((m) => ({ default: m.CoursesManagement }))
+);
 const StudyMaterialsManagement = lazy(() =>
   import("./modules/admin/StudyMaterialsManagement.js").then((m) => ({
     default: m.StudyMaterialsManagement,
@@ -154,7 +157,7 @@ export function App() {
             <Route path="teachers" element={<TeachersManagement />} />
             <Route path="batches" element={<BatchesManagement />} />
             <Route path="materials" element={<StudyMaterialsManagement />} />
-            <Route path="courses" element={<AdminDashboard />} />
+            <Route path="courses" element={<CoursesManagement />} />
             <Route path="exams" element={<ExamsAndResultsManagement />} />
             <Route path="notices" element={<NoticesManagement />} />
             <Route path="fees" element={<FeesAndAccountsManagement />} />

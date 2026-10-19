@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Crown,
   Receipt,
+  GraduationCap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "../lib/theme.js";
@@ -86,6 +87,7 @@ export const AdminLayout: React.FC = () => {
     { label: "Students Directory", path: "/admin/students", icon: Users, hasSubActions: true },
     { label: "Faculty & Staff", path: "/admin/teachers", icon: UserCheck, hasSubActions: true },
     { label: "Batches & Classrooms", path: "/admin/batches", icon: Calendar, hasSubActions: true },
+    { label: "Courses & Curriculums", path: "/admin/courses", icon: GraduationCap, hasSubActions: true },
     { label: "Study Materials", path: "/admin/materials", icon: FileText, hasSubActions: true },
     { label: "Exams & Marksheets", path: "/admin/exams", icon: Award, hasSubActions: true },
     { label: "Notice Board", path: "/admin/notices", icon: Bell, hasSubActions: true },
