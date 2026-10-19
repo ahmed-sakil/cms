@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Users,
   Search,
@@ -22,6 +23,7 @@ import { Gender, BranchRecord } from "../../types/index.js";
 import { StudentIdCardModal, StudentIdCardData } from "../../components/StudentIdCardModal.js";
 
 export const StudentsManagement: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -121,6 +123,15 @@ export const StudentsManagement: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [selectedBranchId]);
+
+  useEffect(() => {
+    if (searchParams.get("action") === "admit") {
+      handleOpenAdmissionModal();
+      const updated = new URLSearchParams(searchParams);
+      updated.delete("action");
+      setSearchParams(updated, { replace: true });
+    }
+  }, [searchParams]);
 
   const handleOpenAdmissionModal = () => {
     setShowPassword(false);

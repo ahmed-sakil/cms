@@ -550,51 +550,57 @@ export class FinanceService {
   static async getOverview(branchId?: string) {
     const branchFilter = branchId ? { branchId } : {};
 
-    // 1. Invoices Aggregation
-    const invoices = await prisma.studentInvoice.findMany({
+    // 1. Invoices SQL Aggregation
+    const invoiceAgg = await prisma.studentInvoice.aggregate({
       where: branchFilter,
-      select: {
+      _sum: {
         subtotal: true,
         discountAmount: true,
-        totalAmount: true,
         paidAmount: true,
         dueAmount: true,
-        status: true,
       },
     });
 
-    let totalBilled = 0;
-    let totalDiscount = 0;
-    let totalCollected = 0;
-    let totalOutstanding = 0;
+    const totalBilled = Number(invoiceAgg._sum.subtotal || 0);
+    const totalDiscount = Number(invoiceAgg._sum.discountAmount || 0);
+    const totalCollected = Number(invoiceAgg._sum.paidAmount || 0);
+    const totalOutstanding = Number(invoiceAgg._sum.dueAmount || 0);
 
-    for (const inv of invoices) {
-      totalBilled += Number(inv.subtotal);
-      totalDiscount += Number(inv.discountAmount);
-      totalCollected += Number(inv.paidAmount);
-      totalOutstanding += Number(inv.dueAmount);
-    }
-
-    // 2. Expenses Aggregation
-    const expenses = await prisma.expenseRecord.findMany({
-      where: branchFilter,
-      select: { amount: true, category: true, status: true },
-    });
+    // 2. Expenses SQL Aggregations (Status & Category)
+    const [expensesByStatus, approvedByCategory] = await Promise.all([
+      prisma.expenseRecord.groupBy({
+        by: ["status"],
+        where: branchFilter,
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
+      prisma.expenseRecord.groupBy({
+        by: ["category"],
+        where: {
+          ...branchFilter,
+          status: ExpenseStatus.APPROVED,
+        },
+        _sum: { amount: true },
+      }),
+    ]);
 
     let totalExpenses = 0;
     let totalPendingExpenses = 0;
     let pendingExpenseCount = 0;
-    const expenseByCategory: Record<string, number> = {};
 
-    for (const exp of expenses) {
-      const amt = Number(exp.amount);
-      if (exp.status === "APPROVED") {
-        totalExpenses += amt;
-        expenseByCategory[exp.category] = (expenseByCategory[exp.category] || 0) + amt;
-      } else if (exp.status === "PENDING") {
-        totalPendingExpenses += amt;
-        pendingExpenseCount += 1;
+    for (const group of expensesByStatus) {
+      const sum = Number(group._sum.amount || 0);
+      if (group.status === "APPROVED") {
+        totalExpenses = sum;
+      } else if (group.status === "PENDING") {
+        totalPendingExpenses = sum;
+        pendingExpenseCount = group._count.id;
       }
+    }
+
+    const expenseByCategory: Record<string, number> = {};
+    for (const catGroup of approvedByCategory) {
+      expenseByCategory[catGroup.category] = Number(catGroup._sum.amount || 0);
     }
 
     // 3. Net Cash Flow & Balance

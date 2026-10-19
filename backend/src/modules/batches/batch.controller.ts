@@ -3,7 +3,6 @@ import { BatchService } from "./batch.service.js";
 import { AcademicClassService } from "./academicClass.service.js";
 import { ResponseUtil } from "../../common/utils/apiResponse.js";
 import { UnauthorizedError, ForbiddenError } from "../../common/errors/appError.js";
-import { prisma } from "../../config/prisma.js";
 import type { BatchStatus, ClassCategory } from "@prisma/client";
 
 export class BatchController {
@@ -121,20 +120,7 @@ export class BatchController {
 
   static async updateBatch(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      if (req.user?.role === "BRANCH_ADMIN") {
-        const existing = await prisma.batch.findUnique({
-          where: { id: req.params.id },
-          select: { branchId: true },
-        });
-        if (existing && req.user.branchId && existing.branchId !== req.user.branchId) {
-          throw new ForbiddenError("Branch administrators cannot modify batches of other campuses.");
-        }
-        if (req.body.branchId && req.body.branchId !== req.user.branchId) {
-          delete req.body.branchId;
-        }
-      }
-
-      const updated = await BatchService.updateBatch(req.params.id, req.body);
+      const updated = await BatchService.updateBatch(req.params.id, req.body, req.user);
       ResponseUtil.success(res, updated, "Batch details updated successfully");
     } catch (error) {
       next(error);
@@ -143,17 +129,7 @@ export class BatchController {
 
   static async deleteBatch(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      if (req.user?.role === "BRANCH_ADMIN") {
-        const existing = await prisma.batch.findUnique({
-          where: { id: req.params.id },
-          select: { branchId: true },
-        });
-        if (existing && req.user.branchId && existing.branchId !== req.user.branchId) {
-          throw new ForbiddenError("Branch administrators cannot delete batches of other campuses.");
-        }
-      }
-
-      await BatchService.deleteBatch(req.params.id);
+      await BatchService.deleteBatch(req.params.id, req.user);
       ResponseUtil.success(res, null, "Batch cancelled successfully");
     } catch (error) {
       next(error);

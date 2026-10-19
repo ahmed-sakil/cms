@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { PaymentMethod, InvoiceStatus, DiscountType } from "../../types/index.js";
 import { PrintableReceiptModal, ReceiptData } from "../../components/PrintableReceiptModal.js";
+import { formatCurrency } from "../../lib/formatters.js";
 
 interface InvoiceItem {
   id: string;
@@ -434,7 +435,7 @@ export const FeesAndAccountsManagement: React.FC = () => {
             <Receipt className="w-4 h-4 text-brand-primary" />
           </div>
           <p className="text-xl font-black text-text-main">
-            ৳{overview.totalBilled.toLocaleString()}
+            {formatCurrency(overview.totalBilled)}
           </p>
           <p className="text-[10px] text-text-muted">Gross billed to students</p>
         </div>
@@ -445,7 +446,7 @@ export const FeesAndAccountsManagement: React.FC = () => {
             <TrendingUp className="w-4 h-4 text-green-600" />
           </div>
           <p className="text-xl font-black text-green-700">
-            ৳{overview.totalCollected.toLocaleString()}
+            {formatCurrency(overview.totalCollected)}
           </p>
           <p className="text-[10px] text-green-600 font-medium">Realized revenue</p>
         </div>
@@ -456,7 +457,7 @@ export const FeesAndAccountsManagement: React.FC = () => {
             <AlertCircle className="w-4 h-4 text-orange-600" />
           </div>
           <p className="text-xl font-black text-orange-600">
-            ৳{overview.totalOutstanding.toLocaleString()}
+            {formatCurrency(overview.totalOutstanding)}
           </p>
           <p className="text-[10px] text-orange-600 font-medium">Pending student receivables</p>
         </div>
@@ -467,7 +468,7 @@ export const FeesAndAccountsManagement: React.FC = () => {
             <TrendingDown className="w-4 h-4 text-red-600" />
           </div>
           <p className="text-xl font-black text-red-600">
-            ৳{overview.totalExpenses.toLocaleString()}
+            {formatCurrency(overview.totalExpenses)}
           </p>
           <p className="text-[10px] text-red-600 font-medium">Rent, salaries & utilities</p>
         </div>
@@ -482,7 +483,7 @@ export const FeesAndAccountsManagement: React.FC = () => {
               overview.netOperatingBalance >= 0 ? "text-green-700" : "text-red-600"
             }`}
           >
-            ৳{overview.netOperatingBalance.toLocaleString()}
+            {formatCurrency(overview.netOperatingBalance)}
           </p>
           <p className="text-[10px] text-text-muted">Operating cash surplus</p>
         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Calendar,
   Plus,
@@ -82,6 +82,8 @@ interface RosterStudent {
 }
 
 export const BatchesManagement: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<"batches" | "admissions" | "classes" | "courses">("batches");
 
@@ -279,6 +281,15 @@ export const BatchesManagement: React.FC = () => {
     });
     setIsBatchModalOpen(true);
   };
+
+  useEffect(() => {
+    if (searchParams.get("action") === "create") {
+      handleOpenCreateBatch();
+      const updated = new URLSearchParams(searchParams);
+      updated.delete("action");
+      setSearchParams(updated, { replace: true });
+    }
+  }, [searchParams]);
 
   const handleOpenEditBatch = (batch: BatchRecordItem) => {
     setEditingBatch(batch);

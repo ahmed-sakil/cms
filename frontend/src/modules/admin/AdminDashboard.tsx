@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Users,
   Calendar,
@@ -7,22 +8,129 @@ import {
   Building2,
   Plus,
   UserPlus,
+  RefreshCw,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiClient } from "../../lib/apiClient.js";
+import { formatCurrency, formatDate, formatNumber } from "../../lib/formatters.js";
+
+interface AdminMetrics {
+  totalStudents: number;
+  totalBatches: number;
+  totalCourses: number;
+  activeBranches: number;
+}
+
+interface FinanceOverview {
+  totalBilled: number;
+  totalCollected: number;
+  totalOutstanding: number;
+  totalExpenses: number;
+  netOperatingBalance: number;
+}
+
+interface StudentItem {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  rollNumber?: string | null;
+  branch?: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
+  enrollments?: Array<{
+    batch?: {
+      id: string;
+      name: string;
+      course?: {
+        name: string;
+      } | null;
+    } | null;
+  }>;
+  createdAt: string;
+}
 
 export const AdminDashboard: React.FC = () => {
-  const stats = [
-    { label: "Active Students", value: "1,248", change: "+12% this month", icon: Users },
-    { label: "Ongoing Batches", value: "28", change: "4 starting next week", icon: Calendar },
-    { label: "Total Courses", value: "14", change: "3 branches active", icon: GraduationCap },
-    { label: "Monthly Collections", value: "৳ 8,42,000", change: "92% collected", icon: TrendingUp },
-  ];
+  const navigate = useNavigate();
 
-  const recentAdmissions = [
-    { id: "1", name: "Samiul Islam", roll: "2026-DH-0199", course: "Higher Mathematics", branch: "Dhanmondi", status: "ACTIVE" },
-    { id: "2", name: "Farhana Akter", roll: "2026-UT-0145", course: "HSC Higher English", branch: "Uttara", status: "ACTIVE" },
-    { id: "3", name: "Nayeem Rahman", roll: "2026-MP-0082", course: "Physics Fundamentals", branch: "Mirpur", status: "PENDING_VERIFICATION" },
-    { id: "4", name: "Ayesha Siddiqua", roll: "2026-DH-0200", course: "Higher Mathematics", branch: "Dhanmondi", status: "ACTIVE" },
+  const [isLoading, setIsLoading] = useState(true);
+  const [metrics, setMetrics] = useState<AdminMetrics>({
+    totalStudents: 0,
+    totalBatches: 0,
+    totalCourses: 0,
+    activeBranches: 0,
+  });
+
+  const [financials, setFinancials] = useState<FinanceOverview>({
+    totalBilled: 0,
+    totalCollected: 0,
+    totalOutstanding: 0,
+    totalExpenses: 0,
+    netOperatingBalance: 0,
+  });
+
+  const [recentAdmissions, setRecentAdmissions] = useState<StudentItem[]>([]);
+
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      const [metricsRes, studentsRes, financeRes] = await Promise.allSettled([
+        apiClient.get<AdminMetrics>("/admin/metrics"),
+        apiClient.get<{ items: StudentItem[]; meta: any }>("/admin/students?limit=5"),
+        apiClient.get<FinanceOverview>("/finance/overview"),
+      ]);
+
+      if (metricsRes.status === "fulfilled" && metricsRes.value.success && metricsRes.value.data) {
+        setMetrics(metricsRes.value.data);
+      }
+
+      if (studentsRes.status === "fulfilled" && studentsRes.value.success && studentsRes.value.data) {
+        const items = studentsRes.value.data.items || (Array.isArray(studentsRes.value.data) ? studentsRes.value.data : []);
+        setRecentAdmissions(items);
+      }
+
+      if (financeRes.status === "fulfilled" && financeRes.value.success && financeRes.value.data) {
+        setFinancials(financeRes.value.data);
+      }
+    } catch {
+      toast.error("Failed to load dashboard metrics");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const stats = [
+    {
+      label: "Active Students",
+      value: formatNumber(metrics.totalStudents),
+      change: `Across ${metrics.activeBranches || 1} campus${metrics.activeBranches === 1 ? "" : "es"}`,
+      icon: Users,
+    },
+    {
+      label: "Ongoing Batches",
+      value: formatNumber(metrics.totalBatches),
+      change: "Active cohorts scheduled",
+      icon: Calendar,
+    },
+    {
+      label: "Total Courses",
+      value: formatNumber(metrics.totalCourses),
+      change: "Standardized curriculums",
+      icon: GraduationCap,
+    },
+    {
+      label: "Total Collections",
+      value: formatCurrency(financials.totalCollected),
+      change: `Net: ${formatCurrency(financials.netOperatingBalance)}`,
+      icon: TrendingUp,
+    },
   ];
 
   return (
@@ -38,15 +146,22 @@ export const AdminDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => toast.info("Opening Student Admission Modal")}
+            onClick={fetchDashboardData}
+            title="Refresh metrics"
+            className="p-1.5 bg-surface border border-accent text-text-muted hover:text-text-main rounded-sm hover:bg-accent-subtle transition-colors shadow-xs"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          </button>
+          <button
+            onClick={() => navigate("/admin/students?action=admit")}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:bg-brand-hover shadow-xs transition-colors"
           >
             <UserPlus className="w-3.5 h-3.5" /> New Admission
           </button>
           <button
-            onClick={() => toast.info("Opening Batch Scheduling Wizard")}
+            onClick={() => navigate("/admin/batches?action=create")}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-accent text-text-main text-xs font-semibold rounded-sm hover:bg-accent-subtle transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> Create Batch
@@ -67,7 +182,9 @@ export const AdminDashboard: React.FC = () => {
                 <span className="text-xs font-medium">{stat.label}</span>
                 <Icon className="w-4 h-4 text-brand-primary" />
               </div>
-              <p className="text-2xl font-black text-text-main">{stat.value}</p>
+              <p className="text-2xl font-black text-text-main">
+                {isLoading ? "—" : stat.value}
+              </p>
               <p className="text-[11px] text-green-600 dark:text-green-400 font-medium">
                 {stat.change}
               </p>
@@ -84,10 +201,10 @@ export const AdminDashboard: React.FC = () => {
             <p className="text-xs text-text-muted">Newly registered students across all active branches.</p>
           </div>
           <button
-            onClick={() => toast.success("Refreshed recent admissions records")}
-            className="text-xs text-brand-primary font-semibold hover:underline"
+            onClick={() => navigate("/admin/students")}
+            className="flex items-center gap-1 text-xs text-brand-primary font-semibold hover:underline"
           >
-            View All →
+            View All <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
@@ -97,33 +214,49 @@ export const AdminDashboard: React.FC = () => {
               <tr>
                 <th className="py-2.5 px-4 font-semibold">Student Name</th>
                 <th className="py-2.5 px-4 font-semibold">Roll Number</th>
-                <th className="py-2.5 px-4 font-semibold">Course</th>
-                <th className="py-2.5 px-4 font-semibold">Branch</th>
-                <th className="py-2.5 px-4 font-semibold">Status</th>
+                <th className="py-2.5 px-4 font-semibold">Course / Batch</th>
+                <th className="py-2.5 px-4 font-semibold">Campus</th>
+                <th className="py-2.5 px-4 font-semibold">Admission Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-accent">
-              {recentAdmissions.map((student) => (
-                <tr key={student.id} className="hover:bg-accent-subtle/50 transition-colors">
-                  <td className="py-3 px-4 font-medium text-text-main">{student.name}</td>
-                  <td className="py-3 px-4 font-mono text-[11px] text-text-muted">{student.roll}</td>
-                  <td className="py-3 px-4 text-text-main">{student.course}</td>
-                  <td className="py-3 px-4 flex items-center gap-1 text-text-muted">
-                    <Building2 className="w-3 h-3 text-brand-primary" /> {student.branch}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-sm ${
-                        student.status === "ACTIVE"
-                          ? "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300"
-                          : "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-                      }`}
-                    >
-                      {student.status}
-                    </span>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-text-muted text-xs">
+                    Loading recent admissions records...
                   </td>
                 </tr>
-              ))}
+              ) : recentAdmissions.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-text-muted text-xs">
+                    No recent admissions found. Click &quot;New Admission&quot; to admit a student.
+                  </td>
+                </tr>
+              ) : (
+                recentAdmissions.map((student) => {
+                  const firstEnrollment = student.enrollments?.[0];
+                  const courseName =
+                    firstEnrollment?.batch?.course?.name ||
+                    firstEnrollment?.batch?.name ||
+                    "General";
+
+                  return (
+                    <tr key={student.id} className="hover:bg-accent-subtle/50 transition-colors">
+                      <td className="py-3 px-4 font-medium text-text-main">{student.fullName}</td>
+                      <td className="py-3 px-4 font-mono text-[11px] text-brand-primary font-semibold">
+                        {student.rollNumber || "PENDING"}
+                      </td>
+                      <td className="py-3 px-4 text-text-main">{courseName}</td>
+                      <td className="py-3 px-4 flex items-center gap-1 text-text-muted">
+                        <Building2 className="w-3 h-3 text-brand-primary" /> {student.branch?.name || "Main Campus"}
+                      </td>
+                      <td className="py-3 px-4 text-text-muted">
+                        {formatDate(student.createdAt)}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

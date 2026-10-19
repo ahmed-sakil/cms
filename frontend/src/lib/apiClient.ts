@@ -44,7 +44,15 @@ export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {})
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(input, { ...init, headers });
+  // Normalize relative paths with API_BASE
+  let targetUrl = input;
+  if (typeof input === "string") {
+    if (!input.startsWith("http") && !input.startsWith("/api")) {
+      targetUrl = input.startsWith("/") ? `${API_BASE}${input}` : `${API_BASE}/${input}`;
+    }
+  }
+
+  const response = await fetch(targetUrl, { ...init, headers });
 
   // Handle token expiry / 401
   if (response.status === 401) {

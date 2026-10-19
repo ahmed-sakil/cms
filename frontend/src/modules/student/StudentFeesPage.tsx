@@ -7,6 +7,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import { PrintableReceiptModal, ReceiptData } from "../../components/PrintableReceiptModal.js";
+import { formatCurrency, formatDate } from "../../lib/formatters.js";
 
 interface StudentInvoice {
   id: string;
@@ -133,7 +134,7 @@ export const StudentFeesPage: React.FC = () => {
             <span className="text-xs font-medium">Total Billed Fees</span>
             <Receipt className="w-4 h-4 text-brand-primary" />
           </div>
-          <p className="text-2xl font-black text-text-main">৳{totalInvoiced.toLocaleString()}</p>
+          <p className="text-2xl font-black text-text-main">{formatCurrency(totalInvoiced)}</p>
           <p className="text-[11px] text-text-muted">Assigned batch fees</p>
         </div>
 
@@ -142,7 +143,7 @@ export const StudentFeesPage: React.FC = () => {
             <span className="text-xs font-medium text-green-700">Total Paid</span>
             <CheckCircle2 className="w-4 h-4 text-green-600" />
           </div>
-          <p className="text-2xl font-black text-green-700">৳{totalPaid.toLocaleString()}</p>
+          <p className="text-2xl font-black text-green-700">{formatCurrency(totalPaid)}</p>
           <p className="text-[11px] text-green-600 font-medium">Verified payments to date</p>
         </div>
 
@@ -151,7 +152,7 @@ export const StudentFeesPage: React.FC = () => {
             <span className="text-xs font-medium text-red-600">Current Due Balance</span>
             <AlertCircle className="w-4 h-4 text-red-600" />
           </div>
-          <p className="text-2xl font-black text-red-600">৳{totalDue.toLocaleString()}</p>
+          <p className="text-2xl font-black text-red-600">{formatCurrency(totalDue)}</p>
           <p className="text-[11px] text-red-600 font-medium">Please clear by due date</p>
         </div>
       </div>
@@ -239,16 +240,16 @@ export const StudentFeesPage: React.FC = () => {
                         )}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-text-main">
-                        ৳{Number(inv.totalAmount).toLocaleString()}
+                        {formatCurrency(inv.totalAmount)}
                       </td>
                       <td className="py-3 px-4 text-right font-mono text-green-700">
-                        ৳{Number(inv.paidAmount).toLocaleString()}
+                        {formatCurrency(inv.paidAmount)}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-red-600">
-                        ৳{Number(inv.dueAmount).toLocaleString()}
+                        {formatCurrency(inv.dueAmount)}
                       </td>
                       <td className="py-3 px-4 text-text-muted font-mono">
-                        {new Date(inv.dueDate).toLocaleDateString()}
+                        {formatDate(inv.dueDate)}
                       </td>
                       <td className="py-3 px-4">
                         <span

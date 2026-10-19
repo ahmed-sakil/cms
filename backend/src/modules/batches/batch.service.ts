@@ -281,10 +281,19 @@ export class BatchService {
     });
   }
 
-  static async updateBatch(id: string, input: UpdateBatchInput) {
+  static async updateBatch(id: string, input: UpdateBatchInput, user?: JwtUserPayload) {
     const existing = await prisma.batch.findUnique({ where: { id } });
     if (!existing || existing.deletedAt) {
       throw new NotFoundError("Batch not found");
+    }
+
+    if (user?.role === UserRole.BRANCH_ADMIN) {
+      if (user.branchId && existing.branchId !== user.branchId) {
+        throw new ForbiddenError("Branch administrators cannot modify batches of other campuses.");
+      }
+      if (input.branchId && input.branchId !== user.branchId) {
+        delete input.branchId;
+      }
     }
 
     const seatCap = input.seatLimit !== undefined ? input.seatLimit : input.maxCapacity !== undefined ? input.maxCapacity : undefined;
@@ -326,12 +335,18 @@ export class BatchService {
     });
   }
 
-  static async deleteBatch(id: string) {
+  static async deleteBatch(id: string, user?: JwtUserPayload) {
     const existing = await prisma.batch.findUnique({
       where: { id },
       include: { _count: { select: { enrollments: true } } },
     });
     if (!existing || existing.deletedAt) throw new NotFoundError("Batch not found");
+
+    if (user?.role === UserRole.BRANCH_ADMIN) {
+      if (user.branchId && existing.branchId !== user.branchId) {
+        throw new ForbiddenError("Branch administrators cannot delete batches of other campuses.");
+      }
+    }
 
     if (existing._count.enrollments > 0) {
       // Soft-delete if active enrollments exist
