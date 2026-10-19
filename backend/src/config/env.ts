@@ -62,6 +62,6 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-export const ENV = parsed.data;
+export const ENV = parsed.data!;
 export type EnvConfig = typeof ENV;
 
