@@ -7,9 +7,11 @@ import {
   SubmitExamMarksInput,
   RequestReferralPayoutInput,
   SettleReferralPayoutInput,
+  RecordAttendanceInput,
 } from "./academic-ops.schema.js";
 import { BadRequestError, NotFoundError, ForbiddenError } from "../../common/errors/appError.js";
 import { UserRole, type JwtUserPayload } from "../../types/index.js";
+import { AttendanceStatus, EnrollmentStatus, ExamType, PayoutStatus } from "@prisma/client";
 import { PublicService } from "../public/public.service.js";
 
 
@@ -214,7 +216,7 @@ export class AcademicOpsService {
         batchId: input.batchId,
         title: input.title,
         subject: input.subject || null,
-        examType: input.examType,
+        examType: input.examType as ExamType,
         totalMarks: input.totalMarks,
         passMarks: input.passMarks,
         examDate: new Date(input.examDate),
@@ -235,7 +237,7 @@ export class AcademicOpsService {
       data: {
         ...(input.title ? { title: input.title } : {}),
         ...(input.subject !== undefined ? { subject: input.subject || null } : {}),
-        ...(input.examType ? { examType: input.examType } : {}),
+        ...(input.examType ? { examType: input.examType as ExamType } : {}),
         ...(input.totalMarks ? { totalMarks: input.totalMarks } : {}),
         ...(input.passMarks ? { passMarks: input.passMarks } : {}),
         ...(input.examDate ? { examDate: new Date(input.examDate) } : {}),
@@ -262,11 +264,38 @@ export class AcademicOpsService {
   }
 
   static async submitExamMarks(examId: string, input: SubmitExamMarksInput) {
-    const exam = await prisma.exam.findUnique({ where: { id: examId } });
+    const exam = await prisma.exam.findUnique({
+      where: { id: examId },
+      include: {
+        batch: {
+          include: {
+            enrollments: {
+              where: { status: EnrollmentStatus.ACTIVE },
+              select: { studentId: true },
+            },
+          },
+        },
+      },
+    });
     if (!exam) throw new NotFoundError("Exam not found");
 
     const totalMarksNum = Number(exam.totalMarks);
     const passMarksNum = Number(exam.passMarks);
+    const activeStudentIds = new Set(exam.batch.enrollments.map((e) => e.studentId));
+
+    // Validate scores first
+    for (const item of input.scores) {
+      if (item.marksObtained < 0 || item.marksObtained > totalMarksNum) {
+        throw new BadRequestError(
+          `Marks obtained (${item.marksObtained}) must be between 0 and total marks (${totalMarksNum})`
+        );
+      }
+      if (!activeStudentIds.has(item.studentId)) {
+        throw new BadRequestError(
+          `Student (ID: ${item.studentId}) is not actively enrolled in batch '${exam.batch.name}'`
+        );
+      }
+    }
 
     // Sort scores descending to calculate ranks
     const sortedScores = [...input.scores].sort(
@@ -488,7 +517,7 @@ export class AcademicOpsService {
 
   static async listReferralPayouts(status?: string) {
     return prisma.referralPayout.findMany({
-      where: status && status !== "ALL" ? { status } : {},
+      where: status && status !== "ALL" ? { status: status as PayoutStatus } : {},
       include: {
         student: {
           select: {
@@ -514,7 +543,7 @@ export class AcademicOpsService {
     return prisma.referralPayout.update({
       where: { id: payoutId },
       data: {
-        status: input.status,
+        status: input.status as PayoutStatus,
         transactionId: input.transactionId || null,
         notes: input.notes || null,
         paidAt: input.status === "PAID" ? new Date() : null,
@@ -528,6 +557,132 @@ export class AcademicOpsService {
           },
         },
       },
+    });
+  }
+
+  // ========================================================
+  // 5. ATTENDANCE MANAGEMENT
+  // ========================================================
+  static async recordBatchAttendance(
+    batchId: string,
+    input: RecordAttendanceInput,
+    operator?: { role?: string; branchId?: string | null }
+  ) {
+    const batch = await prisma.batch.findUnique({
+      where: { id: batchId },
+      include: {
+        enrollments: {
+          where: { status: EnrollmentStatus.ACTIVE },
+          select: { studentId: true },
+        },
+      },
+    });
+
+    if (!batch || batch.deletedAt) throw new NotFoundError("Batch not found");
+
+    if (operator?.role === "BRANCH_ADMIN" && operator.branchId && batch.branchId !== operator.branchId) {
+      throw new ForbiddenError("Cannot manage attendance for batches outside your assigned branch");
+    }
+
+    const activeStudentIds = new Set(batch.enrollments.map((e) => e.studentId));
+    const sessionDate = new Date(input.date);
+    const dateOnly = new Date(Date.UTC(sessionDate.getUTCFullYear(), sessionDate.getUTCMonth(), sessionDate.getUTCDate()));
+
+    const results = [];
+    for (const record of input.records) {
+      if (!activeStudentIds.has(record.studentId)) {
+        throw new BadRequestError(`Student (ID: ${record.studentId}) is not actively enrolled in batch '${batch.name}'`);
+      }
+
+      const res = await prisma.attendance.upsert({
+        where: {
+          batchId_studentId_date: {
+            batchId,
+            studentId: record.studentId,
+            date: dateOnly,
+          },
+        },
+        create: {
+          batchId,
+          studentId: record.studentId,
+          date: dateOnly,
+          status: record.status as AttendanceStatus,
+          remarks: record.remarks || null,
+        },
+        update: {
+          status: record.status as AttendanceStatus,
+          remarks: record.remarks || null,
+        },
+        include: {
+          student: {
+            select: {
+              rollNumber: true,
+              user: { select: { fullName: true } },
+            },
+          },
+        },
+      });
+
+      results.push(res);
+    }
+
+    return {
+      batchId,
+      batchName: batch.name,
+      date: dateOnly.toISOString().split("T")[0],
+      totalMarked: results.length,
+      records: results,
+    };
+  }
+
+  static async getBatchAttendance(
+    batchId: string,
+    date?: string,
+    operator?: { role?: string; branchId?: string | null }
+  ) {
+    const batch = await prisma.batch.findUnique({ where: { id: batchId } });
+    if (!batch || batch.deletedAt) throw new NotFoundError("Batch not found");
+
+    if (operator?.role === "BRANCH_ADMIN" && operator.branchId && batch.branchId !== operator.branchId) {
+      throw new ForbiddenError("Cannot view attendance for batches outside your assigned branch");
+    }
+
+    let dateFilter: Date | undefined;
+    if (date) {
+      const parsed = new Date(date);
+      dateFilter = new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+    }
+
+    return prisma.attendance.findMany({
+      where: {
+        batchId,
+        ...(dateFilter ? { date: dateFilter } : {}),
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            rollNumber: true,
+            user: { select: { fullName: true, email: true, phone: true } },
+          },
+        },
+      },
+      orderBy: [{ date: "desc" }, { student: { rollNumber: "asc" } }],
+    });
+  }
+
+  static async getStudentAttendanceHistory(userId: string) {
+    const student = await prisma.studentProfile.findUnique({
+      where: { userId },
+    });
+    if (!student) throw new NotFoundError("Student profile not found");
+
+    return prisma.attendance.findMany({
+      where: { studentId: student.id },
+      include: {
+        batch: { select: { id: true, name: true } },
+      },
+      orderBy: { date: "desc" },
     });
   }
 }

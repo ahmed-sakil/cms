@@ -138,6 +138,15 @@ export const apiClient = {
     });
     return res.json();
   },
+  async put<T>(url: string, data?: any, init?: RequestInit): Promise<ApiResponse<T>> {
+    const isFormData = data instanceof FormData;
+    const res = await apiFetch(url, {
+      ...init,
+      method: "PUT",
+      body: isFormData ? data : JSON.stringify(data),
+    });
+    return res.json();
+  },
   async delete<T>(url: string, init?: RequestInit): Promise<ApiResponse<T>> {
     const res = await apiFetch(url, { ...init, method: "DELETE" });
     return res.json();

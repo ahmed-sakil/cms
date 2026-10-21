@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { AcademicOpsController } from "./academic-ops.controller.js";
 import { authGuard } from "../../middleware/authGuard.js";
+import { branchContext } from "../../middleware/branchContext.js";
 import { roleGuard } from "../../middleware/roleGuard.js";
 import { validateRequest } from "../../middleware/validateRequest.js";
 import {
@@ -10,19 +11,23 @@ import {
   updateExamSchema,
   submitExamMarksSchema,
   settleReferralPayoutSchema,
+  recordAttendanceSchema,
 } from "./academic-ops.schema.js";
 import { UserRole } from "../../types/index.js";
 
 const router = Router();
 
+// Protect all academic ops routes with authGuard and branchContext
+router.use(authGuard);
+router.use(branchContext);
+
 // ==========================================
 // NOTICES
 // ==========================================
 // Authenticated notice list (includes private batch notices)
-router.get("/notices", authGuard, AcademicOpsController.listNotices);
+router.get("/notices", AcademicOpsController.listNotices);
 router.post(
   "/notices",
-  authGuard,
   roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN, UserRole.STAFF]),
   validateRequest(createNoticeSchema),
   AcademicOpsController.createNotice
@@ -91,10 +96,29 @@ router.get(
 );
 router.patch(
   "/referrals/payouts/:id",
-  authGuard,
   roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN]),
   validateRequest(settleReferralPayoutSchema),
   AcademicOpsController.settleReferralPayout
+);
+
+// ==========================================
+// ATTENDANCE MANAGEMENT
+// ==========================================
+router.post(
+  "/batches/:id/attendance",
+  roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN, UserRole.TEACHER, UserRole.STAFF]),
+  validateRequest(recordAttendanceSchema),
+  AcademicOpsController.recordAttendance
+);
+router.get(
+  "/batches/:id/attendance",
+  roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN, UserRole.TEACHER, UserRole.STAFF]),
+  AcademicOpsController.getBatchAttendance
+);
+router.get(
+  "/student/attendance",
+  roleGuard([UserRole.STUDENT]),
+  AcademicOpsController.getStudentAttendance
 );
 
 export default router;

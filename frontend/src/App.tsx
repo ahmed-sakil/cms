@@ -56,6 +56,16 @@ const AdminDashboard = lazy(() =>
 const StudentsManagement = lazy(() =>
   import("./modules/admin/StudentsManagement.js").then((m) => ({ default: m.StudentsManagement }))
 );
+const StudentProfileAdminView = lazy(() =>
+  import("./modules/admin/StudentProfileAdminView.js").then((m) => ({
+    default: m.StudentProfileAdminView,
+  }))
+);
+const BatchAdmissionPage = lazy(() =>
+  import("./modules/admin/BatchAdmissionPage.js").then((m) => ({
+    default: m.BatchAdmissionPage,
+  }))
+);
 const BranchesManagement = lazy(() =>
   import("./modules/admin/BranchesManagement.js").then((m) => ({ default: m.BranchesManagement }))
 );
@@ -176,6 +186,8 @@ export function App() {
           >
             <Route index element={<AdminDashboard />} />
             <Route path="students" element={<StudentsManagement />} />
+            <Route path="students/:id" element={<StudentProfileAdminView />} />
+            <Route path="students/:id/admit" element={<BatchAdmissionPage />} />
             <Route path="branches" element={<BranchesManagement />} />
             <Route path="teachers" element={<TeachersManagement />} />
             <Route path="batches" element={<BatchesManagement />} />

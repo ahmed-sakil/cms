@@ -27,7 +27,7 @@ export const createExamSchema = z.object({
   batchId: z.string().uuid("Batch ID is required"),
   title: z.string().min(2, "Exam title is required"),
   subject: z.string().optional().nullable(),
-  examType: z.string().default("MOCK_TEST"),
+  examType: z.enum(["MOCK_TEST", "WEEKLY_QUIZ", "MONTHLY_TEST", "TERM_FINAL", "PRACTICE"]).default("MOCK_TEST"),
   totalMarks: z.number().positive("Total marks must be greater than 0"),
   passMarks: z.number().positive("Pass marks must be greater than 0"),
   examDate: z.string().min(1, "Exam date is required"),
@@ -70,3 +70,17 @@ export const settleReferralPayoutSchema = z.object({
 });
 
 export type SettleReferralPayoutInput = z.infer<typeof settleReferralPayoutSchema>;
+
+// Attendance Tracking
+export const recordAttendanceSchema = z.object({
+  date: z.string().min(1, "Attendance date is required"),
+  records: z.array(
+    z.object({
+      studentId: z.string().uuid("Student ID must be a valid UUID"),
+      status: z.enum(["PRESENT", "ABSENT", "LATE", "EXCUSED"]).default("PRESENT"),
+      remarks: z.string().optional().nullable(),
+    })
+  ).min(1, "At least one attendance record is required"),
+});
+
+export type RecordAttendanceInput = z.infer<typeof recordAttendanceSchema>;

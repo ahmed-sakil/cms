@@ -123,7 +123,7 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
 
     setIsSaving(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("cms_token") || localStorage.getItem("token");
       const headers = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,

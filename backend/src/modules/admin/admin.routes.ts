@@ -6,6 +6,7 @@ import { branchContext } from "../../middleware/branchContext.js";
 import { validateRequest } from "../../middleware/validateRequest.js";
 import {
   createStudentSchema,
+  adminUpdateStudentSchema,
   updateOrganizationSchema,
   createBranchSchema,
   createTeacherSchema,
@@ -73,6 +74,12 @@ router.put("/staffs/:id", validateRequest(updateStaffSchema), AdminController.up
 router.post("/students", validateRequest(createStudentSchema), AdminController.createStudent);
 router.get("/students", AdminController.listStudents);
 router.get("/students/:id", AdminController.getStudent);
+router.put(
+  "/students/:id",
+  validateRequest(adminUpdateStudentSchema),
+  AdminController.updateStudent
+);
+router.delete("/students/:id", AdminController.deleteStudent);
 
 // Testimonials Moderation
 router.get("/testimonials", AdminController.listTestimonials);

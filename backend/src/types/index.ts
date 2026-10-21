@@ -90,6 +90,35 @@ export enum ExpenseStatus {
   REJECTED = "REJECTED",
 }
 
+export enum PaymentStatus {
+  PENDING = "PENDING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+  REFUNDED = "REFUNDED",
+}
+
+export enum PayoutStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  PAID = "PAID",
+  REJECTED = "REJECTED",
+}
+
+export enum InquiryStatus {
+  NEW = "NEW",
+  CONTACTED = "CONTACTED",
+  ADMITTED = "ADMITTED",
+  REJECTED = "REJECTED",
+}
+
+export enum ExamType {
+  MOCK_TEST = "MOCK_TEST",
+  WEEKLY_QUIZ = "WEEKLY_QUIZ",
+  MONTHLY_TEST = "MONTHLY_TEST",
+  TERM_FINAL = "TERM_FINAL",
+  PRACTICE = "PRACTICE",
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;

@@ -193,10 +193,26 @@ export class FinanceService {
   }
 
   static async createStudentInvoice(input: CreateStudentInvoiceInput) {
-    const student = await prisma.studentProfile.findUnique({
+    if (input.subtotal < 0) {
+      throw new BadRequestError("Invoice subtotal cannot be negative");
+    }
+    if (input.discountAmount < 0) {
+      throw new BadRequestError("Discount amount cannot be negative");
+    }
+    if (input.discountAmount > input.subtotal) {
+      throw new BadRequestError("Discount amount cannot exceed invoice subtotal");
+    }
+
+    let student = await prisma.studentProfile.findUnique({
       where: { id: input.studentId },
       include: { user: true },
     });
+    if (!student) {
+      student = await prisma.studentProfile.findFirst({
+        where: { userId: input.studentId },
+        include: { user: true },
+      });
+    }
     if (!student) throw new NotFoundError("Student record not found");
 
     const invoiceNumber = generateInvoiceNumber();
@@ -208,7 +224,7 @@ export class FinanceService {
     return prisma.studentInvoice.create({
       data: {
         invoiceNumber,
-        studentId: input.studentId,
+        studentId: student.id,
         batchId: input.batchId || null,
         branchId: input.branchId || student.user.branchId || null,
         title: input.title,
@@ -317,18 +333,60 @@ export class FinanceService {
   // ========================================================
   // 4. PAYMENT COLLECTION & RECEIPT GENERATION
   // ========================================================
-  static async collectPayment(input: CollectPaymentInput, collectedById?: string) {
-    const student = await prisma.studentProfile.findUnique({
-      where: { id: input.studentId },
-      include: { user: true },
-    });
-    if (!student) throw new NotFoundError("Student not found");
+  static async collectPayment(input: CollectPaymentInput, collectedById?: string, operatorBranchId?: string) {
+    if (input.amount <= 0) {
+      throw new BadRequestError("Payment amount must be greater than zero");
+    }
+
+    let resolvedStudentId = input.studentId;
+    let resolvedBranchId: string | null = null;
+
+    if (resolvedStudentId) {
+      const sp = await prisma.studentProfile.findFirst({
+        where: { OR: [{ id: resolvedStudentId }, { userId: resolvedStudentId }] },
+        include: { user: { select: { branchId: true } } },
+      });
+      if (sp) {
+        resolvedStudentId = sp.id;
+        resolvedBranchId = sp.user?.branchId || null;
+      }
+    }
+
+    if (!resolvedStudentId && input.invoiceId) {
+      const inv = await prisma.studentInvoice.findUnique({
+        where: { id: input.invoiceId },
+        select: { studentId: true, branchId: true },
+      });
+      if (inv) {
+        resolvedStudentId = inv.studentId;
+        if (inv.branchId) resolvedBranchId = inv.branchId;
+      }
+    }
+
+    if (!resolvedStudentId) throw new BadRequestError("Student ID or valid Invoice ID is required");
 
     const receiptNumber = generateReceiptNumber();
 
-    // Perform transaction to update invoice if linked
-
+    // Perform transaction to update invoice if linked with concurrency and overpayment safety
     const payment = await prisma.$transaction(async (tx: any) => {
+      // Check duplicate transaction ID for digital methods (fail-fast)
+      if (input.transactionId && input.transactionId.trim()) {
+        const trimmedTxId = input.transactionId.trim();
+        const existingTx = await tx.paymentTransaction.findFirst({
+          where: {
+            transactionId: trimmedTxId,
+            method: input.method,
+          },
+          select: { receiptNumber: true },
+        });
+
+        if (existingTx) {
+          throw new BadRequestError(
+            `A payment transaction with ID '${trimmedTxId}' and method '${input.method}' is already recorded (Receipt #${existingTx.receiptNumber})`
+          );
+        }
+      }
+
       let linkedInvoice = null;
 
       if (input.invoiceId) {
@@ -336,6 +394,17 @@ export class FinanceService {
           where: { id: input.invoiceId },
         });
         if (!linkedInvoice) throw new NotFoundError("Invoice not found");
+
+        const currentDue = Number(linkedInvoice.dueAmount);
+        if (input.amount > currentDue) {
+          throw new BadRequestError(
+            `Payment amount (৳${input.amount}) exceeds outstanding invoice due balance (৳${currentDue})`
+          );
+        }
+
+        if (linkedInvoice.branchId) {
+          resolvedBranchId = linkedInvoice.branchId;
+        }
 
         const newPaidAmount = Number(linkedInvoice.paidAmount) + input.amount;
         const newDueAmount = Math.max(0, Number(linkedInvoice.totalAmount) - newPaidAmount);
@@ -355,15 +424,19 @@ export class FinanceService {
         });
       }
 
+      const finalBranchId = resolvedBranchId || operatorBranchId || null;
+
       return tx.paymentTransaction.create({
         data: {
           receiptNumber,
-          studentId: input.studentId,
+          studentId: resolvedStudentId,
           invoiceId: input.invoiceId || null,
+          branchId: finalBranchId,
           amount: input.amount,
           method: input.method,
-          transactionId: input.transactionId || null,
-          accountNumber: input.accountNumber || null,
+          transactionId: input.transactionId?.trim() || null,
+          accountNumber: input.accountNumber?.trim() || null,
+          status: "COMPLETED",
           collectedById: collectedById || null,
           notes: input.notes || null,
           paidAt: input.paidAt ? new Date(input.paidAt) : new Date(),
@@ -385,6 +458,7 @@ export class FinanceService {
               branch: { select: { name: true, address: true, phone: true } },
             },
           },
+          branch: { select: { id: true, name: true, code: true } },
           collectedBy: { select: { fullName: true } },
         },
       });
@@ -413,12 +487,86 @@ export class FinanceService {
             branch: { select: { name: true, address: true, phone: true } },
           },
         },
+        branch: { select: { id: true, name: true, code: true } },
         collectedBy: { select: { fullName: true } },
       },
     });
 
     if (!payment) throw new NotFoundError("Receipt record not found");
     return payment;
+  }
+
+  static async listPayments(params?: {
+    branchId?: string;
+    batchId?: string;
+    studentId?: string;
+  }) {
+    const where: any = {};
+    if (params?.branchId) {
+      where.OR = [
+        { branchId: params.branchId },
+        { invoice: { branchId: params.branchId } },
+      ];
+    }
+    if (params?.batchId) {
+      where.invoice = { ...(where.invoice || {}), batchId: params.batchId };
+    }
+    if (params?.studentId) {
+      where.studentId = params.studentId;
+    }
+
+    const payments = await prisma.paymentTransaction.findMany({
+      where,
+      include: {
+        student: {
+          select: {
+            id: true,
+            rollNumber: true,
+            guardianName: true,
+            guardianPhone: true,
+            bloodGroup: true,
+            user: { select: { fullName: true, email: true, phone: true } },
+          },
+        },
+        invoice: {
+          include: {
+            batch: { select: { name: true } },
+            branch: { select: { name: true } },
+          },
+        },
+        collectedBy: { select: { fullName: true } },
+      },
+      orderBy: { paidAt: "desc" },
+    });
+
+    return payments.map((p) => ({
+      id: p.id,
+      receiptNumber: p.receiptNumber,
+      amount: p.amount,
+      method: p.method,
+      transactionId: p.transactionId,
+      accountNumber: p.accountNumber,
+      paidAt: p.paidAt.toISOString(),
+      student: {
+        fullName: p.student.user.fullName,
+        rollNumber: p.student.rollNumber,
+        phone: p.student.user.phone,
+        guardianName: p.student.guardianName,
+        guardianPhone: p.student.guardianPhone,
+      },
+      invoice: p.invoice
+        ? {
+            title: p.invoice.title,
+            subtotal: p.invoice.subtotal,
+            discountAmount: p.invoice.discountAmount,
+            totalAmount: p.invoice.totalAmount,
+            paidAmount: p.invoice.paidAmount,
+            dueAmount: p.invoice.dueAmount,
+            batchName: p.invoice.batch?.name || null,
+            branchName: p.invoice.branch?.name || null,
+          }
+        : null,
+    }));
   }
 
   // ========================================================

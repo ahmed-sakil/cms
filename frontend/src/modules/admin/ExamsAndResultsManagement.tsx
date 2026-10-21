@@ -196,6 +196,19 @@ export const ExamsAndResultsManagement: React.FC = () => {
   const handleSaveMarks = async () => {
     if (!activeMarksheetExam) return;
 
+    const totalMarks = Number(activeMarksheetExam.totalMarks);
+    for (const [, data] of Object.entries(marksheetScores)) {
+      const marks = Number(data.marks);
+      if (isNaN(marks) || marks < 0) {
+        toast.error("Marks obtained cannot be negative");
+        return;
+      }
+      if (marks > totalMarks) {
+        toast.error(`Marks (${marks}) cannot exceed total exam marks (${totalMarks})`);
+        return;
+      }
+    }
+
     try {
       setSavingMarks(true);
       const token = localStorage.getItem("cms_token");
@@ -660,8 +673,9 @@ export const ExamsAndResultsManagement: React.FC = () => {
                   >
                     <option value="MOCK_TEST">Mock Test</option>
                     <option value="WEEKLY_QUIZ">Weekly Quiz</option>
-                    <option value="MONTHLY_ASSESSMENT">Monthly Assessment</option>
+                    <option value="MONTHLY_TEST">Monthly Test</option>
                     <option value="TERM_FINAL">Term Final Exam</option>
+                    <option value="PRACTICE">Practice Test</option>
                   </select>
                 </div>
               </div>

@@ -215,6 +215,24 @@ export class AdminController {
     }
   }
 
+  static async updateStudent(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const updated = await AdminService.updateStudent(req.params.id, req.body, req.user);
+      ResponseUtil.success(res, updated, "Student updated successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteStudent(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AdminService.deleteStudent(req.params.id, req.user);
+      ResponseUtil.success(res, result, "Student account deleted successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // ========================================================
   // TESTIMONIALS MODERATION
   // ========================================================

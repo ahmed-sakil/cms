@@ -30,15 +30,46 @@ export const createStudentSchema = z.object({
   password: z.string().min(6).optional(),
   branchId: z.string().uuid("Branch is required"),
   rollNumber: z.string().min(1, "Roll number is required").optional(),
-  dateOfBirth: z.string().optional(),
+  dateOfBirth: z.string().optional().nullable(),
   gender: z.nativeEnum(Gender).default(Gender.MALE),
   guardianName: z.string().min(2, "Guardian name is required"),
   guardianPhone: z.string().min(10, "Guardian phone is required"),
-  address: z.string().optional(),
-  batchId: z.string().uuid("Invalid batch ID").optional(),
+  guardianType: z.string().optional().nullable(),
+  fatherName: z.string().optional().nullable(),
+  motherName: z.string().optional().nullable(),
+  bloodGroup: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  currentClass: z.string().optional().nullable(),
+  institutionName: z.string().optional().nullable(),
+  avatarUrl: z.string().optional().nullable(),
+  batchId: z.string().uuid("Invalid batch ID").optional().nullable(),
 });
 
 export type CreateStudentInput = z.infer<typeof createStudentSchema>;
+
+export const adminUpdateStudentSchema = z.object({
+  fullName: z.string().min(2, "Full name is required").optional(),
+  email: z.string().email("Invalid email address").optional(),
+  phone: z.string().min(10, "Phone number must be at least 10 characters").optional(),
+  password: z.string().min(6).optional(),
+  branchId: z.string().uuid().optional(),
+  rollNumber: z.string().min(1).optional(),
+  dateOfBirth: z.string().optional().nullable(),
+  gender: z.nativeEnum(Gender).optional(),
+  guardianName: z.string().min(2).optional(),
+  guardianPhone: z.string().min(10).optional(),
+  guardianType: z.string().optional().nullable(),
+  fatherName: z.string().optional().nullable(),
+  motherName: z.string().optional().nullable(),
+  bloodGroup: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  currentClass: z.string().optional().nullable(),
+  institutionName: z.string().optional().nullable(),
+  avatarUrl: z.string().optional().nullable(),
+  isActive: z.boolean().optional(),
+});
+
+export type AdminUpdateStudentInput = z.infer<typeof adminUpdateStudentSchema>;
 
 // Student Self-Registration (Requires strong password)
 export const studentSelfRegisterSchema = z.object({

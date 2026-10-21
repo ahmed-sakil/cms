@@ -192,7 +192,7 @@ export class BatchController {
 
   static async enrollStudent(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await BatchService.enrollStudent(req.params.id, req.body);
+      const result = await BatchService.enrollStudent(req.params.id, req.body, req.user);
       ResponseUtil.success(res, result, "Student enrolled into batch successfully", 201);
     } catch (error) {
       next(error);

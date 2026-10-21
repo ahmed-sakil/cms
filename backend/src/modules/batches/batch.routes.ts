@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { BatchController } from "./batch.controller.js";
 import { authGuard } from "../../middleware/authGuard.js";
+import { branchContext } from "../../middleware/branchContext.js";
 import { roleGuard } from "../../middleware/roleGuard.js";
 import { validateRequest } from "../../middleware/validateRequest.js";
 import {
@@ -13,12 +14,15 @@ import {
   verifyEnrollmentSchema,
   createStudyMaterialSchema,
 } from "./batch.schema.js";
+import { recordAttendanceSchema } from "../academic-ops/academic-ops.schema.js";
+import { AcademicOpsController } from "../academic-ops/academic-ops.controller.js";
 import { UserRole } from "../../types/index.js";
 
 const router = Router();
 
-// Protect all academic routes with auth
+// Protect all academic routes with auth and branchContext
 router.use(authGuard);
+router.use(branchContext);
 
 // ==========================================
 // ACADEMIC CLASSES
@@ -118,6 +122,21 @@ router.delete(
   "/batches/:id/enroll/:studentId",
   roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN, UserRole.STAFF]),
   BatchController.removeEnrollment
+);
+
+// ==========================================
+// BATCH ATTENDANCE (INTEGRATED)
+// ==========================================
+router.get(
+  "/batches/:id/attendance",
+  roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN, UserRole.TEACHER, UserRole.STAFF]),
+  AcademicOpsController.getBatchAttendance
+);
+router.post(
+  "/batches/:id/attendance",
+  roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN, UserRole.TEACHER, UserRole.STAFF]),
+  validateRequest(recordAttendanceSchema),
+  AcademicOpsController.recordAttendance
 );
 
 // ==========================================

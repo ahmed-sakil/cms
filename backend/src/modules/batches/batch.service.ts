@@ -662,10 +662,22 @@ export class BatchService {
     }));
   }
 
-  static async enrollStudent(batchId: string, input: EnrollStudentInput) {
+  static async enrollStudent(
+    batchId: string,
+    input: EnrollStudentInput,
+    operator?: { role?: string; branchId?: string | null }
+  ) {
     let studentId = input.studentId;
 
-    if (!studentId && input.rollNumber) {
+    if (studentId) {
+      const profile = await prisma.studentProfile.findFirst({
+        where: { OR: [{ id: studentId }, { userId: studentId }] },
+        select: { id: true },
+      });
+      if (profile) {
+        studentId = profile.id;
+      }
+    } else if (input.rollNumber) {
       const student = await prisma.studentProfile.findUnique({
         where: { rollNumber: input.rollNumber.trim() },
         select: { id: true },
@@ -676,31 +688,43 @@ export class BatchService {
 
     if (!studentId) throw new BadRequestError("Student ID or Roll Number is required");
 
-    const batch = await prisma.batch.findUnique({
-      where: { id: batchId },
-      include: { _count: { select: { enrollments: { where: { status: EnrollmentStatus.ACTIVE } } } } },
-    });
+    return prisma.$transaction(async (tx) => {
+      const batch = await tx.batch.findUnique({
+        where: { id: batchId },
+        include: {
+          _count: {
+            select: {
+              enrollments: { where: { status: EnrollmentStatus.ACTIVE } },
+            },
+          },
+        },
+      });
 
-    if (!batch || batch.deletedAt) throw new NotFoundError("Batch not found");
+      if (!batch || batch.deletedAt) throw new NotFoundError("Batch not found");
 
-    const seatLimit = batch.seatLimit || batch.maxCapacity || 40;
-    if (batch._count.enrollments >= seatLimit) {
-      throw new BadRequestError(`Batch has reached its physical seat capacity of ${seatLimit} students`);
-    }
+      if (operator?.role === "BRANCH_ADMIN" && operator.branchId && batch.branchId !== operator.branchId) {
+        throw new ForbiddenError("Cannot enroll students into batches of another campus");
+      }
 
-    return prisma.batchEnrollment.upsert({
-      where: {
-        batchId_studentId: {
+      const seatLimit = batch.seatLimit || batch.maxCapacity || 40;
+      if (input.status === EnrollmentStatus.ACTIVE && batch._count.enrollments >= seatLimit) {
+        throw new BadRequestError(`Batch has reached its physical seat capacity of ${seatLimit} students`);
+      }
+
+      return tx.batchEnrollment.upsert({
+        where: {
+          batchId_studentId: {
+            batchId,
+            studentId,
+          },
+        },
+        update: { status: input.status },
+        create: {
           batchId,
           studentId,
+          status: input.status,
         },
-      },
-      update: { status: input.status },
-      create: {
-        batchId,
-        studentId,
-        status: input.status,
-      },
+      });
     });
   }
 

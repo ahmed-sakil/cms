@@ -13,7 +13,7 @@ router.post(
   AuthController.registerStudent
 );
 router.post("/refresh", AuthController.refresh);
+router.post("/logout", authGuard, AuthController.logout);
 router.get("/me", authGuard, AuthController.me);
-
 
 export default router;

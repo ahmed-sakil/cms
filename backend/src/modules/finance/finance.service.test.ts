@@ -24,6 +24,7 @@ vi.mock("../../config/prisma.js", () => ({
     },
     studentProfile: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     $transaction: vi.fn(),
   },
@@ -167,6 +168,7 @@ describe("FinanceService Unit Tests", () => {
             }),
           },
           paymentTransaction: {
+            findFirst: vi.fn().mockResolvedValue(null),
             create: vi.fn().mockImplementation((args) => {
               paymentCreateArgs = args;
               return { id: "pay-1", ...args.data };
@@ -209,6 +211,7 @@ describe("FinanceService Unit Tests", () => {
             }),
           },
           paymentTransaction: {
+            findFirst: vi.fn().mockResolvedValue(null),
             create: vi.fn().mockResolvedValue({ id: "pay-2" }),
           },
         };
@@ -228,6 +231,63 @@ describe("FinanceService Unit Tests", () => {
       expect(invoiceUpdateArgs.data.paidAmount).toBe(10000);
       expect(invoiceUpdateArgs.data.dueAmount).toBe(0);
       expect(invoiceUpdateArgs.data.status).toBe(InvoiceStatus.PAID);
+    });
+
+    it("rejects overpayment exceeding invoice due balance", async () => {
+      vi.mocked(prisma.studentProfile.findUnique).mockResolvedValue(mockStudent as any);
+
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        const tx = {
+          studentInvoice: {
+            findUnique: vi.fn().mockResolvedValue(mockInvoice), // dueAmount is 8000
+          },
+          paymentTransaction: {
+            findFirst: vi.fn().mockResolvedValue(null),
+          },
+        };
+        return callback(tx);
+      });
+
+      await expect(
+        FinanceService.collectPayment(
+          {
+            studentId: "std-1",
+            invoiceId: "inv-200",
+            amount: 8500, // 8500 > 8000 due!
+            method: "CASH" as any,
+          },
+          "admin-usr"
+        )
+      ).rejects.toThrow("exceeds outstanding invoice due balance");
+    });
+
+    it("detects and rejects duplicate transactionId for digital payment methods", async () => {
+      vi.mocked(prisma.studentProfile.findUnique).mockResolvedValue(mockStudent as any);
+
+      vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
+        const tx = {
+          studentInvoice: {
+            findUnique: vi.fn().mockResolvedValue(mockInvoice),
+          },
+          paymentTransaction: {
+            findFirst: vi.fn().mockResolvedValue({ receiptNumber: "RCPT-EXISTING" }),
+          },
+        };
+        return callback(tx);
+      });
+
+      await expect(
+        FinanceService.collectPayment(
+          {
+            studentId: "std-1",
+            invoiceId: "inv-200",
+            amount: 1000,
+            method: "BKASH" as any,
+            transactionId: "TRX-DUPLICATE-999",
+          },
+          "admin-usr"
+        )
+      ).rejects.toThrow("is already recorded");
     });
   });
 

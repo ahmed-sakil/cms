@@ -39,7 +39,7 @@ export const BatchesManagement: React.FC = () => {
 
   const currentUser = (() => {
     try {
-      return JSON.parse(localStorage.getItem("user") || "{}");
+      return JSON.parse(localStorage.getItem("cms_user") || localStorage.getItem("user") || "{}");
     } catch {
       return {};
     }
@@ -48,7 +48,7 @@ export const BatchesManagement: React.FC = () => {
   const userBranchId = currentUser?.branchId || "";
 
   const getHeaders = useCallback(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("cms_token") || localStorage.getItem("token");
     return {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,

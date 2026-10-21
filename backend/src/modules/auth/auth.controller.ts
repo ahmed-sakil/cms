@@ -44,4 +44,15 @@ export class AuthController {
       next(error);
     }
   }
+
+  static async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (req.user?.userId) {
+        await AuthService.logout(req.user.userId);
+      }
+      ResponseUtil.success(res, null, "Logged out successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
 }

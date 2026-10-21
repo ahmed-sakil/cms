@@ -119,6 +119,35 @@ enum ExpenseStatus {
   REJECTED
 }
 
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  ADMITTED
+  REJECTED
+}
+
+enum ExamType {
+  MOCK_TEST
+  WEEKLY_QUIZ
+  MONTHLY_TEST
+  TERM_FINAL
+  PRACTICE
+}
+
 // ----------------------------------------------------
 // INSTITUTION & BRANCH TENANCY
 // ----------------------------------------------------
@@ -142,6 +171,7 @@ model Institution {
 
   branches        Branch[]
   users           User[]
+  academicClasses AcademicClass[]
 }
 
 model Branch {
@@ -173,6 +203,7 @@ model Branch {
   studyMaterials StudyMaterial[]
   feeStructures  FeeStructure[]
   invoices       StudentInvoice[]
+  payments       PaymentTransaction[]
   expenseRecords ExpenseRecord[]
 
   @@index([institutionId, isActive])
@@ -313,18 +344,21 @@ model Course {
 }
 
 model AcademicClass {
-  id           String        @id @default(uuid()) @db.Uuid
-  name         String
-  code         String        @unique
-  academicYear String
-  category     ClassCategory @default(COLLEGE)
-  displayOrder Int           @default(0)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id            String        @id @default(uuid()) @db.Uuid
+  institutionId String?       @db.Uuid
+  name          String
+  code          String        @unique
+  academicYear  String
+  category      ClassCategory @default(COLLEGE)
+  displayOrder  Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  batches      Batch[]
+  institution   Institution?  @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  batches       Batch[]
 
   @@index([category, academicYear])
+  @@index([institutionId, academicYear])
 }
 
 model Batch {
@@ -427,7 +461,7 @@ model Exam {
   batchId      String       @db.Uuid
   title        String
   subject      String?
-  examType     String       @default("MOCK_TEST")
+  examType     ExamType     @default(MOCK_TEST)
   instructions String?
   totalMarks   Decimal      @db.Decimal(5, 2)
   passMarks    Decimal      @db.Decimal(5, 2)
@@ -492,7 +526,7 @@ model ReferralPayout {
   method        PaymentMethod  @default(BKASH)
   accountNumber String?
   transactionId String?
-  status        String         @default("PENDING") // PENDING, APPROVED, PAID, REJECTED
+  status        PayoutStatus   @default(PENDING)
   notes         String?
   paidAt        DateTime?
   processedById String?        @db.Uuid
@@ -505,18 +539,18 @@ model ReferralPayout {
 }
 
 model AdmissionInquiry {
-  id                 String    @id @default(uuid()) @db.Uuid
-  branchId           String?   @db.Uuid
+  id                 String        @id @default(uuid()) @db.Uuid
+  branchId           String?       @db.Uuid
   studentName        String
   email              String
   phone              String
-  interestedCourseId String?   @db.Uuid
+  interestedCourseId String?       @db.Uuid
   message            String?
-  status             String    @default("NEW") // NEW, CONTACTED, ADMITTED, REJECTED
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  status             InquiryStatus @default(NEW)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
-  branch             Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  branch             Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
 }
@@ -643,7 +677,7 @@ model StudentInvoice {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  student        StudentProfile       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student        StudentProfile       @relation(fields: [studentId], references: [id], onDelete: Restrict)
   batch          Batch?               @relation(fields: [batchId], references: [id], onDelete: SetNull)
   branch         Branch?              @relation(fields: [branchId], references: [id], onDelete: SetNull)
   payments       PaymentTransaction[]
@@ -659,11 +693,12 @@ model PaymentTransaction {
   receiptNumber String        @unique
   invoiceId     String?       @db.Uuid
   studentId     String        @db.Uuid
+  branchId      String?       @db.Uuid
   amount        Decimal       @db.Decimal(10, 2)
   method        PaymentMethod @default(CASH)
   transactionId String?
   accountNumber String?
-  status        String        @default("COMPLETED")
+  status        PaymentStatus @default(COMPLETED)
   collectedById String?       @db.Uuid
   notes         String?
   paidAt        DateTime      @default(now())
@@ -671,11 +706,13 @@ model PaymentTransaction {
   updatedAt     DateTime      @updatedAt
 
   invoice       StudentInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
-  student       StudentProfile  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student       StudentProfile  @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  branch        Branch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
   collectedBy   User?           @relation(fields: [collectedById], references: [id], onDelete: SetNull)
 
   @@index([studentId, paidAt])
-  @@index([invoiceId])
+  @@index([branchId, paidAt])
+  @@index([invoiceId, status])
   @@index([method])
 }
 

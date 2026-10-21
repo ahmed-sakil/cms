@@ -186,4 +186,36 @@ export class AcademicOpsController {
       next(error);
     }
   }
+
+  // 5. Attendance Management
+  static async recordAttendance(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const result = await AcademicOpsService.recordBatchAttendance(id, req.body, req.user);
+      ResponseUtil.success(res, result, "Batch attendance recorded successfully", 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getBatchAttendance(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { date } = req.query;
+      const records = await AcademicOpsService.getBatchAttendance(id, date as string | undefined, req.user);
+      ResponseUtil.success(res, records, "Batch attendance records retrieved");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getStudentAttendance(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError();
+      const records = await AcademicOpsService.getStudentAttendanceHistory(req.user.userId);
+      ResponseUtil.success(res, records, "Student attendance history retrieved");
+    } catch (error) {
+      next(error);
+    }
+  }
 }

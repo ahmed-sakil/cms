@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { FinanceController } from "./finance.controller.js";
 import { authGuard } from "../../middleware/authGuard.js";
+import { branchContext } from "../../middleware/branchContext.js";
 import { roleGuard } from "../../middleware/roleGuard.js";
 import { validateRequest } from "../../middleware/validateRequest.js";
 import {
@@ -16,8 +17,9 @@ import { UserRole } from "../../types/index.js";
 
 const router = Router();
 
-// Protect all finance routes with authGuard
+// Protect all finance routes with authGuard and branchContext
 router.use(authGuard);
+router.use(branchContext);
 
 // 1. Financial Overview / Dashboard Analytics
 router.get(
@@ -28,14 +30,26 @@ router.get(
 
 // 2. Fee Structures
 router.get("/structures", FinanceController.listFeeStructures);
+router.get("/fee-structures", FinanceController.listFeeStructures);
 router.post(
   "/structures",
   roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN]),
   validateRequest(createFeeStructureSchema),
   FinanceController.createFeeStructure
 );
+router.post(
+  "/fee-structures",
+  roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN]),
+  validateRequest(createFeeStructureSchema),
+  FinanceController.createFeeStructure
+);
 router.delete(
   "/structures/:id",
+  roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN]),
+  FinanceController.deleteFeeStructure
+);
+router.delete(
+  "/fee-structures/:id",
   roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN]),
   FinanceController.deleteFeeStructure
 );
@@ -73,8 +87,24 @@ router.post(
   validateRequest(generateBatchInvoicesSchema),
   FinanceController.generateBatchInvoices
 );
+router.post(
+  "/invoices/generate-batch",
+  roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN]),
+  validateRequest(generateBatchInvoicesSchema),
+  FinanceController.generateBatchInvoices
+);
+router.post(
+  "/invoices/:id/collect",
+  roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN, UserRole.STAFF]),
+  FinanceController.collectPayment
+);
 
 // 5. Payment Collection & Receipts
+router.get(
+  "/payments",
+  roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN, UserRole.STAFF]),
+  FinanceController.listPayments
+);
 router.post(
   "/payments",
   roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN, UserRole.STAFF]),

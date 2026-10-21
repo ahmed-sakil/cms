@@ -4,6 +4,7 @@ import { BadRequestError, NotFoundError, ForbiddenError } from "../../common/err
 import { UserRole } from "../../types/index.js";
 import type {
   CreateStudentInput,
+  AdminUpdateStudentInput,
   UpdateOrganizationInput,
   CreateBranchInput,
   CreateTeacherInput,
@@ -182,6 +183,7 @@ export class AdminService {
           email: input.email,
           phone: input.phone,
           fullName: input.fullName,
+          avatarUrl: input.avatarUrl || null,
           role: UserRole.STUDENT,
           passwordHash,
           studentProfile: {
@@ -190,7 +192,13 @@ export class AdminService {
               gender: input.gender,
               guardianName: input.guardianName,
               guardianPhone: input.guardianPhone,
-              address: input.address,
+              guardianType: input.guardianType || "FATHER",
+              fatherName: input.fatherName || null,
+              motherName: input.motherName || null,
+              bloodGroup: input.bloodGroup || null,
+              address: input.address || null,
+              currentClass: input.currentClass || null,
+              institutionName: input.institutionName || null,
               dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : null,
             },
           },
@@ -295,8 +303,12 @@ export class AdminService {
         fullName: s.fullName,
         email: s.email,
         phone: s.phone,
+        avatarUrl: s.avatarUrl,
         branch: s.branch,
         rollNumber: s.studentProfile?.rollNumber,
+        gender: s.studentProfile?.gender,
+        currentClass: s.studentProfile?.currentClass,
+        institutionName: s.studentProfile?.institutionName,
         guardianName: s.studentProfile?.guardianName,
         guardianPhone: s.studentProfile?.guardianPhone,
         enrollments: s.studentProfile?.enrollments || [],
@@ -330,9 +342,33 @@ export class AdminService {
                   },
                 },
               },
+              orderBy: { enrolledAt: "desc" },
+            },
+            invoices: {
+              include: {
+                batch: { select: { id: true, name: true } },
+                branch: { select: { id: true, name: true } },
+                payments: {
+                  select: {
+                    id: true,
+                    receiptNumber: true,
+                    amount: true,
+                    method: true,
+                    transactionId: true,
+                    paidAt: true,
+                  },
+                },
+              },
+              orderBy: { createdAt: "desc" },
+            },
+            payments: {
+              include: {
+                invoice: { select: { id: true, invoiceNumber: true, title: true } },
+              },
+              orderBy: { paidAt: "desc" },
             },
             attendances: {
-              take: 20,
+              take: 30,
               orderBy: { date: "desc" },
             },
             examResults: {
@@ -349,6 +385,118 @@ export class AdminService {
     }
 
     return student;
+  }
+
+  static async updateStudent(
+    id: string,
+    input: AdminUpdateStudentInput,
+    operator?: { role?: string; branchId?: string | null }
+  ) {
+    const student = await prisma.user.findFirst({
+      where: { id, role: UserRole.STUDENT, deletedAt: null },
+      include: { studentProfile: true },
+    });
+
+    if (!student || !student.studentProfile) {
+      throw new NotFoundError("Student record not found");
+    }
+
+    if (operator?.role === UserRole.BRANCH_ADMIN) {
+      if (operator.branchId && student.branchId !== operator.branchId) {
+        throw new ForbiddenError("Branch administrators can only manage students from their assigned branch.");
+      }
+      if (input.branchId && input.branchId !== operator.branchId) {
+        throw new ForbiddenError("Branch administrators cannot transfer students to other branches.");
+      }
+    }
+
+    // Check duplicate email or phone if changed
+    if (input.email && input.email !== student.email) {
+      const existing = await prisma.user.findFirst({ where: { email: input.email, id: { not: id } } });
+      if (existing) throw new BadRequestError("A user with this email already exists");
+    }
+    if (input.phone && input.phone !== student.phone) {
+      const existing = await prisma.user.findFirst({ where: { phone: input.phone, id: { not: id } } });
+      if (existing) throw new BadRequestError("A user with this phone number already exists");
+    }
+
+    // Check roll number collision if changed
+    if (input.rollNumber && input.rollNumber !== student.studentProfile.rollNumber) {
+      const existingRoll = await prisma.studentProfile.findFirst({
+        where: { rollNumber: input.rollNumber, id: { not: student.studentProfile.id } },
+      });
+      if (existingRoll) throw new BadRequestError(`Roll number ${input.rollNumber} is already in use`);
+    }
+
+    // Hash password if updating
+    let passwordHash: string | undefined;
+    if (input.password && input.password.trim().length > 0) {
+      passwordHash = await bcrypt.hash(input.password, 10);
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id },
+        data: {
+          fullName: input.fullName,
+          email: input.email,
+          phone: input.phone,
+          avatarUrl: input.avatarUrl !== undefined ? input.avatarUrl : undefined,
+          isActive: input.isActive !== undefined ? input.isActive : undefined,
+          branchId: input.branchId !== undefined ? input.branchId : undefined,
+          ...(passwordHash ? { passwordHash } : {}),
+          studentProfile: {
+            update: {
+              rollNumber: input.rollNumber,
+              gender: input.gender,
+              guardianName: input.guardianName,
+              guardianPhone: input.guardianPhone,
+              guardianType: input.guardianType !== undefined ? input.guardianType : undefined,
+              fatherName: input.fatherName !== undefined ? input.fatherName : undefined,
+              motherName: input.motherName !== undefined ? input.motherName : undefined,
+              bloodGroup: input.bloodGroup !== undefined ? input.bloodGroup : undefined,
+              address: input.address !== undefined ? input.address : undefined,
+              currentClass: input.currentClass !== undefined ? input.currentClass : undefined,
+              institutionName: input.institutionName !== undefined ? input.institutionName : undefined,
+              dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : undefined,
+            },
+          },
+        },
+        include: {
+          branch: true,
+          studentProfile: true,
+        },
+      });
+      return user;
+    });
+
+    return updated;
+  }
+
+  static async deleteStudent(id: string, operator?: { role?: string; branchId?: string | null }) {
+    const student = await prisma.user.findFirst({
+      where: { id, role: UserRole.STUDENT, deletedAt: null },
+    });
+
+    if (!student) {
+      throw new NotFoundError("Student not found");
+    }
+
+    if (operator?.role === UserRole.BRANCH_ADMIN) {
+      if (operator.branchId && student.branchId !== operator.branchId) {
+        throw new ForbiddenError("Branch administrators can only delete students from their assigned branch.");
+      }
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+      },
+    });
+
+    return { id, fullName: student.fullName };
   }
 
   // ==========================================
