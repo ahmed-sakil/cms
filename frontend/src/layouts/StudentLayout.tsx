@@ -86,9 +86,13 @@ export const StudentLayout: React.FC = () => {
               <GraduationCap className="w-4 h-4" />
             </div>
             <div className="leading-tight">
-              <span className="block text-text-main font-bold truncate max-w-[120px]">
-                {institutionName || "Medhasiree"}
-              </span>
+              {institutionName ? (
+                <span className="block text-text-main font-bold truncate max-w-[130px]">
+                  {institutionName}
+                </span>
+              ) : (
+                <span className="block h-4 w-24 bg-accent rounded-xs animate-pulse my-0.5" />
+              )}
               <span className="block text-[10px] text-text-main/50 font-normal">Student Portal</span>
             </div>
           </Link>
@@ -228,8 +232,8 @@ export const StudentLayout: React.FC = () => {
           </button>
         </div>
 
-        {/* Dynamic Page Outlet */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        {/* Dynamic Page Outlet with smooth page transition */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto animate-page-enter" key={location.pathname}>
           <Outlet />
         </main>
       </div>

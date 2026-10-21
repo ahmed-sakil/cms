@@ -50,6 +50,8 @@ export const StudentFeesPage: React.FC = () => {
 
   // Active printable receipt
   const [printableReceipt, setPrintableReceipt] = useState<ReceiptData | null>(null);
+  const [paymentChannels, setPaymentChannels] = useState<any[]>([]);
+  const [campusesText, setCampusesText] = useState<string>("");
 
   const currentUser = (() => {
     try {
@@ -59,6 +61,22 @@ export const StudentFeesPage: React.FC = () => {
       return null;
     }
   })();
+
+  useEffect(() => {
+    fetch("/api/v1/public/landing")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          if (json.data.organization?.paymentChannels) {
+            setPaymentChannels(json.data.organization.paymentChannels.filter((c: any) => c.isActive));
+          }
+          if (json.data.branches?.length) {
+            setCampusesText(json.data.branches.map((b: any) => b.name).join(", "));
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fetchFeeData = async () => {
@@ -115,7 +133,9 @@ export const StudentFeesPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {totalDue > 0 ? (
+          {loading ? (
+            <span className="h-6 w-28 bg-accent rounded-xs animate-pulse" />
+          ) : totalDue > 0 ? (
             <span className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300 rounded-sm font-semibold text-xs border border-red-300">
               <AlertCircle className="w-3.5 h-3.5" /> Due Balance: ৳{totalDue.toLocaleString()}
             </span>
@@ -129,32 +149,47 @@ export const StudentFeesPage: React.FC = () => {
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
-          <div className="flex justify-between items-center text-text-muted">
-            <span className="text-xs font-medium">Total Billed Fees</span>
-            <Receipt className="w-4 h-4 text-brand-primary" />
-          </div>
-          <p className="text-2xl font-black text-text-main">{formatCurrency(totalInvoiced)}</p>
-          <p className="text-[11px] text-text-muted">Assigned batch fees</p>
-        </div>
+        {loading ? (
+          [1, 2, 3].map((n) => (
+            <div key={n} className="bg-surface border border-accent rounded-sm p-4 space-y-2 shadow-xs animate-pulse">
+              <div className="flex justify-between items-center">
+                <div className="h-3 w-28 bg-accent rounded-xs" />
+                <div className="w-4 h-4 bg-accent/60 rounded-xs" />
+              </div>
+              <div className="h-7 w-32 bg-accent rounded-xs" />
+              <div className="h-2.5 w-24 bg-accent/60 rounded-xs" />
+            </div>
+          ))
+        ) : (
+          <>
+            <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
+              <div className="flex justify-between items-center text-text-muted">
+                <span className="text-xs font-medium">Total Billed Fees</span>
+                <Receipt className="w-4 h-4 text-brand-primary" />
+              </div>
+              <p className="text-2xl font-black text-text-main">{formatCurrency(totalInvoiced)}</p>
+              <p className="text-[11px] text-text-muted">Assigned batch fees</p>
+            </div>
 
-        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
-          <div className="flex justify-between items-center text-text-muted">
-            <span className="text-xs font-medium text-green-700">Total Paid</span>
-            <CheckCircle2 className="w-4 h-4 text-green-600" />
-          </div>
-          <p className="text-2xl font-black text-green-700">{formatCurrency(totalPaid)}</p>
-          <p className="text-[11px] text-green-600 font-medium">Verified payments to date</p>
-        </div>
+            <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
+              <div className="flex justify-between items-center text-text-muted">
+                <span className="text-xs font-medium text-green-700">Total Paid</span>
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+              </div>
+              <p className="text-2xl font-black text-green-700">{formatCurrency(totalPaid)}</p>
+              <p className="text-[11px] text-green-600 font-medium">Verified payments to date</p>
+            </div>
 
-        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
-          <div className="flex justify-between items-center text-text-muted">
-            <span className="text-xs font-medium text-red-600">Current Due Balance</span>
-            <AlertCircle className="w-4 h-4 text-red-600" />
-          </div>
-          <p className="text-2xl font-black text-red-600">{formatCurrency(totalDue)}</p>
-          <p className="text-[11px] text-red-600 font-medium">Please clear by due date</p>
-        </div>
+            <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
+              <div className="flex justify-between items-center text-text-muted">
+                <span className="text-xs font-medium text-red-600">Current Due Balance</span>
+                <AlertCircle className="w-4 h-4 text-red-600" />
+              </div>
+              <p className="text-2xl font-black text-red-600">{formatCurrency(totalDue)}</p>
+              <p className="text-[11px] text-red-600 font-medium">Please clear by due date</p>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Official Payment Channels Guide */}
@@ -166,27 +201,40 @@ export const StudentFeesPage: React.FC = () => {
           </h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-          <div className="p-3 bg-bg-app border border-accent rounded-sm space-y-1">
-            <span className="font-bold text-pink-600 block">bKash (Merchant / Personal)</span>
-            <p className="font-mono font-bold text-text-main">01700-112233</p>
-            <p className="text-[11px] text-text-muted">
-              Use "Make Payment" or "Send Money" with your Student Roll in Reference.
-            </p>
-          </div>
+          {paymentChannels.length > 0 ? (
+            paymentChannels.map((c, idx) => (
+              <div key={c.id || idx} className="p-3 bg-bg-app border border-accent rounded-sm space-y-1">
+                <span className="font-bold text-brand-primary block">{c.channelName || c.channelType}</span>
+                <p className="font-mono font-bold text-text-main">{c.accountNumber}</p>
+                <p className="text-[11px] text-text-muted">
+                  {c.instructions || "Include your Roll Number in reference and preserve TrxID."}
+                </p>
+              </div>
+            ))
+          ) : (
+            <>
+              <div className="p-3 bg-bg-app border border-accent rounded-sm space-y-1">
+                <span className="font-bold text-brand-primary block">Official Mobile Accounts</span>
+                <p className="text-xs font-semibold text-text-main">Available at Registration</p>
+                <p className="text-[11px] text-text-muted">
+                  Use authorized merchant accounts provided on admission vouchers with your Student Roll in reference.
+                </p>
+              </div>
+              <div className="p-3 bg-bg-app border border-accent rounded-sm space-y-1">
+                <span className="font-bold text-brand-primary block">Direct Bank Deposit</span>
+                <p className="text-xs font-semibold text-text-main">Institutional Account</p>
+                <p className="text-[11px] text-text-muted">
+                  Deposit directly to designated coaching bank accounts and submit slip to reception.
+                </p>
+              </div>
+            </>
+          )}
 
           <div className="p-3 bg-bg-app border border-accent rounded-sm space-y-1">
-            <span className="font-bold text-orange-600 block">Nagad (Personal Number)</span>
-            <p className="font-mono font-bold text-text-main">01800-445566</p>
+            <span className="font-bold text-brand-primary block">Campus Accounts Reception</span>
+            <p className="font-semibold text-text-main">{campusesText || "All Campus Reception Desks"}</p>
             <p className="text-[11px] text-text-muted">
-              Send Money and save the TrxID for accounts confirmation.
-            </p>
-          </div>
-
-          <div className="p-3 bg-bg-app border border-accent rounded-sm space-y-1">
-            <span className="font-bold text-blue-600 block">Campus Accounts Reception</span>
-            <p className="font-semibold text-text-main">Dhanmondi, Uttara & Mirpur</p>
-            <p className="text-[11px] text-text-muted">
-              Cash deposit accepted 9:00 AM – 7:00 PM (Everyday).
+              Cash deposit accepted during operational hours (9:00 AM – 7:00 PM).
             </p>
           </div>
         </div>
@@ -214,11 +262,17 @@ export const StudentFeesPage: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-accent">
                 {loading ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-xs text-text-muted">
-                      Loading fee records...
-                    </td>
-                  </tr>
+                  [1, 2, 3].map((n) => (
+                    <tr key={n} className="animate-pulse">
+                      <td className="py-3 px-4"><div className="h-3 w-20 bg-accent rounded-xs" /></td>
+                      <td className="py-3 px-4"><div className="h-3.5 w-36 bg-accent rounded-xs" /></td>
+                      <td className="py-3 px-4 text-right"><div className="h-3.5 w-16 bg-accent rounded-xs ml-auto" /></td>
+                      <td className="py-3 px-4 text-right"><div className="h-3.5 w-16 bg-accent rounded-xs ml-auto" /></td>
+                      <td className="py-3 px-4 text-right"><div className="h-3.5 w-16 bg-accent rounded-xs ml-auto" /></td>
+                      <td className="py-3 px-4"><div className="h-3 w-20 bg-accent rounded-xs" /></td>
+                      <td className="py-3 px-4"><div className="h-4 w-14 bg-accent rounded-xs" /></td>
+                    </tr>
+                  ))
                 ) : invoices.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-xs text-text-muted">
@@ -293,7 +347,18 @@ export const StudentFeesPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-accent">
-                {payments.length === 0 ? (
+                {loading ? (
+                  [1, 2, 3].map((n) => (
+                    <tr key={n} className="animate-pulse">
+                      <td className="py-3 px-4"><div className="h-3 w-20 bg-accent rounded-xs" /></td>
+                      <td className="py-3 px-4"><div className="h-4 w-16 bg-accent rounded-xs" /></td>
+                      <td className="py-3 px-4"><div className="h-3 w-28 bg-accent rounded-xs" /></td>
+                      <td className="py-3 px-4 text-right"><div className="h-3.5 w-16 bg-accent rounded-xs ml-auto" /></td>
+                      <td className="py-3 px-4"><div className="h-3 w-20 bg-accent rounded-xs" /></td>
+                      <td className="py-3 px-4 text-right"><div className="h-6 w-24 bg-accent rounded-xs ml-auto" /></td>
+                    </tr>
+                  ))
+                ) : payments.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-xs text-text-muted">
                       No payments on record yet.
@@ -330,11 +395,11 @@ export const StudentFeesPage: React.FC = () => {
                               method: p.method,
                               transactionId: p.transactionId,
                               student: {
-                                fullName: currentUser.fullName || "Student",
-                                rollNumber: "ROLL-2026-0042",
-                                phone: "+880 1711-223344",
-                                guardianName: "Md. Rafiqul Islam",
-                                guardianPhone: "+880 1819-998877",
+                                fullName: currentUser?.fullName || "Student",
+                                rollNumber: currentUser?.rollNumber || "Not Assigned",
+                                phone: currentUser?.phone || "",
+                                guardianName: currentUser?.guardianName || "Guardian",
+                                guardianPhone: currentUser?.guardianPhone || "",
                               },
                               invoice: p.invoice
                                 ? {

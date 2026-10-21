@@ -1,8 +1,28 @@
-import React, { Suspense, lazy } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React, { Suspense, lazy, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { SonnerToaster } from "./components/ui/SonnerToaster.js";
 import { RoleRouteGuard } from "./components/common/RoleRouteGuard.js";
 import { UserRole } from "./types/index.js";
+
+function ScrollToTop() {
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => {
+    if (hash) {
+      // Delay slightly to let target render if navigating from another route
+      const timer = setTimeout(() => {
+        const element = document.querySelector(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [pathname, hash]);
+
+  return null;
+}
 
 // Lazy-loaded Layouts
 const PublicLayout = lazy(() =>
@@ -120,6 +140,9 @@ const RouteLoadingFallback: React.FC = () => (
 export function App() {
   return (
     <BrowserRouter>
+      {/* Scroll restoration & smooth hash jumps */}
+      <ScrollToTop />
+
       {/* Global Toaster with instant cross button */}
       <SonnerToaster />
 

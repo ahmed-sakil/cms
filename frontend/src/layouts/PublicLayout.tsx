@@ -49,6 +49,7 @@ export const PublicLayout: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Dynamic database records (no hardcoded fake fallbacks)
+  const [landingData, setLandingData] = useState<any>(null);
   const [mainBranch, setMainBranch] = useState<MainBranchData | null>(null);
   const [organization, setOrganization] = useState<OrgData | null>(null);
 
@@ -60,6 +61,7 @@ export const PublicLayout: React.FC = () => {
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data && isMounted) {
+            setLandingData(json.data);
             if (json.data.organization) {
               setOrganization(json.data.organization);
             }
@@ -110,6 +112,33 @@ export const PublicLayout: React.FC = () => {
     { label: "Reviews", href: "/#reviews", icon: MessageSquare },
     { label: "Branches", href: "/#inquiry", icon: Building2 },
   ];
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href === "/" || href === "/#") {
+      if (location.pathname === "/") {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        if (window.location.hash) {
+          window.history.pushState(null, "", "/");
+        }
+        setIsMobileMenuOpen(false);
+        return;
+      }
+    } else if (href.startsWith("/#")) {
+      if (location.pathname === "/") {
+        e.preventDefault();
+        const targetId = href.replace("/#", "");
+        const elem = document.getElementById(targetId);
+        if (elem) {
+          elem.scrollIntoView({ behavior: "smooth" });
+          window.history.pushState(null, "", href);
+        }
+        setIsMobileMenuOpen(false);
+        return;
+      }
+    }
+    setIsMobileMenuOpen(false);
+  };
 
   const contactPhone = mainBranch?.phone || organization?.phone;
   const contactEmail = mainBranch?.email || organization?.email;
@@ -197,7 +226,16 @@ export const PublicLayout: React.FC = () => {
           {/* Logo & Brand Name */}
           <Link
             to="/"
-            className="flex items-center gap-2.5 font-bold text-lg text-brand-primary shrink-0 group"
+            onClick={(e) => {
+              if (location.pathname === "/") {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                if (window.location.hash) {
+                  window.history.pushState(null, "", "/");
+                }
+              }
+            }}
+            className="flex items-center gap-2.5 font-bold text-lg text-brand-primary shrink-0 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded-sm"
           >
             <div className="w-9 h-9 bg-brand-primary text-white flex items-center justify-center rounded-sm shadow-xs group-hover:scale-105 transition-transform overflow-hidden">
               {organization?.logoUrl ? (
@@ -240,14 +278,16 @@ export const PublicLayout: React.FC = () => {
               <a
                 key={item.label}
                 href={item.href}
-                className="text-text-muted hover:text-brand-primary transition-colors py-1 hover:border-b-2 hover:border-brand-primary"
+                onClick={(e) => handleNavClick(e, item.href)}
+                className="text-text-muted hover:text-brand-primary transition-colors py-1 hover:border-b-2 hover:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded-xs"
               >
                 {item.label}
               </a>
             ))}
             <a
               href="/#reviews"
-              className="text-text-muted hover:text-brand-primary transition-colors py-1"
+              onClick={(e) => handleNavClick(e, "/#reviews")}
+              className="text-text-muted hover:text-brand-primary transition-colors py-1 hover:border-b-2 hover:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded-xs"
             >
               Reviews
             </a>
@@ -350,8 +390,8 @@ export const PublicLayout: React.FC = () => {
               <a
                 key={item.label}
                 href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-between p-2.5 rounded-sm text-xs font-semibold text-text-main hover:bg-brand-primary/10 hover:text-brand-primary transition-colors group"
+                onClick={(e) => handleNavClick(e, item.href)}
+                className="flex items-center justify-between p-2.5 rounded-sm text-xs font-semibold text-text-main hover:bg-brand-primary/10 hover:text-brand-primary transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
               >
                 <div className="flex items-center gap-2.5">
                   <Icon className="w-4 h-4 text-text-muted group-hover:text-brand-primary transition-colors" />
@@ -426,8 +466,8 @@ export const PublicLayout: React.FC = () => {
       {/* ========================================================================= */}
       {/* 4. MAIN CONTENT AREA (NO PREVIOUS REDUNDANT FOOTER) */}
       {/* ========================================================================= */}
-      <main className="flex-1">
-        <Outlet />
+      <main className="flex-1 animate-page-enter" key={location.pathname}>
+        <Outlet context={{ landingData, isLoading }} />
       </main>
     </div>
   );

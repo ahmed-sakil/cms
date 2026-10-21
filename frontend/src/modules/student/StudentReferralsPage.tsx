@@ -203,13 +203,18 @@ export const StudentReferralsPage: React.FC = () => {
           <div className="flex items-center gap-2 w-full md:w-auto">
             <div className="flex items-center gap-2 bg-bg-app border border-theme px-3 py-2 rounded-sm w-full md:w-auto">
               <span className="text-[10px] text-text-main/50 uppercase font-bold tracking-wider">Code:</span>
-              <span className="font-mono text-xs font-black text-brand-primary">
-                {data.referralCode}
-              </span>
+              {loading ? (
+                <div className="h-4 w-24 bg-theme/40 animate-pulse rounded-xs" />
+              ) : (
+                <span className="font-mono text-xs font-black text-brand-primary">
+                  {data.referralCode}
+                </span>
+              )}
             </div>
             <button
               onClick={handleCopyLink}
-              className="flex items-center gap-1.5 px-4 py-2 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:opacity-90 transition-opacity shadow-xs whitespace-nowrap"
+              disabled={loading}
+              className="flex items-center gap-1.5 px-4 py-2 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:opacity-90 transition-opacity shadow-xs whitespace-nowrap disabled:opacity-40"
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? "Link Copied!" : "Copy Invite Link"}
@@ -219,10 +224,15 @@ export const StudentReferralsPage: React.FC = () => {
 
         {/* Complete URL Box */}
         <div className="p-2.5 bg-bg-app border border-theme rounded-sm flex items-center justify-between gap-2 overflow-x-auto text-xs font-mono text-text-main/80">
-          <span className="truncate">{referralLink}</span>
+          {loading ? (
+            <div className="h-4 w-64 bg-theme/40 animate-pulse rounded-xs" />
+          ) : (
+            <span className="truncate">{referralLink}</span>
+          )}
           <button
             onClick={handleCopyLink}
-            className="text-xs font-semibold text-brand-primary hover:underline whitespace-nowrap shrink-0"
+            disabled={loading}
+            className="text-xs font-semibold text-brand-primary hover:underline whitespace-nowrap shrink-0 disabled:opacity-40"
           >
             Copy
           </button>
@@ -236,8 +246,17 @@ export const StudentReferralsPage: React.FC = () => {
             <span className="text-xs font-medium">Referred Students</span>
             <TrendingUp className="w-4 h-4 text-brand-primary" />
           </div>
-          <p className="text-2xl font-black text-text-main">{data.totalReferrals}</p>
-          <p className="text-[10px] text-green-600 font-medium">Enrolled via your code</p>
+          {loading ? (
+            <div className="space-y-1.5 py-1">
+              <div className="h-7 w-16 bg-theme/40 animate-pulse rounded-xs" />
+              <div className="h-3 w-28 bg-theme/30 animate-pulse rounded-xs" />
+            </div>
+          ) : (
+            <>
+              <p className="text-2xl font-black text-text-main">{data.totalReferrals}</p>
+              <p className="text-[10px] text-green-600 font-medium">Enrolled via your code</p>
+            </>
+          )}
         </div>
 
         <div className="bg-surface border border-theme rounded-sm p-4 space-y-1 shadow-xs">
@@ -245,8 +264,17 @@ export const StudentReferralsPage: React.FC = () => {
             <span className="text-xs font-medium">Total Commission</span>
             <TrendingUp className="w-4 h-4 text-brand-primary" />
           </div>
-          <p className="text-2xl font-black text-text-main">৳{data.totalEarned.toLocaleString()}</p>
-          <p className="text-[10px] text-text-main/50 font-mono">৳500 per admission</p>
+          {loading ? (
+            <div className="space-y-1.5 py-1">
+              <div className="h-7 w-20 bg-theme/40 animate-pulse rounded-xs" />
+              <div className="h-3 w-28 bg-theme/30 animate-pulse rounded-xs" />
+            </div>
+          ) : (
+            <>
+              <p className="text-2xl font-black text-text-main">৳{data.totalEarned.toLocaleString()}</p>
+              <p className="text-[10px] text-text-main/50 font-mono">৳500 per admission</p>
+            </>
+          )}
         </div>
 
         <div className="bg-surface border border-theme rounded-sm p-4 space-y-1 shadow-xs">
@@ -254,8 +282,17 @@ export const StudentReferralsPage: React.FC = () => {
             <span className="text-xs font-medium">Paid Out</span>
             <CheckCircle2 className="w-4 h-4 text-green-600" />
           </div>
-          <p className="text-2xl font-black text-text-main">৳{data.totalPaid.toLocaleString()}</p>
-          <p className="text-[10px] text-text-main/50 font-mono">Disbursed via bKash/Nagad</p>
+          {loading ? (
+            <div className="space-y-1.5 py-1">
+              <div className="h-7 w-20 bg-theme/40 animate-pulse rounded-xs" />
+              <div className="h-3 w-28 bg-theme/30 animate-pulse rounded-xs" />
+            </div>
+          ) : (
+            <>
+              <p className="text-2xl font-black text-text-main">৳{data.totalPaid.toLocaleString()}</p>
+              <p className="text-[10px] text-text-main/50 font-mono">Disbursed via bKash/Nagad</p>
+            </>
+          )}
         </div>
 
         <div className="bg-surface border-2 border-brand-primary/30 rounded-sm p-4 space-y-1 shadow-xs bg-brand-primary/5">
@@ -263,12 +300,21 @@ export const StudentReferralsPage: React.FC = () => {
             <span className="text-xs font-bold uppercase">Available Balance</span>
             <CreditCard className="w-4 h-4" />
           </div>
-          <p className="text-2xl font-black text-brand-primary font-mono">
-            ৳{data.availableBalance.toLocaleString()}
-          </p>
-          <p className="text-[10px] text-text-main/60">
-            {data.availableBalance >= 500 ? "Ready for withdrawal" : "Min. ৳500 to withdraw"}
-          </p>
+          {loading ? (
+            <div className="space-y-1.5 py-1">
+              <div className="h-7 w-24 bg-theme/40 animate-pulse rounded-xs" />
+              <div className="h-3 w-28 bg-theme/30 animate-pulse rounded-xs" />
+            </div>
+          ) : (
+            <>
+              <p className="text-2xl font-black text-brand-primary font-mono">
+                ৳{data.availableBalance.toLocaleString()}
+              </p>
+              <p className="text-[10px] text-text-main/60">
+                {data.availableBalance >= 500 ? "Ready for withdrawal" : "Min. ৳500 to withdraw"}
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -280,12 +326,27 @@ export const StudentReferralsPage: React.FC = () => {
             <h2 className="text-sm font-bold text-text-main">Commission Withdrawal History</h2>
           </div>
           <span className="text-[11px] text-text-main/50">
-            {data.payoutsList?.length || 0} withdrawal requests
+            {loading ? "..." : `${data.payoutsList?.length || 0} withdrawal requests`}
           </span>
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-xs text-text-main/50">Loading payout records...</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <tbody className="divide-y divide-theme">
+                {[...Array(3)].map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="p-3"><div className="h-3.5 w-24 bg-theme/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-20 bg-theme/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-16 bg-theme/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-28 bg-theme/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-24 bg-theme/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-16 bg-theme/40 rounded-xs" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : !data.payoutsList || data.payoutsList.length === 0 ? (
           <div className="p-8 text-center space-y-2">
             <AlertCircle className="w-6 h-6 text-text-main/30 mx-auto" />

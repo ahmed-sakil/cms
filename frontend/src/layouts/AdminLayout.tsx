@@ -310,8 +310,8 @@ export const AdminLayout: React.FC = () => {
           </button>
         </div>
 
-        {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        {/* Page Content with smooth transition */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto animate-page-enter" key={location.pathname}>
           <Outlet />
         </main>
       </div>

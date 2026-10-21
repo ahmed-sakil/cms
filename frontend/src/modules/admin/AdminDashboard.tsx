@@ -182,12 +182,19 @@ export const AdminDashboard: React.FC = () => {
                 <span className="text-xs font-medium">{stat.label}</span>
                 <Icon className="w-4 h-4 text-brand-primary" />
               </div>
-              <p className="text-2xl font-black text-text-main">
-                {isLoading ? "—" : stat.value}
-              </p>
-              <p className="text-[11px] text-green-600 dark:text-green-400 font-medium">
-                {stat.change}
-              </p>
+              {isLoading ? (
+                <div className="space-y-1.5 py-1">
+                  <div className="h-7 w-24 bg-accent animate-pulse rounded-xs" />
+                  <div className="h-3 w-32 bg-accent/60 animate-pulse rounded-xs" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl font-black text-text-main">{stat.value}</p>
+                  <p className="text-[11px] text-green-600 dark:text-green-400 font-medium">
+                    {stat.change}
+                  </p>
+                </>
+              )}
             </div>
           );
         })}
@@ -221,11 +228,15 @@ export const AdminDashboard: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-accent">
               {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-text-muted text-xs">
-                    Loading recent admissions records...
-                  </td>
-                </tr>
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-3 px-4"><div className="h-3.5 w-28 bg-accent rounded-xs" /></td>
+                    <td className="py-3 px-4"><div className="h-3.5 w-20 bg-accent rounded-xs" /></td>
+                    <td className="py-3 px-4"><div className="h-3.5 w-24 bg-accent rounded-xs" /></td>
+                    <td className="py-3 px-4"><div className="h-3.5 w-20 bg-accent rounded-xs" /></td>
+                    <td className="py-3 px-4"><div className="h-3.5 w-16 bg-accent rounded-xs" /></td>
+                  </tr>
+                ))
               ) : recentAdmissions.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-text-muted text-xs">

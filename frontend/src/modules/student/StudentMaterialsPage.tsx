@@ -82,7 +82,7 @@ export const StudentMaterialsPage: React.FC = () => {
         </div>
 
         <div className="text-xs font-semibold px-3 py-1.5 bg-accent-subtle border border-accent rounded-sm text-text-main flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5 text-brand-primary" /> {materials.length} Resources Available
+          <Layers className="w-3.5 h-3.5 text-brand-primary" /> {loading ? "..." : `${materials.length} Resources Available`}
         </div>
       </div>
 
@@ -116,8 +116,26 @@ export const StudentMaterialsPage: React.FC = () => {
 
       {/* Content Grid */}
       {loading ? (
-        <div className="p-12 text-center text-xs text-text-muted bg-surface border border-accent rounded-sm">
-          Loading lecture materials...
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-surface border border-accent rounded-sm p-5 space-y-4 shadow-xs animate-pulse"
+            >
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-12 bg-accent rounded-xs" />
+                <div className="h-3 w-16 bg-accent rounded-xs" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-4 w-4/5 bg-accent rounded-xs" />
+                <div className="h-3 w-full bg-accent/60 rounded-xs" />
+              </div>
+              <div className="pt-2 border-t border-accent flex justify-between items-center">
+                <div className="h-3 w-20 bg-accent rounded-xs" />
+                <div className="h-6 w-16 bg-accent rounded-xs" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="p-12 text-center bg-surface border border-accent rounded-sm space-y-2">

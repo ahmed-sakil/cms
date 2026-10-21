@@ -12,6 +12,7 @@ import type {
   UpdateStaffInput,
 } from "../../schemas/index.js";
 import { generateRollNumber } from "../../common/utils/identifierGenerator.js";
+import { PublicService } from "../public/public.service.js";
 
 
 export class AdminService {
@@ -389,7 +390,7 @@ export class AdminService {
       throw new NotFoundError("Institution not found");
     }
 
-    return prisma.institution.update({
+    const updated = await prisma.institution.update({
       where: { id: institution.id },
       data: {
         name: input.name,
@@ -402,10 +403,13 @@ export class AdminService {
         whatsappNumber: input.whatsappNumber !== undefined ? input.whatsappNumber : undefined,
         logoUrl: input.logoUrl,
         faviconUrl: input.faviconUrl,
-        paymentChannels: input.paymentChannels ? (input.paymentChannels as any) : undefined,
-        posters: input.posters ? (input.posters as any) : undefined,
+        paymentChannels: input.paymentChannels !== undefined ? (input.paymentChannels as any) : undefined,
+        posters: input.posters !== undefined ? (input.posters as any) : undefined,
       },
     });
+
+    PublicService.invalidateLandingCache();
+    return updated;
   }
 
   // ==========================================

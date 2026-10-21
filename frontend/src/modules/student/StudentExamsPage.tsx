@@ -173,8 +173,17 @@ export const StudentExamsPage: React.FC = () => {
             <span className="text-xs font-medium">Exams Evaluated</span>
             <BookOpen className="w-4 h-4 text-brand-primary" />
           </div>
-          <p className="text-2xl font-black text-text-main">{totalExams}</p>
-          <p className="text-[10px] text-green-600 font-medium">{passedExams} of {totalExams} Passed</p>
+          {loading ? (
+            <div className="space-y-1.5 py-1">
+              <div className="h-7 w-16 bg-theme/40 animate-pulse rounded-xs" />
+              <div className="h-3 w-24 bg-theme/30 animate-pulse rounded-xs" />
+            </div>
+          ) : (
+            <>
+              <p className="text-2xl font-black text-text-main">{totalExams}</p>
+              <p className="text-[10px] text-green-600 font-medium">{passedExams} of {totalExams} Passed</p>
+            </>
+          )}
         </div>
 
         <div className="bg-surface border border-theme rounded-sm p-4 space-y-1 shadow-xs">
@@ -182,8 +191,17 @@ export const StudentExamsPage: React.FC = () => {
             <span className="text-xs font-medium">Average Score</span>
             <TrendingUp className="w-4 h-4 text-brand-primary" />
           </div>
-          <p className="text-2xl font-black text-brand-primary font-mono">{averagePercentage}%</p>
-          <p className="text-[10px] text-text-main/50">Across all evaluated tests</p>
+          {loading ? (
+            <div className="space-y-1.5 py-1">
+              <div className="h-7 w-20 bg-theme/40 animate-pulse rounded-xs" />
+              <div className="h-3 w-28 bg-theme/30 animate-pulse rounded-xs" />
+            </div>
+          ) : (
+            <>
+              <p className="text-2xl font-black text-brand-primary font-mono">{averagePercentage}%</p>
+              <p className="text-[10px] text-text-main/50">Across all evaluated tests</p>
+            </>
+          )}
         </div>
 
         <div className="bg-surface border border-theme rounded-sm p-4 space-y-1 shadow-xs">
@@ -191,8 +209,17 @@ export const StudentExamsPage: React.FC = () => {
             <span className="text-xs font-medium">Peak Performance</span>
             <Award className="w-4 h-4 text-green-600" />
           </div>
-          <p className="text-2xl font-black text-green-600 font-mono">{highestPercentage}%</p>
-          <p className="text-[10px] text-text-main/50">Personal highest mark</p>
+          {loading ? (
+            <div className="space-y-1.5 py-1">
+              <div className="h-7 w-20 bg-theme/40 animate-pulse rounded-xs" />
+              <div className="h-3 w-28 bg-theme/30 animate-pulse rounded-xs" />
+            </div>
+          ) : (
+            <>
+              <p className="text-2xl font-black text-green-600 font-mono">{highestPercentage}%</p>
+              <p className="text-[10px] text-text-main/50">Personal highest mark</p>
+            </>
+          )}
         </div>
 
         <div className="bg-surface border border-theme rounded-sm p-4 space-y-1 shadow-xs">
@@ -200,10 +227,19 @@ export const StudentExamsPage: React.FC = () => {
             <span className="text-xs font-medium">Clearance Status</span>
             <CheckCircle2 className="w-4 h-4 text-green-600" />
           </div>
-          <p className="text-2xl font-black text-text-main">
-            {averagePercentage >= 80 ? "Grade A+" : averagePercentage >= 70 ? "Grade A" : "Grade B"}
-          </p>
-          <p className="text-[10px] text-text-main/50 font-mono">Board Qualifying Level</p>
+          {loading ? (
+            <div className="space-y-1.5 py-1">
+              <div className="h-7 w-24 bg-theme/40 animate-pulse rounded-xs" />
+              <div className="h-3 w-28 bg-theme/30 animate-pulse rounded-xs" />
+            </div>
+          ) : (
+            <>
+              <p className="text-2xl font-black text-text-main">
+                {averagePercentage >= 80 ? "Grade A+" : averagePercentage >= 70 ? "Grade A" : "Grade B"}
+              </p>
+              <p className="text-[10px] text-text-main/50 font-mono">Board Qualifying Level</p>
+            </>
+          )}
         </div>
       </div>
 
@@ -229,7 +265,18 @@ export const StudentExamsPage: React.FC = () => {
           </div>
         </div>
 
-        {filteredResults.length === 0 ? (
+        {loading ? (
+          <div className="p-4 bg-bg-app border border-theme rounded-sm space-y-2 animate-pulse">
+            <div className="grid grid-cols-4 gap-4 h-52 items-end border-b border-theme pb-1">
+              {[40, 75, 60, 90].map((h, idx) => (
+                <div key={idx} className="flex flex-col items-center h-full justify-end gap-2">
+                  <div className="w-full max-w-[48px] bg-theme/30 rounded-t-sm" style={{ height: `${h}%` }} />
+                  <div className="h-3 w-16 bg-theme/40 rounded-xs" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : filteredResults.length === 0 ? (
           <div className="py-12 text-center text-xs text-text-main/40">
             No exams evaluated for the selected batch.
           </div>
@@ -298,12 +345,29 @@ export const StudentExamsPage: React.FC = () => {
             <h2 className="text-sm font-bold text-text-main">Official Marksheet & Results Registry</h2>
           </div>
           <span className="text-[11px] text-text-main/50">
-            {filteredResults.length} records found
+            {loading ? "..." : `${filteredResults.length} records found`}
           </span>
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-xs text-text-main/50">Loading assessment records...</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <tbody className="divide-y divide-theme">
+                {[...Array(4)].map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="p-3"><div className="h-3.5 w-20 bg-theme/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-36 bg-theme/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-24 bg-theme/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-20 bg-theme/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-12 bg-theme/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-10 bg-theme/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-16 bg-theme/40 rounded-xs" /></td>
+                    <td className="p-3 text-right"><div className="h-6 w-24 bg-theme/40 rounded-xs ml-auto" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : filteredResults.length === 0 ? (
           <div className="p-8 text-center text-xs text-text-main/50">
             No exam results recorded for the selected filter.

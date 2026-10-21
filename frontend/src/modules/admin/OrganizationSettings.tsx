@@ -98,8 +98,8 @@ export const OrganizationSettingsPage: React.FC = () => {
           setSettings((prev) => ({
             ...prev,
             ...json.data,
-            paymentChannels: json.data.paymentChannels?.length ? json.data.paymentChannels : prev.paymentChannels,
-            posters: json.data.posters?.length ? json.data.posters : prev.posters,
+            paymentChannels: Array.isArray(json.data.paymentChannels) ? json.data.paymentChannels : [],
+            posters: Array.isArray(json.data.posters) ? json.data.posters : [],
           }));
         }
       } catch (err) {
@@ -111,8 +111,8 @@ export const OrganizationSettingsPage: React.FC = () => {
     fetchSettings();
   }, []);
 
-  const handleSaveSettings = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const persistSettings = async (updatedSettings: OrganizationSettings, successMsg?: string) => {
+    setSettings(updatedSettings);
     setIsSaving(true);
     try {
       const token = localStorage.getItem("cms_token");
@@ -122,7 +122,7 @@ export const OrganizationSettingsPage: React.FC = () => {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(updatedSettings),
       });
 
       const json = await res.json();
@@ -130,12 +130,19 @@ export const OrganizationSettingsPage: React.FC = () => {
         throw new Error(json.message || "Failed to update settings");
       }
 
-      toast.success("Organization profile, posters, and payment channels saved!");
+      if (successMsg) {
+        toast.success(successMsg);
+      }
     } catch (err: any) {
       toast.error("Failed to save settings", { description: err.message });
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSaveSettings = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    await persistSettings(settings, "Organization profile, posters, and payment channels saved!");
   };
 
   // ==========================================
@@ -186,8 +193,8 @@ export const OrganizationSettingsPage: React.FC = () => {
             }
           : c
       );
-      setSettings({ ...settings, paymentChannels: updatedChannels });
-      toast.success(`Updated ${channelForm.provider} channel`);
+      const newSettings = { ...settings, paymentChannels: updatedChannels };
+      persistSettings(newSettings, `Updated ${channelForm.provider} channel`);
     } else {
       // Add new
       const newChan: PaymentChannel = {
@@ -198,31 +205,34 @@ export const OrganizationSettingsPage: React.FC = () => {
         instructions: channelForm.instructions,
         isActive: channelForm.isActive,
       };
-      setSettings({
+      const newSettings = {
         ...settings,
         paymentChannels: [...settings.paymentChannels, newChan],
-      });
-      toast.success(`Added ${channelForm.provider} ${channelForm.accountType} channel`);
+      };
+      persistSettings(newSettings, `Added ${channelForm.provider} ${channelForm.accountType} channel`);
     }
 
     setIsChannelModalOpen(false);
   };
 
   const handleDeleteChannel = (id: string) => {
-    setSettings({
+    const updatedChannels = settings.paymentChannels.filter((c) => c.id !== id);
+    const newSettings = {
       ...settings,
-      paymentChannels: settings.paymentChannels.filter((c) => c.id !== id),
-    });
-    toast.info("Payment channel removed");
+      paymentChannels: updatedChannels,
+    };
+    persistSettings(newSettings, "Payment channel removed");
   };
 
   const handleToggleChannelStatus = (id: string) => {
-    setSettings({
+    const updatedChannels = settings.paymentChannels.map((c) =>
+      c.id === id ? { ...c, isActive: !c.isActive } : c
+    );
+    const newSettings = {
       ...settings,
-      paymentChannels: settings.paymentChannels.map((c) =>
-        c.id === id ? { ...c, isActive: !c.isActive } : c
-      ),
-    });
+      paymentChannels: updatedChannels,
+    };
+    persistSettings(newSettings);
   };
 
   // ==========================================
@@ -267,15 +277,15 @@ export const OrganizationSettingsPage: React.FC = () => {
           ? { ...posterForm, id: editingPoster.id }
           : p
       );
-      setSettings({ ...settings, posters: updated });
-      toast.success("Poster slide updated");
+      const newSettings = { ...settings, posters: updated };
+      persistSettings(newSettings, "Poster slide updated");
     } else {
       const newSlide: PosterSlide = {
         ...posterForm,
         id: `poster-${Date.now()}`,
       };
-      setSettings({ ...settings, posters: [...currentPosters, newSlide] });
-      toast.success("New hero slide added");
+      const newSettings = { ...settings, posters: [...currentPosters, newSlide] };
+      persistSettings(newSettings, "New hero slide added");
     }
 
     setIsPosterModalOpen(false);
@@ -285,15 +295,16 @@ export const OrganizationSettingsPage: React.FC = () => {
     const updated = (settings.posters || []).filter(
       (p) => p.id !== idOrTitle && p.title !== idOrTitle
     );
-    setSettings({ ...settings, posters: updated });
-    toast.info("Hero slide removed");
+    const newSettings = { ...settings, posters: updated };
+    persistSettings(newSettings, "Hero slide removed");
   };
 
   const handleTogglePosterStatus = (idOrTitle: string) => {
     const updated = (settings.posters || []).map((p) =>
       p.id === idOrTitle || p.title === idOrTitle ? { ...p, isActive: !p.isActive } : p
     );
-    setSettings({ ...settings, posters: updated });
+    const newSettings = { ...settings, posters: updated };
+    persistSettings(newSettings);
   };
 
   const getProviderBadgeColor = (provider: string) => {

@@ -2,8 +2,24 @@ import { prisma } from "../../config/prisma.js";
 import type { AdmissionInquiryInput } from "../../schemas/index.js";
 import { BatchStatus } from "../../types/index.js";
 
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+let landingCache: CacheEntry<any> | null = null;
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
 export class PublicService {
+  static invalidateLandingCache() {
+    landingCache = null;
+  }
+
   static async getLandingData() {
+    if (landingCache && Date.now() - landingCache.timestamp < CACHE_TTL_MS) {
+      return landingCache.data;
+    }
+
     const [courses, batchesList, notices, branches, organization, achievements, testimonials, exams] = await Promise.all([
       prisma.course.findMany({
         where: {
@@ -208,7 +224,7 @@ export class PublicService {
       },
     ];
 
-    return {
+    const payload = {
       courses,
       availableBatches,
       upcomingBatches,
@@ -220,6 +236,13 @@ export class PublicService {
       evaluatedExams,
       studyTips,
     };
+
+    landingCache = {
+      data: payload,
+      timestamp: Date.now(),
+    };
+
+    return payload;
   }
 
   static async getPublicExamResults(batchId?: string) {
