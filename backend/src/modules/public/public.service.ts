@@ -58,7 +58,7 @@ export class PublicService {
         include: {
           branch: { select: { name: true } },
         },
-        orderBy: { publishedAt: "desc" },
+        orderBy: [{ pinned: "desc" }, { publishedAt: "desc" }],
       }),
       prisma.branch.findMany({
         where: { isActive: true },

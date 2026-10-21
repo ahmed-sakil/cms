@@ -22,6 +22,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useTheme } from "../lib/theme.js";
+import { setDynamicFavicon } from "../utils/dynamicFavicon.js";
 
 interface MainBranchData {
   name: string;
@@ -64,6 +65,7 @@ export const PublicLayout: React.FC = () => {
             setLandingData(json.data);
             if (json.data.organization) {
               setOrganization(json.data.organization);
+              setDynamicFavicon(json.data.organization.faviconUrl, json.data.organization.name);
             }
             const branches = json.data.branches || [];
             const mb = branches.find((b: any) => b.isMainBranch) || branches[0] || null;

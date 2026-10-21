@@ -25,6 +25,7 @@ import {
   BookOpen,
   Building2,
   Search,
+  Download,
 } from "lucide-react";
 import type { PosterSlide, PaymentChannel } from "../../types/index.js";
 
@@ -527,10 +528,17 @@ export const LandingPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-theme/40 shrink-0">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-brand-primary bg-bg-app border border-theme rounded-sm group-hover:border-brand-primary/60 group-hover:bg-brand-primary group-hover:text-white transition-all shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedNotice(notice);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-brand-primary bg-bg-app border border-theme rounded-sm hover:border-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-2xs"
+                    >
                       <span>Read Notice</span>
                       <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                    </span>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -966,42 +974,31 @@ export const LandingPage: React.FC = () => {
                   </table>
                 </div>
 
-                {/* Bottom Toggle / Full Result Sheet button */}
+                {/* Bottom Toggle */}
                 {exam.standings.length > 3 && (
                   <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-theme/60 text-xs text-text-muted">
                     <span>
                       Showing {expandedExamIds[exam.id] ? exam.standings.length : 3} of {exam.standings.length} evaluated students
                     </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() =>
-                          setExpandedExamIds((prev) => ({
-                            ...prev,
-                            [exam.id]: !prev[exam.id],
-                          }))
-                        }
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-bg-app border border-theme rounded-sm hover:border-brand-primary hover:text-brand-primary text-text-main transition-colors"
-                      >
-                        {expandedExamIds[exam.id] ? (
-                          <>
-                            <ChevronUp className="w-3.5 h-3.5" /> Show Top 3 Only
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="w-3.5 h-3.5" /> Expand All ({exam.standings.length})
-                          </>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setExamSearchFilter("");
-                          setSelectedExamModal(exam);
-                        }}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-surface border border-brand-primary/40 text-brand-primary hover:bg-brand-primary hover:text-white rounded-sm transition-colors shadow-xs"
-                      >
-                        <Trophy className="w-3.5 h-3.5" /> Full Results Sheet
-                      </button>
-                    </div>
+                    <button
+                      onClick={() =>
+                        setExpandedExamIds((prev) => ({
+                          ...prev,
+                          [exam.id]: !prev[exam.id],
+                        }))
+                      }
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-bg-app border border-theme rounded-sm hover:border-brand-primary hover:text-brand-primary text-text-main transition-colors"
+                    >
+                      {expandedExamIds[exam.id] ? (
+                        <>
+                          <ChevronUp className="w-3.5 h-3.5" /> Show Top 3 Only
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="w-3.5 h-3.5" /> Expand All ({exam.standings.length})
+                        </>
+                      )}
+                    </button>
                   </div>
                 )}
               </div>
@@ -1187,14 +1184,6 @@ export const LandingPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
-            {testimonials.length > 3 && (
-              <button
-                onClick={() => setShowAllReviews(!showAllReviews)}
-                className="px-3 py-1.5 text-xs font-semibold bg-surface border border-theme rounded-sm hover:border-brand-primary hover:text-brand-primary text-text-main transition-colors shadow-xs"
-              >
-                {showAllReviews ? "Show Top Reviews" : `All Reviews (${testimonials.length})`}
-              </button>
-            )}
             <button
               onClick={() => setIsReviewModalOpen(true)}
               className="px-3.5 py-1.5 text-xs font-bold bg-brand-primary text-white rounded-sm hover:bg-brand-hover shadow-xs flex items-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
@@ -1578,8 +1567,8 @@ export const LandingPage: React.FC = () => {
       {/* MODAL: SINGLE NOTICE DETAIL VIEW */}
       {/* ========================================================================= */}
       {selectedNotice && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-theme max-w-lg w-full rounded-sm p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-surface border border-theme max-w-lg w-full rounded-sm p-6 space-y-4 shadow-xl animate-page-enter">
             <div className="flex justify-between items-start border-b border-theme pb-3">
               <div className="space-y-1">
                 <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-xs uppercase">
@@ -1595,8 +1584,21 @@ export const LandingPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="text-xs text-text-main leading-relaxed space-y-2 max-h-72 overflow-y-auto">
+            <div className="text-xs text-text-main leading-relaxed space-y-3 max-h-72 overflow-y-auto whitespace-pre-line">
               <p>{selectedNotice.content}</p>
+              {selectedNotice.attachmentUrl && (
+                <div className="pt-2">
+                  <a
+                    href={selectedNotice.attachmentUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary/10 text-brand-primary border border-brand-primary/30 rounded-sm text-xs font-semibold hover:bg-brand-primary hover:text-white transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download Official Document / Circular</span>
+                  </a>
+                </div>
+              )}
             </div>
 
             <div className="pt-3 border-t border-theme flex justify-end">
@@ -1615,8 +1617,8 @@ export const LandingPage: React.FC = () => {
       {/* MODAL: ALL NOTICES ARCHIVE */}
       {/* ========================================================================= */}
       {isAllNoticesOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-theme max-w-2xl w-full rounded-sm p-6 space-y-4 shadow-xl max-h-[85vh] flex flex-col justify-between">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-surface border border-theme max-w-2xl w-full rounded-sm p-6 space-y-4 shadow-xl max-h-[85vh] flex flex-col justify-between animate-page-enter">
             <div className="flex justify-between items-center border-b border-theme pb-3">
               <div className="flex items-center gap-2">
                 <BellRing className="w-5 h-5 text-brand-primary" />
@@ -1629,17 +1631,31 @@ export const LandingPage: React.FC = () => {
 
             <div className="overflow-y-auto space-y-3 flex-1 pr-1">
               {notices.map((n) => (
-                <div key={n.id} className="p-3.5 bg-bg-app border border-theme rounded-sm space-y-1">
+                <div
+                  key={n.id}
+                  onClick={() => {
+                    setIsAllNoticesOpen(false);
+                    setSelectedNotice(n);
+                  }}
+                  className="p-3.5 bg-bg-app border border-theme rounded-sm space-y-1 cursor-pointer hover:border-brand-primary/70 transition-all shadow-2xs group"
+                >
                   <div className="flex justify-between items-center text-[11px] text-text-muted font-mono">
                     <span className="text-brand-primary font-bold">
                       {new Date(n.publishedAt).toLocaleDateString()}
                     </span>
                     <span>{n.branch?.name || "All Campuses"}</span>
                   </div>
-                  <h4 className="font-bold text-xs text-text-main">{n.title}</h4>
-                  <p className="text-xs text-text-muted leading-relaxed">{n.content}</p>
+                  <h4 className="font-bold text-xs text-text-main group-hover:text-brand-primary transition-colors">
+                    {n.title}
+                  </h4>
+                  <p className="text-xs text-text-muted leading-relaxed line-clamp-2">{n.content}</p>
                 </div>
               ))}
+              {notices.length === 0 && (
+                <div className="p-8 text-center text-xs text-text-muted">
+                  No notices found in archive.
+                </div>
+              )}
             </div>
 
             <div className="pt-3 border-t border-theme flex justify-end">
@@ -1658,7 +1674,7 @@ export const LandingPage: React.FC = () => {
       {/* MODAL: FULL STUDY GUIDE / TIP DETAIL */}
       {/* ========================================================================= */}
       {selectedTip && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-surface border border-theme max-w-lg w-full rounded-sm p-6 space-y-4 shadow-xl">
             <div className="flex justify-between items-start border-b border-theme pb-3">
               <div className="space-y-1">
@@ -1693,7 +1709,7 @@ export const LandingPage: React.FC = () => {
       {/* MODAL: SUBMIT PARENT / STUDENT REVIEW */}
       {/* ========================================================================= */}
       {isReviewModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-surface border border-theme max-w-md w-full rounded-sm p-6 space-y-4 shadow-xl">
             <div className="flex justify-between items-center border-b border-theme pb-3">
               <h3 className="font-bold text-sm text-text-main flex items-center gap-1.5">
@@ -1802,7 +1818,7 @@ export const LandingPage: React.FC = () => {
       {/* MODAL: FULL EXAM RESULTS & LEADERBOARD SHEET */}
       {/* ========================================================================= */}
       {selectedExamModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-surface border border-theme max-w-3xl w-full rounded-sm p-6 space-y-4 shadow-xl max-h-[90vh] flex flex-col justify-between animate-page-enter">
             {/* Modal Header */}
             <div className="flex justify-between items-start border-b border-theme pb-4">

@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  ChevronDown,
   ExternalLink,
   Crown,
   Receipt,
@@ -25,12 +26,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "../lib/theme.js";
+import { setDynamicFavicon } from "../utils/dynamicFavicon.js";
 
 export const AdminLayout: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isOrgMenuOpen, setIsOrgMenuOpen] = useState(true);
 
   const [currentUser] = useState<{
     id?: string;
@@ -48,7 +51,7 @@ export const AdminLayout: React.FC = () => {
     }
   });
 
-  const [institution, setInstitution] = useState<{ name?: string; logoUrl?: string } | null>(null);
+  const [institution, setInstitution] = useState<{ name?: string; logoUrl?: string; faviconUrl?: string } | null>(null);
   const [branches, setBranches] = useState<Array<{ id: string; name: string; isMainBranch?: boolean }>>([]);
 
   useEffect(() => {
@@ -56,7 +59,10 @@ export const AdminLayout: React.FC = () => {
       .then((res) => res.json())
       .then((json) => {
         if (json.success && json.data) {
-          if (json.data.organization) setInstitution(json.data.organization);
+          if (json.data.organization) {
+            setInstitution(json.data.organization);
+            setDynamicFavicon(json.data.organization.faviconUrl, json.data.organization.name);
+          }
           if (json.data.branches) setBranches(json.data.branches);
         }
       })
@@ -83,7 +89,23 @@ export const AdminLayout: React.FC = () => {
 
   const navLinks = [
     { label: "Overview", path: "/admin", icon: LayoutDashboard, hasSubActions: false },
-    { label: "Campuses / Branches", path: "/admin/branches", icon: Building2, hasSubActions: true },
+    ...(!isBranchAdmin
+      ? [
+          {
+            label: "Organisation Settings",
+            path: "/admin/settings",
+            icon: Settings,
+            children: [
+              { label: "Identity & Branding", path: "/admin/settings?tab=branding", tab: "branding" },
+              { label: "Hero Posters & Sliders", path: "/admin/settings?tab=posters", tab: "posters" },
+              { label: "Payment Channels & Sensitive", path: "/admin/settings?tab=payments", tab: "payments" },
+              { label: "Campus / Branches", path: "/admin/branches", isBranchRoute: true },
+            ],
+          },
+        ]
+      : [
+          { label: "Assigned Campus", path: "/admin/branches", icon: Building2, hasSubActions: true },
+        ]),
     { label: "Students Directory", path: "/admin/students", icon: Users, hasSubActions: true },
     { label: "Faculty & Staff", path: "/admin/teachers", icon: UserCheck, hasSubActions: true },
     { label: "Batches & Classrooms", path: "/admin/batches", icon: Calendar, hasSubActions: true },
@@ -94,9 +116,6 @@ export const AdminLayout: React.FC = () => {
     { label: "Accounts & Fees", path: "/admin/fees", icon: CreditCard, hasSubActions: true },
     { label: "Campus Expenses", path: "/admin/expenses", icon: Receipt, hasSubActions: true },
     { label: "Referral Payouts", path: "/admin/referrals", icon: Share2, hasSubActions: true },
-    ...(!isBranchAdmin
-      ? [{ label: "Organisation Settings", path: "/admin/settings", icon: Settings, hasSubActions: true }]
-      : []),
   ];
 
   const currentNav = navLinks.find(
@@ -168,6 +187,78 @@ export const AdminLayout: React.FC = () => {
           </p>
           {navLinks.map((item) => {
             const Icon = item.icon;
+
+            if (item.children) {
+              const isGroupActive =
+                location.pathname.startsWith("/admin/settings") ||
+                location.pathname === "/admin/branches";
+              const currentTab = new URLSearchParams(location.search).get("tab") || "branding";
+
+              return (
+                <div key={item.path} className="space-y-0.5">
+                  <div
+                    className={`group flex items-center justify-between px-3 py-2 rounded-sm text-xs font-semibold cursor-pointer transition-all ${
+                      isGroupActive
+                        ? "bg-bg-app text-brand-primary border border-theme"
+                        : "text-text-main/70 hover:bg-bg-app hover:text-text-main"
+                    }`}
+                  >
+                    <Link
+                      to={item.path}
+                      onClick={() => setMobileSidebarOpen(false)}
+                      className="flex items-center gap-2.5 min-w-0 flex-1"
+                    >
+                      <Icon className="w-4 h-4 shrink-0 text-brand-primary" />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsOrgMenuOpen(!isOrgMenuOpen);
+                      }}
+                      className="p-1 text-text-main/40 hover:text-text-main rounded-xs"
+                      title={isOrgMenuOpen ? "Collapse sub-items" : "Expand sub-items"}
+                    >
+                      {isOrgMenuOpen ? (
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  {isOrgMenuOpen && (
+                    <div className="ml-4 pl-2.5 border-l-2 border-theme space-y-0.5 pt-1 pb-1">
+                      {item.children.map((child: any) => {
+                        const isChildActive = child.isBranchRoute
+                          ? location.pathname === "/admin/branches"
+                          : location.pathname === "/admin/settings" && currentTab === child.tab;
+
+                        return (
+                          <Link
+                            key={child.path}
+                            to={child.path}
+                            onClick={() => setMobileSidebarOpen(false)}
+                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-sm text-[11px] font-medium transition-all ${
+                              isChildActive
+                                ? "bg-brand-primary text-white font-bold shadow-xs"
+                                : "text-text-main/70 hover:bg-bg-app hover:text-text-main"
+                            }`}
+                          >
+                            <span className="truncate">{child.label}</span>
+                            {isChildActive && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0 ml-1" />
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             const isActive =
               item.path === "/admin"
                 ? location.pathname === "/admin"

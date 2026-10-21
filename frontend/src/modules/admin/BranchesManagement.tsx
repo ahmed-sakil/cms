@@ -306,11 +306,11 @@ export const BranchesManagement: React.FC = () => {
 
       {/* Campus Grid */}
       {!isLoading && branches.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {branches.map((b) => (
             <div
               key={b.id}
-              className={`bg-surface border rounded-sm p-5 flex flex-col justify-between transition-colors shadow-xs ${
+              className={`bg-surface border rounded-sm p-4 sm:p-5 flex flex-col justify-between transition-colors shadow-xs ${
                 b.isMainBranch
                   ? "border-amber-400 dark:border-amber-600/70 ring-1 ring-amber-400/20"
                   : "border-theme hover:border-brand-primary/50"
@@ -318,8 +318,8 @@ export const BranchesManagement: React.FC = () => {
             >
               <div className="space-y-3">
                 {/* Header & Badges */}
-                <div className="flex justify-between items-start">
-                  <div>
+                <div className="flex justify-between items-start gap-2">
+                  <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-mono text-[10px] font-bold px-2 py-0.5 bg-bg-app border border-theme text-text-main/70 rounded-xs uppercase">
                         {b.code}
@@ -335,7 +335,7 @@ export const BranchesManagement: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <h3 className="text-base font-bold text-text-main mt-1.5">{b.name}</h3>
+                    <h3 className="text-base font-bold text-text-main mt-1.5 break-words">{b.name}</h3>
                   </div>
 
                   <span
@@ -351,16 +351,16 @@ export const BranchesManagement: React.FC = () => {
 
                 {/* Description if present */}
                 {b.description && (
-                  <p className="text-xs text-text-main/70 line-clamp-2 leading-relaxed bg-bg-app/40 p-2 border border-theme rounded-xs">
+                  <p className="text-xs text-text-main/70 line-clamp-2 leading-relaxed bg-bg-app/40 p-2 border border-theme rounded-xs break-words">
                     {b.description}
                   </p>
                 )}
 
                 {/* Contact & Location Details */}
                 <div className="space-y-1.5 text-xs text-text-main/70 pt-1">
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2 min-w-0">
                     <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0 mt-0.5" />
-                    <span>{b.address}</span>
+                    <span className="break-words flex-1 min-w-0">{b.address}</span>
                   </div>
                   {b.phone && (
                     <div className="flex items-center gap-2">
@@ -377,18 +377,18 @@ export const BranchesManagement: React.FC = () => {
                     </div>
                   )}
                   {b.email && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <Mail className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                      <span className="truncate">{b.email}</span>
+                      <span className="truncate flex-1 min-w-0">{b.email}</span>
                     </div>
                   )}
                 </div>
 
                 {/* Leadership Section */}
-                <div className="pt-2.5 border-t border-theme grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-2 bg-bg-app border border-theme rounded-sm">
+                <div className="pt-2.5 border-t border-theme grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="p-2 bg-bg-app border border-theme rounded-sm min-w-0">
                     <p className="text-[10px] font-bold text-text-main/50 uppercase tracking-wider flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-amber-500" /> Branch Director
+                      <ShieldCheck className="w-3 h-3 text-amber-500 shrink-0" /> Branch Director
                     </p>
                     <p className="font-bold text-text-main text-xs truncate mt-0.5">
                       {b.director?.fullName || "Unassigned"}
@@ -397,9 +397,9 @@ export const BranchesManagement: React.FC = () => {
                       <p className="text-[10px] font-mono text-text-main/60 truncate">{b.director.phone}</p>
                     )}
                   </div>
-                  <div className="p-2 bg-bg-app border border-theme rounded-sm">
+                  <div className="p-2 bg-bg-app border border-theme rounded-sm min-w-0">
                     <p className="text-[10px] font-bold text-text-main/50 uppercase tracking-wider flex items-center gap-1">
-                      <Briefcase className="w-3 h-3 text-brand-primary" /> Branch Manager
+                      <Briefcase className="w-3 h-3 text-brand-primary shrink-0" /> Branch Manager
                     </p>
                     <p className="font-bold text-text-main text-xs truncate mt-0.5">
                       {b.manager?.fullName || "Unassigned"}
@@ -414,41 +414,36 @@ export const BranchesManagement: React.FC = () => {
               {/* Metrics & Operations Dock */}
               <div className="pt-4 mt-4 border-t border-theme space-y-3">
                 {/* 5-part Assigned Metrics Breakdown */}
-                <div className="space-y-1.5">
-                  <div className="grid grid-cols-3 gap-1.5 text-center text-xs">
-                    <div className="p-1.5 bg-bg-app border border-theme rounded-sm">
-                      <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
-                        <Users className="w-3 h-3 text-blue-500" /> {b._count?.students ?? 0}
-                      </p>
-                      <p className="text-[9px] text-text-main/60 uppercase font-semibold">Students</p>
-                    </div>
-                    <div className="p-1.5 bg-bg-app border border-theme rounded-sm">
-                      <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
-                        <GraduationCap className="w-3 h-3 text-amber-500" /> {b._count?.teachers ?? 0}
-                      </p>
-                      <p className="text-[9px] text-text-main/60 uppercase font-semibold">Faculty</p>
-                    </div>
-                    <div className="p-1.5 bg-bg-app border border-theme rounded-sm">
-                      <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
-                        <UserCheck className="w-3 h-3 text-purple-500" /> {b._count?.staff ?? 0}
-                      </p>
-                      <p className="text-[9px] text-text-main/60 uppercase font-semibold">Staff</p>
-                    </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5 text-center text-xs">
+                  <div className="p-1.5 bg-bg-app border border-theme rounded-sm min-w-0">
+                    <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
+                      <Users className="w-3 h-3 text-blue-500 shrink-0" /> {b._count?.students ?? 0}
+                    </p>
+                    <p className="text-[9px] text-text-main/60 uppercase font-semibold truncate">Students</p>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-1.5 text-center text-xs">
-                    <div className="p-1.5 bg-bg-app border border-theme rounded-sm">
-                      <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
-                        <Calendar className="w-3 h-3 text-brand-primary" /> {b._count?.batches ?? 0}
-                      </p>
-                      <p className="text-[9px] text-text-main/60 uppercase font-semibold">Batches</p>
-                    </div>
-                    <div className="p-1.5 bg-bg-app border border-theme rounded-sm">
-                      <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
-                        <BookOpen className="w-3 h-3 text-emerald-500" /> {b._count?.courses ?? 0}
-                      </p>
-                      <p className="text-[9px] text-text-main/60 uppercase font-semibold">Courses</p>
-                    </div>
+                  <div className="p-1.5 bg-bg-app border border-theme rounded-sm min-w-0">
+                    <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
+                      <GraduationCap className="w-3 h-3 text-amber-500 shrink-0" /> {b._count?.teachers ?? 0}
+                    </p>
+                    <p className="text-[9px] text-text-main/60 uppercase font-semibold truncate">Faculty</p>
+                  </div>
+                  <div className="p-1.5 bg-bg-app border border-theme rounded-sm min-w-0">
+                    <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
+                      <UserCheck className="w-3 h-3 text-purple-500 shrink-0" /> {b._count?.staff ?? 0}
+                    </p>
+                    <p className="text-[9px] text-text-main/60 uppercase font-semibold truncate">Staff</p>
+                  </div>
+                  <div className="p-1.5 bg-bg-app border border-theme rounded-sm min-w-0">
+                    <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
+                      <Calendar className="w-3 h-3 text-brand-primary shrink-0" /> {b._count?.batches ?? 0}
+                    </p>
+                    <p className="text-[9px] text-text-main/60 uppercase font-semibold truncate">Batches</p>
+                  </div>
+                  <div className="p-1.5 bg-bg-app border border-theme rounded-sm min-w-0 col-span-2 sm:col-span-1">
+                    <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
+                      <BookOpen className="w-3 h-3 text-emerald-500 shrink-0" /> {b._count?.courses ?? 0}
+                    </p>
+                    <p className="text-[9px] text-text-main/60 uppercase font-semibold truncate">Courses</p>
                   </div>
                 </div>
 
@@ -508,7 +503,7 @@ export const BranchesManagement: React.FC = () => {
       {/* Create / Edit Branch Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
-          <div className="bg-surface border border-theme rounded-sm max-w-xl w-full p-6 space-y-4 shadow-xl my-8">
+          <div className="bg-surface border border-theme rounded-sm max-w-xl w-full p-6 space-y-4 shadow-xl my-8 max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-theme pb-2">
               <h3 className="font-bold text-sm text-text-main flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-brand-primary" />

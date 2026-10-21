@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   Building,
   CreditCard,
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "../../components/common/FileUpload.js";
+import { setDynamicFavicon } from "../../utils/dynamicFavicon.js";
 import type { OrganizationSettings, PaymentChannel, PosterSlide } from "../../types/index.js";
 
 export const OrganizationSettingsPage: React.FC = () => {
@@ -32,7 +33,17 @@ export const OrganizationSettingsPage: React.FC = () => {
 
   const isBranchAdmin = currentUser?.role === "BRANCH_ADMIN";
 
-  const [activeTab, setActiveTab] = useState<"branding" | "payments" | "posters">("branding");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get("tab") || "branding";
+  const activeTab: "branding" | "payments" | "posters" | "danger" =
+    ["branding", "payments", "posters", "danger"].includes(currentTab)
+      ? (currentTab as any)
+      : "branding";
+
+  const setActiveTab = (tab: "branding" | "payments" | "posters" | "danger") => {
+    setSearchParams({ tab });
+  };
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -101,6 +112,7 @@ export const OrganizationSettingsPage: React.FC = () => {
             paymentChannels: Array.isArray(json.data.paymentChannels) ? json.data.paymentChannels : [],
             posters: Array.isArray(json.data.posters) ? json.data.posters : [],
           }));
+          setDynamicFavicon(json.data.faviconUrl, json.data.name);
         }
       } catch (err) {
         console.warn("Could not load backend organization settings, using local defaults");
@@ -113,6 +125,7 @@ export const OrganizationSettingsPage: React.FC = () => {
 
   const persistSettings = async (updatedSettings: OrganizationSettings, successMsg?: string) => {
     setSettings(updatedSettings);
+    setDynamicFavicon(updatedSettings.faviconUrl, updatedSettings.name);
     setIsSaving(true);
     try {
       const token = localStorage.getItem("cms_token");
@@ -143,6 +156,38 @@ export const OrganizationSettingsPage: React.FC = () => {
   const handleSaveSettings = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     await persistSettings(settings, "Organization profile, posters, and payment channels saved!");
+  };
+
+  const handleDeleteOrganizationPrompt = () => {
+    toast("Delete & reset organization profile?", {
+      description: "This will permanently clear branding identity, hero sliders, and payment channels.",
+      action: {
+        label: "Confirm Delete",
+        onClick: async () => {
+          const resetData: OrganizationSettings = {
+            name: "",
+            tagline: "",
+            website: "",
+            email: "",
+            phone: "",
+            address: "",
+            establishedYear: "",
+            whatsappNumber: "",
+            logoUrl: "",
+            faviconUrl: "",
+            paymentChannels: [],
+            posters: [],
+          };
+          await persistSettings(resetData, "Organization settings reset to defaults successfully");
+          setDynamicFavicon("/vite.svg", "Coaching Management System");
+        },
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => toast.dismiss(),
+      },
+      duration: 10000,
+    });
   };
 
   // ==========================================
@@ -407,6 +452,17 @@ export const OrganizationSettingsPage: React.FC = () => {
         >
           <CreditCard className="w-3.5 h-3.5" /> Payment Channels ({settings.paymentChannels.length})
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("danger")}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold border-b-2 transition-colors ${
+            activeTab === "danger"
+              ? "border-red-500 text-red-600 dark:text-red-400"
+              : "border-transparent text-text-main/60 hover:text-red-500"
+          }`}
+        >
+          <ShieldAlert className="w-3.5 h-3.5" /> Danger Zone & Reset
+        </button>
       </div>
 
       {/* TAB 1: BRANDING & CONTACT */}
@@ -547,7 +603,11 @@ export const OrganizationSettingsPage: React.FC = () => {
               label="Favicon"
               folder="logos"
               value={settings.faviconUrl || ""}
-              onChange={(url) => setSettings({ ...settings, faviconUrl: url })}
+              onChange={(url) => {
+                const updated = { ...settings, faviconUrl: url };
+                setSettings(updated);
+                setDynamicFavicon(url, settings.name);
+              }}
               helperText="Square 32x32 or 64x64 icon for browser tab."
             />
           </div>
@@ -759,6 +819,31 @@ export const OrganizationSettingsPage: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: DANGER ZONE & RESET */}
+      {activeTab === "danger" && (
+        <div className="bg-surface border border-red-500/30 rounded-sm p-6 space-y-4">
+          <div className="flex items-center gap-2.5 text-red-600 dark:text-red-400">
+            <ShieldAlert className="w-5 h-5 shrink-0" />
+            <h2 className="text-sm font-bold uppercase tracking-wider">
+              Delete Organization Identity & Global Settings
+            </h2>
+          </div>
+          <p className="text-xs text-text-main/70 leading-relaxed max-w-2xl">
+            This action will reset your organization profile name, tagline, logo, favicon, all public landing page hero slides, and official payment merchant accounts to empty defaults. Campuses, courses, batches, and student records will remain untouched.
+          </p>
+
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={handleDeleteOrganizationPrompt}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-sm transition-colors shadow-xs"
+            >
+              <Trash2 className="w-4 h-4" /> Delete / Reset Organization Profile
+            </button>
           </div>
         </div>
       )}

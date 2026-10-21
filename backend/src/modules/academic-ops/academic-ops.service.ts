@@ -10,6 +10,7 @@ import {
 } from "./academic-ops.schema.js";
 import { BadRequestError, NotFoundError, ForbiddenError } from "../../common/errors/appError.js";
 import { UserRole, type JwtUserPayload } from "../../types/index.js";
+import { PublicService } from "../public/public.service.js";
 
 
 export class AcademicOpsService {
@@ -63,7 +64,7 @@ export class AcademicOpsService {
       }
     }
 
-    return prisma.publicNotice.create({
+    const created = await prisma.publicNotice.create({
       data: {
         title: input.title,
         content: input.content,
@@ -80,13 +81,16 @@ export class AcademicOpsService {
         batch: { select: { id: true, name: true } },
       },
     });
+
+    PublicService.invalidateLandingCache();
+    return created;
   }
 
   static async updateNotice(id: string, input: UpdateNoticeInput) {
     const existing = await prisma.publicNotice.findUnique({ where: { id } });
     if (!existing) throw new NotFoundError("Notice not found");
 
-    return prisma.publicNotice.update({
+    const updated = await prisma.publicNotice.update({
       where: { id },
       data: {
         ...(input.title !== undefined ? { title: input.title } : {}),
@@ -102,6 +106,9 @@ export class AcademicOpsService {
           : {}),
       },
     });
+
+    PublicService.invalidateLandingCache();
+    return updated;
   }
 
   static async deleteNotice(id: string, operator: JwtUserPayload) {
@@ -119,17 +126,21 @@ export class AcademicOpsService {
       throw new ForbiddenError("You do not have permission to delete notices.");
     }
 
-    return prisma.publicNotice.delete({ where: { id } });
+    const deleted = await prisma.publicNotice.delete({ where: { id } });
+    PublicService.invalidateLandingCache();
+    return deleted;
   }
 
 
   static async togglePin(id: string) {
     const existing = await prisma.publicNotice.findUnique({ where: { id } });
     if (!existing) throw new NotFoundError("Notice not found");
-    return prisma.publicNotice.update({
+    const toggled = await prisma.publicNotice.update({
       where: { id },
       data: { pinned: !existing.pinned },
     });
+    PublicService.invalidateLandingCache();
+    return toggled;
   }
 
   // ========================================================
