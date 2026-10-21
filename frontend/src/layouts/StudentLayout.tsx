@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -233,8 +233,17 @@ export const StudentLayout: React.FC = () => {
         </div>
 
         {/* Dynamic Page Outlet with smooth page transition */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto animate-page-enter" key={location.pathname}>
-          <Outlet />
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+          <Suspense
+            fallback={
+              <div className="space-y-4 animate-pulse p-4">
+                <div className="h-8 bg-surface border border-theme rounded-sm w-48" />
+                <div className="h-64 bg-surface border border-theme rounded-sm w-full" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

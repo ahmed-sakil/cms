@@ -88,6 +88,15 @@ export class AdminController {
     }
   }
 
+  static async deleteBranch(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AdminService.deleteBranch(req.params.id, req.user);
+      ResponseUtil.success(res, result, "Branch deleted successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // ==========================================
   // TEACHERS
   // ==========================================

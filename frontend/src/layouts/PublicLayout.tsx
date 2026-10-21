@@ -17,7 +17,6 @@ import {
   Trophy,
   BookOpen,
   MessageSquare,
-  Building2,
   Send,
   ChevronRight,
 } from "lucide-react";
@@ -112,7 +111,7 @@ export const PublicLayout: React.FC = () => {
     { label: "Hall of Fame", href: "/#achievements", icon: Award },
     { label: "Study Tips", href: "/#tips", icon: BookOpen },
     { label: "Reviews", href: "/#reviews", icon: MessageSquare },
-    { label: "Branches", href: "/#inquiry", icon: Building2 },
+    { label: "Admission Inquiry", href: "/#inquiry", icon: Send },
   ];
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -275,24 +274,17 @@ export const PublicLayout: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden xl:flex items-center gap-5 text-xs font-semibold">
-            {navLinks.slice(0, 7).map((item) => (
+          <nav className="hidden xl:flex items-center gap-4 text-xs font-semibold">
+            {navLinks.map((item) => (
               <a
                 key={item.label}
                 href={item.href}
                 onClick={(e) => handleNavClick(e, item.href)}
-                className="text-text-muted hover:text-brand-primary transition-colors py-1 hover:border-b-2 hover:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded-xs"
+                className="text-text-muted hover:text-brand-primary transition-colors py-1 hover:border-b-2 hover:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded-xs whitespace-nowrap"
               >
                 {item.label}
               </a>
             ))}
-            <a
-              href="/#reviews"
-              onClick={(e) => handleNavClick(e, "/#reviews")}
-              className="text-text-muted hover:text-brand-primary transition-colors py-1 hover:border-b-2 hover:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded-xs"
-            >
-              Reviews
-            </a>
           </nav>
 
           {/* Right Action Buttons */}

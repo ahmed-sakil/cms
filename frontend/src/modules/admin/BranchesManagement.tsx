@@ -18,11 +18,16 @@ import {
   MessageSquare,
   BookOpen,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { BranchRecord, StaffRecord } from "../../types/index.js";
 
-export const BranchesManagement: React.FC = () => {
+export interface BranchesManagementProps {
+  embedded?: boolean;
+}
+
+export const BranchesManagement: React.FC<BranchesManagementProps> = ({ embedded = false }) => {
   const [branches, setBranches] = useState<BranchRecord[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -227,14 +232,63 @@ export const BranchesManagement: React.FC = () => {
     }
   };
 
+  const handleDeleteBranch = async (id: string, name: string) => {
+    const token = localStorage.getItem("cms_token");
+    setActionLoadingId(id);
+    try {
+      const res = await fetch(`/api/v1/admin/branches/${id}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "Failed to delete campus branch");
+      }
+      toast.success(`Campus branch '${name}' deleted successfully`);
+      await fetchBranches();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete campus branch");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleDeletePrompt = (b: BranchRecord) => {
+    if (b.isMainBranch) {
+      toast.error("Cannot delete Main Campus (Headquarters)", {
+        description: "Please designate another campus branch as Main Campus first before deleting this one.",
+      });
+      return;
+    }
+
+    toast(`Delete campus branch "${b.name}"?`, {
+      description: "This will permanently remove this campus branch and all its associated records.",
+      action: {
+        label: "Confirm Delete",
+        onClick: () => handleDeleteBranch(b.id, b.name),
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => toast.dismiss(),
+      },
+      duration: 10000,
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-brand-primary" /> Multi-Branch Network
-          </h1>
+          {embedded ? (
+            <h2 className="text-sm font-bold text-text-main uppercase tracking-wider flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-brand-primary" /> Multi-Branch Network ({branches.length})
+            </h2>
+          ) : (
+            <h1 className="text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-brand-primary" /> Multi-Branch Network
+            </h1>
+          )}
           <p className="text-xs text-text-main/60 mt-0.5">
             Manage physical campuses, designate your central headquarters, student capacities, and active operational status.
           </p>
@@ -306,20 +360,20 @@ export const BranchesManagement: React.FC = () => {
 
       {/* Campus Grid */}
       {!isLoading && branches.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 sm:gap-5">
           {branches.map((b) => (
             <div
               key={b.id}
-              className={`bg-surface border rounded-sm p-4 sm:p-5 flex flex-col justify-between transition-colors shadow-xs ${
+              className={`bg-surface border rounded-sm p-4 sm:p-5 flex flex-col justify-between transition-colors shadow-xs min-w-0 overflow-hidden ${
                 b.isMainBranch
                   ? "border-amber-400 dark:border-amber-600/70 ring-1 ring-amber-400/20"
                   : "border-theme hover:border-brand-primary/50"
               }`}
             >
-              <div className="space-y-3">
+              <div className="space-y-3 min-w-0">
                 {/* Header & Badges */}
                 <div className="flex justify-between items-start gap-2">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-mono text-[10px] font-bold px-2 py-0.5 bg-bg-app border border-theme text-text-main/70 rounded-xs uppercase">
                         {b.code}
@@ -357,21 +411,21 @@ export const BranchesManagement: React.FC = () => {
                 )}
 
                 {/* Contact & Location Details */}
-                <div className="space-y-1.5 text-xs text-text-main/70 pt-1">
+                <div className="space-y-1.5 text-xs text-text-main/70 pt-1 min-w-0">
                   <div className="flex items-start gap-2 min-w-0">
                     <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0 mt-0.5" />
-                    <span className="break-words flex-1 min-w-0">{b.address}</span>
+                    <span className="break-words flex-1 min-w-0 text-[11px] sm:text-xs leading-relaxed">{b.address}</span>
                   </div>
                   {b.phone && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <Phone className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                      <span className="font-mono">{b.phone}</span>
+                      <span className="font-mono text-[11px] sm:text-xs truncate">{b.phone}</span>
                     </div>
                   )}
                   {b.whatsappNumber && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <MessageSquare className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span className="font-mono text-emerald-700 dark:text-emerald-400 font-medium">
+                      <span className="font-mono text-emerald-700 dark:text-emerald-400 font-medium text-[11px] sm:text-xs truncate">
                         {b.whatsappNumber}
                       </span>
                     </div>
@@ -379,7 +433,7 @@ export const BranchesManagement: React.FC = () => {
                   {b.email && (
                     <div className="flex items-center gap-2 min-w-0">
                       <Mail className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                      <span className="truncate flex-1 min-w-0">{b.email}</span>
+                      <span className="truncate flex-1 min-w-0 text-[11px] sm:text-xs">{b.email}</span>
                     </div>
                   )}
                 </div>
@@ -412,35 +466,35 @@ export const BranchesManagement: React.FC = () => {
               </div>
 
               {/* Metrics & Operations Dock */}
-              <div className="pt-4 mt-4 border-t border-theme space-y-3">
+              <div className="pt-4 mt-4 border-t border-theme space-y-3 min-w-0">
                 {/* 5-part Assigned Metrics Breakdown */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5 text-center text-xs">
-                  <div className="p-1.5 bg-bg-app border border-theme rounded-sm min-w-0">
-                    <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5 text-center text-xs">
+                  <div className="p-1 sm:p-1.5 bg-bg-app border border-theme rounded-sm min-w-0">
+                    <p className="font-bold text-[11px] sm:text-xs text-text-main flex items-center justify-center gap-1">
                       <Users className="w-3 h-3 text-blue-500 shrink-0" /> {b._count?.students ?? 0}
                     </p>
                     <p className="text-[9px] text-text-main/60 uppercase font-semibold truncate">Students</p>
                   </div>
-                  <div className="p-1.5 bg-bg-app border border-theme rounded-sm min-w-0">
-                    <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
+                  <div className="p-1 sm:p-1.5 bg-bg-app border border-theme rounded-sm min-w-0">
+                    <p className="font-bold text-[11px] sm:text-xs text-text-main flex items-center justify-center gap-1">
                       <GraduationCap className="w-3 h-3 text-amber-500 shrink-0" /> {b._count?.teachers ?? 0}
                     </p>
                     <p className="text-[9px] text-text-main/60 uppercase font-semibold truncate">Faculty</p>
                   </div>
-                  <div className="p-1.5 bg-bg-app border border-theme rounded-sm min-w-0">
-                    <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
+                  <div className="p-1 sm:p-1.5 bg-bg-app border border-theme rounded-sm min-w-0">
+                    <p className="font-bold text-[11px] sm:text-xs text-text-main flex items-center justify-center gap-1">
                       <UserCheck className="w-3 h-3 text-purple-500 shrink-0" /> {b._count?.staff ?? 0}
                     </p>
                     <p className="text-[9px] text-text-main/60 uppercase font-semibold truncate">Staff</p>
                   </div>
-                  <div className="p-1.5 bg-bg-app border border-theme rounded-sm min-w-0">
-                    <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
+                  <div className="p-1 sm:p-1.5 bg-bg-app border border-theme rounded-sm min-w-0">
+                    <p className="font-bold text-[11px] sm:text-xs text-text-main flex items-center justify-center gap-1">
                       <Calendar className="w-3 h-3 text-brand-primary shrink-0" /> {b._count?.batches ?? 0}
                     </p>
                     <p className="text-[9px] text-text-main/60 uppercase font-semibold truncate">Batches</p>
                   </div>
-                  <div className="p-1.5 bg-bg-app border border-theme rounded-sm min-w-0 col-span-2 sm:col-span-1">
-                    <p className="font-bold text-xs text-text-main flex items-center justify-center gap-1">
+                  <div className="p-1 sm:p-1.5 bg-bg-app border border-theme rounded-sm min-w-0 col-span-2 sm:col-span-1">
+                    <p className="font-bold text-[11px] sm:text-xs text-text-main flex items-center justify-center gap-1">
                       <BookOpen className="w-3 h-3 text-emerald-500 shrink-0" /> {b._count?.courses ?? 0}
                     </p>
                     <p className="text-[9px] text-text-main/60 uppercase font-semibold truncate">Courses</p>
@@ -472,12 +526,12 @@ export const BranchesManagement: React.FC = () => {
                     <span />
                   )}
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     {!isBranchAdmin && (
                       <button
                         type="button"
                         onClick={() => handleToggleStatus(b.id)}
-                        className="text-[11px] font-semibold text-text-main/70 hover:text-text-main"
+                        className="text-[11px] font-semibold text-text-main/70 hover:text-text-main px-1"
                       >
                         {b.isActive ? "Deactivate" : "Activate"}
                       </button>
@@ -490,6 +544,18 @@ export const BranchesManagement: React.FC = () => {
                         className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-theme text-xs font-semibold text-text-main rounded-sm hover:border-brand-primary transition-colors"
                       >
                         <Edit2 className="w-3 h-3 text-brand-primary" /> Edit
+                      </button>
+                    )}
+
+                    {!isBranchAdmin && (
+                      <button
+                        type="button"
+                        disabled={actionLoadingId === b.id || b.isMainBranch}
+                        onClick={() => handleDeletePrompt(b)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-theme text-xs font-semibold text-red-600 dark:text-red-400 rounded-sm hover:border-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        title={b.isMainBranch ? "Cannot delete the designated Main Campus" : `Delete ${b.name}`}
+                      >
+                        <Trash2 className="w-3 h-3" /> Delete
                       </button>
                     )}
                   </div>

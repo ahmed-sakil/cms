@@ -53,6 +53,11 @@ router.patch(
   roleGuard([UserRole.SUPER_ADMIN]),
   AdminController.setMainBranch
 );
+router.delete(
+  "/branches/:id",
+  roleGuard([UserRole.SUPER_ADMIN]),
+  AdminController.deleteBranch
+);
 
 // Teachers & Faculty Management
 router.get("/teachers", AdminController.listTeachers);

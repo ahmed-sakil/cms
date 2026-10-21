@@ -618,6 +618,33 @@ export class AdminService {
     });
   }
 
+  static async deleteBranch(branchId: string, operator?: { role?: string }) {
+    if (operator && operator.role !== UserRole.SUPER_ADMIN) {
+      throw new ForbiddenError("Only Super Administrators can delete a campus branch.");
+    }
+
+    const branch = await prisma.branch.findUnique({
+      where: { id: branchId },
+    });
+    if (!branch) {
+      throw new NotFoundError("Branch not found");
+    }
+
+    if (branch.isMainBranch) {
+      throw new BadRequestError(
+        "Cannot delete the Main Campus (Headquarters). Please designate another campus branch as the Main Campus first."
+      );
+    }
+
+    await prisma.branch.delete({
+      where: { id: branchId },
+    });
+
+    await PublicService.invalidateLandingCache();
+
+    return { id: branchId, name: branch.name };
+  }
+
   // ==========================================
   // TEACHERS & FACULTY MANAGEMENT
   // ==========================================

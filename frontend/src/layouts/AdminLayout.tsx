@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -99,7 +99,7 @@ export const AdminLayout: React.FC = () => {
               { label: "Identity & Branding", path: "/admin/settings?tab=branding", tab: "branding" },
               { label: "Hero Posters & Sliders", path: "/admin/settings?tab=posters", tab: "posters" },
               { label: "Payment Channels & Sensitive", path: "/admin/settings?tab=payments", tab: "payments" },
-              { label: "Campus / Branches", path: "/admin/branches", isBranchRoute: true },
+              { label: "Campus / Branches", path: "/admin/settings?tab=branches", tab: "branches" },
             ],
           },
         ]
@@ -196,44 +196,34 @@ export const AdminLayout: React.FC = () => {
 
               return (
                 <div key={item.path} className="space-y-0.5">
-                  <div
-                    className={`group flex items-center justify-between px-3 py-2 rounded-sm text-xs font-semibold cursor-pointer transition-all ${
+                  <button
+                    type="button"
+                    onClick={() => setIsOrgMenuOpen((prev) => !prev)}
+                    className={`w-full group flex items-center justify-between px-3 py-2 rounded-sm text-xs font-semibold cursor-pointer transition-all ${
                       isGroupActive
                         ? "bg-bg-app text-brand-primary border border-theme"
                         : "text-text-main/70 hover:bg-bg-app hover:text-text-main"
                     }`}
                   >
-                    <Link
-                      to={item.path}
-                      onClick={() => setMobileSidebarOpen(false)}
-                      className="flex items-center gap-2.5 min-w-0 flex-1"
-                    >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1 text-left">
                       <Icon className="w-4 h-4 shrink-0 text-brand-primary" />
                       <span className="truncate">{item.label}</span>
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsOrgMenuOpen(!isOrgMenuOpen);
-                      }}
-                      className="p-1 text-text-main/40 hover:text-text-main rounded-xs"
-                      title={isOrgMenuOpen ? "Collapse sub-items" : "Expand sub-items"}
-                    >
+                    </div>
+                    <div className="p-1 text-text-main/40 group-hover:text-text-main rounded-xs shrink-0">
                       {isOrgMenuOpen ? (
                         <ChevronDown className="w-3.5 h-3.5" />
                       ) : (
                         <ChevronRight className="w-3.5 h-3.5" />
                       )}
-                    </button>
-                  </div>
+                    </div>
+                  </button>
 
                   {isOrgMenuOpen && (
                     <div className="ml-4 pl-2.5 border-l-2 border-theme space-y-0.5 pt-1 pb-1">
                       {item.children.map((child: any) => {
-                        const isChildActive = child.isBranchRoute
-                          ? location.pathname === "/admin/branches"
-                          : location.pathname === "/admin/settings" && currentTab === child.tab;
+                        const isChildActive =
+                          (location.pathname === "/admin/settings" && currentTab === child.tab) ||
+                          (child.tab === "branches" && location.pathname === "/admin/branches");
 
                         return (
                           <Link
@@ -401,9 +391,18 @@ export const AdminLayout: React.FC = () => {
           </button>
         </div>
 
-        {/* Page Content with smooth transition */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto animate-page-enter" key={location.pathname}>
-          <Outlet />
+        {/* Page Content */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+          <Suspense
+            fallback={
+              <div className="space-y-4 animate-pulse p-4">
+                <div className="h-8 bg-surface border border-theme rounded-sm w-48" />
+                <div className="h-64 bg-surface border border-theme rounded-sm w-full" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>
