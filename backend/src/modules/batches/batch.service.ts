@@ -12,6 +12,7 @@ import type {
   EnrollStudentInput,
   SelfEnrollBatchInput,
   CreateStudyMaterialInput,
+  BatchCurriculumInput,
 } from "./batch.schema.js";
 
 export class BatchService {
@@ -175,6 +176,20 @@ export class BatchService {
         enrollments: {
           select: { id: true, status: true },
         },
+        exams: {
+          select: {
+            id: true,
+            title: true,
+            subject: true,
+            examType: true,
+            totalMarks: true,
+            passMarks: true,
+            examDate: true,
+            instructions: true,
+            _count: { select: { results: true } },
+          },
+          orderBy: { examDate: "asc" },
+        },
         _count: { select: { exams: true, studyMaterials: true } },
       },
     });
@@ -214,6 +229,17 @@ export class BatchService {
       subjectTeachers: b.subjectTeachers || [],
       classModules: b.classModules || [],
       routine: b.routine || [],
+      exams: (b.exams || []).map((ex) => ({
+        id: ex.id,
+        title: ex.title,
+        subject: ex.subject,
+        examType: ex.examType,
+        totalMarks: Number(ex.totalMarks),
+        passMarks: Number(ex.passMarks),
+        examDate: ex.examDate.toISOString().split("T")[0],
+        instructions: ex.instructions,
+        resultsCount: ex._count.results,
+      })),
       isPublic: b.isPublic,
       status: b.status,
       academicClass: b.academicClass,
@@ -233,6 +259,58 @@ export class BatchService {
     };
   }
 
+  private static async resolveTeacherProfileId(teacherId?: string | null): Promise<string | null> {
+    if (!teacherId || typeof teacherId !== "string" || !teacherId.trim()) return null;
+    const cleanId = teacherId.trim();
+
+    // 1. Direct match with TeacherProfile.id
+    const profile = await prisma.teacherProfile.findUnique({
+      where: { id: cleanId },
+      select: { id: true },
+    });
+    if (profile) return profile.id;
+
+    // 2. Match with TeacherProfile by userId
+    const profileByUser = await prisma.teacherProfile.findUnique({
+      where: { userId: cleanId },
+      select: { id: true },
+    });
+    if (profileByUser) return profileByUser.id;
+
+    // 3. User with TEACHER role exists but has no TeacherProfile record yet
+    const teacherUser = await prisma.user.findUnique({
+      where: { id: cleanId },
+      include: { teacherProfile: true },
+    });
+    if (teacherUser) {
+      if (teacherUser.teacherProfile) return teacherUser.teacherProfile.id;
+      const created = await prisma.teacherProfile.create({
+        data: { userId: teacherUser.id },
+      });
+      return created.id;
+    }
+
+    return null;
+  }
+
+  private static async resolveCourseId(courseId?: string | null): Promise<string | null> {
+    if (!courseId || typeof courseId !== "string" || !courseId.trim()) return null;
+    const course = await prisma.course.findUnique({
+      where: { id: courseId.trim() },
+      select: { id: true },
+    });
+    return course ? course.id : null;
+  }
+
+  private static async resolveAcademicClassId(classId?: string | null): Promise<string | null> {
+    if (!classId || typeof classId !== "string" || !classId.trim()) return null;
+    const ac = await prisma.academicClass.findUnique({
+      where: { id: classId.trim() },
+      select: { id: true },
+    });
+    return ac ? ac.id : null;
+  }
+
   static async createBatch(input: CreateBatchInput, defaultBranchId?: string) {
     const branchId = input.branchId || defaultBranchId;
     if (!branchId) {
@@ -243,28 +321,38 @@ export class BatchService {
     const targetBranchId = (branchId || (await prisma.branch.findFirst({ select: { id: true } }))?.id)!;
 
     const seatCap = input.seatLimit || input.maxCapacity || 40;
+    const resolvedTeacherId = await this.resolveTeacherProfileId(input.teacherId);
+    const resolvedCourseId = await this.resolveCourseId(input.courseId);
+    const resolvedClassId = await this.resolveAcademicClassId(input.academicClassId);
+
+    const startDate = input.startDate && !isNaN(new Date(input.startDate).getTime())
+      ? new Date(input.startDate)
+      : new Date();
+    const endDate = input.endDate && !isNaN(new Date(input.endDate).getTime())
+      ? new Date(input.endDate)
+      : null;
 
     return prisma.batch.create({
       data: {
         branchId: targetBranchId,
-        courseId: input.courseId || null,
-        academicClassId: input.academicClassId || null,
-        teacherId: input.teacherId || null,
-        name: input.name,
-        title: input.title || input.name,
-        coverImage: input.coverImage,
-        startDate: new Date(input.startDate),
-        endDate: input.endDate ? new Date(input.endDate) : null,
+        courseId: resolvedCourseId,
+        academicClassId: resolvedClassId,
+        teacherId: resolvedTeacherId,
+        name: input.name.trim(),
+        title: (input.title && input.title.trim()) || input.name.trim(),
+        coverImage: input.coverImage && input.coverImage.trim() ? input.coverImage.trim() : null,
+        startDate,
+        endDate,
         seatLimit: seatCap,
         maxCapacity: seatCap,
         totalClasses: input.totalClasses || 36,
         totalExams: input.totalExams || 12,
         classesPerWeek: input.classesPerWeek || 3,
         daysOfWeek: input.daysOfWeek || [],
-        classTime: input.classTime || input.scheduleTime,
-        scheduleTime: input.scheduleTime || input.classTime,
-        classroom: input.classroom,
-        feeAmount: input.feeAmount || 6000,
+        classTime: input.classTime || input.scheduleTime || null,
+        scheduleTime: input.scheduleTime || input.classTime || null,
+        classroom: input.classroom && input.classroom.trim() ? input.classroom.trim() : null,
+        feeAmount: input.feeAmount !== undefined ? input.feeAmount : 6000,
         feeType: input.feeType || "ONE_TIME",
         subjects: input.subjects || [],
         subjectTeachers: input.subjectTeachers || [],
@@ -297,29 +385,39 @@ export class BatchService {
     }
 
     const seatCap = input.seatLimit !== undefined ? input.seatLimit : input.maxCapacity !== undefined ? input.maxCapacity : undefined;
+    const resolvedTeacherId = input.teacherId !== undefined ? await this.resolveTeacherProfileId(input.teacherId) : undefined;
+    const resolvedCourseId = input.courseId !== undefined ? await this.resolveCourseId(input.courseId) : undefined;
+    const resolvedClassId = input.academicClassId !== undefined ? await this.resolveAcademicClassId(input.academicClassId) : undefined;
+
+    const startDate = input.startDate && !isNaN(new Date(input.startDate).getTime())
+      ? new Date(input.startDate)
+      : undefined;
+    const endDate = input.endDate !== undefined
+      ? (input.endDate && !isNaN(new Date(input.endDate).getTime()) ? new Date(input.endDate) : null)
+      : undefined;
 
     return prisma.batch.update({
       where: { id },
       data: {
-        ...(input.name && { name: input.name }),
-        ...(input.title !== undefined && { title: input.title }),
-        ...(input.courseId !== undefined && { courseId: input.courseId }),
-        ...(input.academicClassId !== undefined && { academicClassId: input.academicClassId }),
+        ...(input.name && { name: input.name.trim() }),
+        ...(input.title !== undefined && { title: input.title && input.title.trim() ? input.title.trim() : null }),
+        ...(resolvedCourseId !== undefined && { courseId: resolvedCourseId }),
+        ...(resolvedClassId !== undefined && { academicClassId: resolvedClassId }),
         ...(input.branchId && { branchId: input.branchId }),
-        ...(input.teacherId !== undefined && { teacherId: input.teacherId }),
-        ...(input.startDate && { startDate: new Date(input.startDate) }),
-        ...(input.endDate !== undefined && { endDate: input.endDate ? new Date(input.endDate) : null }),
+        ...(resolvedTeacherId !== undefined && { teacherId: resolvedTeacherId }),
+        ...(startDate && { startDate }),
+        ...(endDate !== undefined && { endDate }),
         ...(seatCap !== undefined && { seatLimit: seatCap, maxCapacity: seatCap }),
         ...(input.totalClasses !== undefined && { totalClasses: input.totalClasses }),
         ...(input.totalExams !== undefined && { totalExams: input.totalExams }),
         ...(input.classesPerWeek !== undefined && { classesPerWeek: input.classesPerWeek }),
         ...(input.daysOfWeek !== undefined && { daysOfWeek: input.daysOfWeek }),
-        ...(input.classTime !== undefined && { classTime: input.classTime, scheduleTime: input.classTime }),
-        ...(input.scheduleTime !== undefined && { scheduleTime: input.scheduleTime, classTime: input.scheduleTime }),
-        ...(input.classroom !== undefined && { classroom: input.classroom }),
+        ...(input.classTime !== undefined && { classTime: input.classTime || null, scheduleTime: input.classTime || null }),
+        ...(input.scheduleTime !== undefined && { scheduleTime: input.scheduleTime || null, classTime: input.scheduleTime || null }),
+        ...(input.classroom !== undefined && { classroom: input.classroom && input.classroom.trim() ? input.classroom.trim() : null }),
         ...(input.feeAmount !== undefined && { feeAmount: input.feeAmount }),
         ...(input.feeType !== undefined && { feeType: input.feeType }),
-        ...(input.coverImage !== undefined && { coverImage: input.coverImage }),
+        ...(input.coverImage !== undefined && { coverImage: input.coverImage && input.coverImage.trim() ? input.coverImage.trim() : null }),
         ...(input.subjects !== undefined && { subjects: input.subjects }),
         ...(input.subjectTeachers !== undefined && { subjectTeachers: input.subjectTeachers }),
         ...(input.classModules !== undefined && { classModules: input.classModules }),
@@ -333,6 +431,141 @@ export class BatchService {
         branch: { select: { id: true, name: true, code: true } },
       },
     });
+  }
+
+  static async updateBatchCurriculum(id: string, input: BatchCurriculumInput, user?: JwtUserPayload) {
+    const existing = await prisma.batch.findUnique({
+      where: { id },
+    });
+
+    if (!existing || existing.deletedAt) {
+      throw new NotFoundError("Batch not found");
+    }
+
+    if (user?.role === UserRole.BRANCH_ADMIN) {
+      if (user.branchId && existing.branchId !== user.branchId) {
+        throw new ForbiddenError("Branch administrators cannot modify batches of other campuses.");
+      }
+    }
+
+    // 1. Resolve subject teachers to actual TeacherProfile.id or User.id
+    const resolvedSubjectTeachers = await Promise.all(
+      (input.subjectTeachers || []).map(async (st) => {
+        const resolvedId = await this.resolveTeacherProfileId(st.teacherId);
+        return {
+          subject: st.subject,
+          teacherId: resolvedId || st.teacherId || null,
+          teacherName: st.teacherName || undefined,
+        };
+      })
+    );
+
+    // 2. Resolve class module teachers
+    const resolvedClassModules = await Promise.all(
+      (input.classModules || []).map(async (cm, idx) => {
+        const resolvedId = await this.resolveTeacherProfileId(cm.teacherId);
+        return {
+          classNumber: cm.classNumber || idx + 1,
+          weekOrClass: cm.weekOrClass || `Lecture ${String(idx + 1).padStart(2, "0")}`,
+          title: cm.title.trim(),
+          subject: cm.subject || null,
+          date: cm.date || null,
+          time: cm.time || null,
+          teacherId: resolvedId || cm.teacherId || null,
+          teacherName: cm.teacherName || undefined,
+          room: cm.room || null,
+          topics: cm.topics || [],
+        };
+      })
+    );
+
+    // 3. Update Batch columns and synchronize Exam table in transaction
+    const totalClassesCount = resolvedClassModules.length > 0 ? resolvedClassModules.length : existing.totalClasses;
+    const totalExamsCount = input.exams && input.exams.length > 0 ? input.exams.length : existing.totalExams;
+
+    const updatedBatch = await prisma.$transaction(async (tx) => {
+      const b = await tx.batch.update({
+        where: { id },
+        data: {
+          subjects: input.subjects,
+          subjectTeachers: resolvedSubjectTeachers,
+          classModules: resolvedClassModules,
+          routine: input.routine,
+          ...(input.daysOfWeek && { daysOfWeek: input.daysOfWeek }),
+          ...(input.classTime && { classTime: input.classTime, scheduleTime: input.classTime }),
+          ...(input.classroom && { classroom: input.classroom }),
+          totalClasses: totalClassesCount,
+          totalExams: totalExamsCount,
+        },
+      });
+
+      // 4. Synchronize Exam table
+      if (input.exams && Array.isArray(input.exams)) {
+        for (const ex of input.exams) {
+          const examDate = ex.examDate && !isNaN(new Date(ex.examDate).getTime())
+            ? new Date(ex.examDate)
+            : new Date();
+
+          if (ex.id) {
+            // Check if exam exists for this batch
+            const existingExam = await tx.exam.findFirst({
+              where: { id: ex.id, batchId: id },
+            });
+            if (existingExam) {
+              await tx.exam.update({
+                where: { id: ex.id },
+                data: {
+                  title: ex.title.trim(),
+                  subject: ex.subject || null,
+                  examType: ex.examType,
+                  examDate,
+                  totalMarks: ex.totalMarks,
+                  passMarks: ex.passMarks,
+                  instructions: ex.instructions || null,
+                },
+              });
+              continue;
+            }
+          }
+
+          // If no ID or not found, check if an exam with identical title & batchId exists to avoid duplicates
+          const matchingExam = await tx.exam.findFirst({
+            where: { batchId: id, title: ex.title.trim() },
+          });
+
+          if (matchingExam) {
+            await tx.exam.update({
+              where: { id: matchingExam.id },
+              data: {
+                subject: ex.subject || null,
+                examType: ex.examType,
+                examDate,
+                totalMarks: ex.totalMarks,
+                passMarks: ex.passMarks,
+                instructions: ex.instructions || null,
+              },
+            });
+          } else {
+            await tx.exam.create({
+              data: {
+                batchId: id,
+                title: ex.title.trim(),
+                subject: ex.subject || null,
+                examType: ex.examType,
+                examDate,
+                totalMarks: ex.totalMarks,
+                passMarks: ex.passMarks,
+                instructions: ex.instructions || null,
+              },
+            });
+          }
+        }
+      }
+
+      return b;
+    });
+
+    return this.getBatch(updatedBatch.id);
   }
 
   static async deleteBatch(id: string, user?: JwtUserPayload) {

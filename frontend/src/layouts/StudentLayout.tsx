@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "../lib/theme.js";
+import { setDynamicFavicon } from "../utils/dynamicFavicon.js";
 
 export const StudentLayout: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -44,8 +45,10 @@ export const StudentLayout: React.FC = () => {
     fetch("/api/v1/public/landing")
       .then((res) => res.json())
       .then((json) => {
-        if (json.success && json.data?.organization?.name) {
-          setInstitutionName(json.data.organization.name);
+        if (json.success && json.data?.organization) {
+          const org = json.data.organization;
+          setInstitutionName(org.name || "");
+          setDynamicFavicon(org.faviconUrl || org.logoUrl, org.name, org.logoUrl);
         }
       })
       .catch(() => {});

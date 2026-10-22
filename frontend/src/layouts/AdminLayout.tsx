@@ -23,6 +23,9 @@ import {
   Crown,
   Receipt,
   GraduationCap,
+  Trophy,
+  BookOpen,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "../lib/theme.js";
@@ -61,7 +64,11 @@ export const AdminLayout: React.FC = () => {
         if (json.success && json.data) {
           if (json.data.organization) {
             setInstitution(json.data.organization);
-            setDynamicFavicon(json.data.organization.faviconUrl, json.data.organization.name);
+            setDynamicFavicon(
+              json.data.organization.faviconUrl || json.data.organization.logoUrl,
+              json.data.organization.name,
+              json.data.organization.logoUrl
+            );
           }
           if (json.data.branches) setBranches(json.data.branches);
         }
@@ -113,6 +120,9 @@ export const AdminLayout: React.FC = () => {
     { label: "Study Materials", path: "/admin/materials", icon: FileText, hasSubActions: true },
     { label: "Exams & Marksheets", path: "/admin/exams", icon: Award, hasSubActions: true },
     { label: "Notice Board", path: "/admin/notices", icon: Bell, hasSubActions: true },
+    { label: "Hall of Fame & Achievements", path: "/admin/achievements", icon: Trophy, hasSubActions: true },
+    { label: "Faculty Tips & Guides", path: "/admin/faculty-tips", icon: BookOpen, hasSubActions: true },
+    { label: "Reviews & Advice", path: "/admin/reviews", icon: MessageSquare, hasSubActions: true },
     { label: "Accounts & Fees", path: "/admin/fees", icon: CreditCard, hasSubActions: true },
     { label: "Campus Expenses", path: "/admin/expenses", icon: Receipt, hasSubActions: true },
     { label: "Referral Payouts", path: "/admin/referrals", icon: Share2, hasSubActions: true },

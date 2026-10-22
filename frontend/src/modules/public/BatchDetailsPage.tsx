@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Calendar,
@@ -10,26 +11,46 @@ import {
   CreditCard,
   AlertTriangle,
   CheckCircle2,
-  ChevronRight,
   GraduationCap,
   Sparkles,
   X,
   Copy,
+  DoorOpen,
+  Trophy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PaymentMethod, BatchFeeType } from "../../types/index.js";
+import { setDynamicPageTitle, setDynamicFavicon } from "../../utils/dynamicFavicon.js";
 
 interface FacultyMember {
-  name: string;
-  subject: string;
+  name?: string;
+  fullName?: string;
+  subject?: string;
   qualification?: string;
   avatarUrl?: string;
 }
 
 interface ClassModule {
-  weekOrClass: string;
+  classNumber?: number;
+  weekOrClass?: string;
+  title?: string;
+  topic?: string;
+  date?: string;
+  subject?: string;
+  teacherId?: string | null;
+  room?: string | null;
+  topics?: string[];
+}
+
+interface ScheduledExamItem {
+  id: string;
   title: string;
-  topics: string[];
+  subject: string;
+  examType: string;
+  examDate: string;
+  totalMarks: number;
+  passMarks?: number | null;
+  instructions?: string | null;
 }
 
 interface RoutineItem {
@@ -63,6 +84,7 @@ interface BatchDetail {
   subjectTeachers: FacultyMember[];
   classModules: ClassModule[];
   routine: RoutineItem[];
+  exams?: ScheduledExamItem[];
   academicClass?: {
     id: string;
     name: string;
@@ -92,7 +114,7 @@ export const BatchDetailsPage: React.FC = () => {
   const [batch, setBatch] = useState<BatchDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"modules" | "routine" | "faculty" | "admission">("modules");
+  const [activeTab, setActiveTab] = useState<"modules" | "routine" | "exams" | "faculty" | "admission">("modules");
 
   // Payment channels from institution settings
   const [paymentChannels, setPaymentChannels] = useState<any[]>([]);
@@ -131,6 +153,7 @@ export const BatchDetailsPage: React.FC = () => {
         throw new Error(json.message || "Failed to load batch details");
       }
       setBatch(json.data);
+      setDynamicPageTitle(window.location.pathname, json.data.name || json.data.title);
       setEnrollForm((prev) => ({
         ...prev,
         paidAmount: Number(json.data.feeAmount || 0),
@@ -146,10 +169,14 @@ export const BatchDetailsPage: React.FC = () => {
     try {
       const res = await fetch("/api/v1/public/landing");
       const json = await res.json();
-      if (res.ok && json.success && json.data?.organization?.paymentChannels) {
-        setPaymentChannels(
-          json.data.organization.paymentChannels.filter((c: any) => c.isActive)
-        );
+      if (res.ok && json.success && json.data?.organization) {
+        const org = json.data.organization;
+        setDynamicFavicon(org.faviconUrl || org.logoUrl, org.name, org.logoUrl);
+        if (org.paymentChannels) {
+          setPaymentChannels(
+            org.paymentChannels.filter((c: any) => c.isActive)
+          );
+        }
       }
     } catch (err) {
       console.warn("Could not fetch institution payment channels:", err);
@@ -230,7 +257,7 @@ export const BatchDetailsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-16 space-y-6">
+      <div className="w-full max-w-[95vw] mx-auto px-4 py-16 space-y-6">
         <div className="h-8 w-48 bg-accent animate-pulse rounded-sm" />
         <div className="h-64 bg-accent animate-pulse rounded-sm" />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -263,20 +290,7 @@ export const BatchDetailsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-bg-app pb-20">
-      {/* Breadcrumb Bar */}
-      <div className="border-b border-accent bg-surface/50 text-xs py-2.5 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex items-center gap-2 text-text-muted">
-          <Link to="/" className="hover:text-brand-primary">Home</Link>
-          <ChevronRight className="w-3 h-3" />
-          <span>Offline Batches</span>
-          <ChevronRight className="w-3 h-3" />
-          <span className="text-text-main font-medium truncate">{batch.academicClass?.name || "Program"}</span>
-          <ChevronRight className="w-3 h-3" />
-          <span className="text-brand-primary font-semibold truncate">{batch.title || batch.name}</span>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
+      <div className="w-full max-w-[95vw] mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
         {/* Hero Banner Section */}
         <div className="bg-surface border border-accent rounded-sm overflow-hidden shadow-sm">
           {batch.coverImage ? (
@@ -487,6 +501,18 @@ export const BatchDetailsPage: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setActiveTab("exams")}
+              className={`px-5 py-3 border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
+                activeTab === "exams"
+                  ? "border-brand-primary text-brand-primary bg-surface"
+                  : "border-transparent text-text-muted hover:text-text-main"
+              }`}
+            >
+              <Trophy className="w-4 h-4" />
+              Exams & Model Tests ({batch.exams?.length || batch.totalExams || 0})
+            </button>
+
+            <button
               onClick={() => setActiveTab("routine")}
               className={`px-5 py-3 border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === "routine"
@@ -533,25 +559,46 @@ export const BatchDetailsPage: React.FC = () => {
                     Week-by-Week & Lecture Syllabus Breakdown
                   </h3>
                   <span className="text-xs text-text-muted">
-                    Total {batch.totalClasses} physical lectures planned
+                    Total {batch.classModules?.length || batch.totalClasses || 0} physical lectures planned
                   </span>
                 </div>
 
                 {batch.classModules && batch.classModules.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {batch.classModules.map((mod, idx) => (
                       <div
                         key={idx}
                         className="p-4 bg-bg-app border border-accent rounded-sm space-y-2 hover:border-brand-primary/50 transition-colors"
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-sm uppercase tracking-wider">
-                            {mod.weekOrClass || `Lecture 0${idx + 1}`}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-sm uppercase tracking-wider shrink-0">
+                            {mod.classNumber ? `Lecture ${mod.classNumber}` : (mod.weekOrClass || `Lecture 0${idx + 1}`)}
                           </span>
-                          <span className="text-xs font-semibold text-text-main">{mod.title}</span>
+                          {mod.subject && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-sm">
+                              {mod.subject}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs font-bold text-text-main">
+                          {mod.topic || mod.title || `Scheduled Lecture ${idx + 1}`}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-text-muted pt-1">
+                          {mod.date && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-brand-primary" />
+                              <span>{new Date(mod.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span>
+                            </div>
+                          )}
+                          {(mod.room || batch.classroom) && (
+                            <div className="flex items-center gap-1">
+                              <DoorOpen className="w-3.5 h-3.5 text-brand-primary" />
+                              <span>{mod.room || batch.classroom}</span>
+                            </div>
+                          )}
                         </div>
                         {mod.topics && mod.topics.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 pt-1">
+                          <div className="flex flex-wrap gap-1.5 pt-1 border-t border-accent/40">
                             {mod.topics.map((t, tIdx) => (
                               <span
                                 key={tIdx}
@@ -569,6 +616,71 @@ export const BatchDetailsPage: React.FC = () => {
                   <div className="py-12 text-center text-text-muted text-xs space-y-2">
                     <BookOpen className="w-8 h-8 mx-auto opacity-40" />
                     <p>Syllabus modules for this batch will be distributed during class orientation.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tab: Scheduled Exams */}
+            {activeTab === "exams" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-accent">
+                  <h3 className="text-sm font-bold text-text-main">
+                    Scheduled Model Tests & Regular Evaluation Exams
+                  </h3>
+                  <span className="text-xs text-text-muted">
+                    Total {batch.exams?.length || batch.totalExams || 0} exams scheduled
+                  </span>
+                </div>
+
+                {batch.exams && batch.exams.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {batch.exams.map((exam, idx) => (
+                      <div
+                        key={exam.id || idx}
+                        className="p-4 bg-bg-app border border-accent rounded-sm space-y-3 hover:border-brand-primary/50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold px-2 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 rounded-sm uppercase tracking-wider">
+                            {exam.examType || "EXAM"}
+                          </span>
+                          <span className="text-xs font-semibold px-2 py-0.5 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-sm">
+                            {exam.subject}
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-text-main">{exam.title}</h4>
+                          {exam.instructions && (
+                            <p className="text-[11px] text-text-muted mt-1 line-clamp-2">
+                              {exam.instructions}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-2 border-t border-accent/60">
+                          <div className="flex items-center gap-1.5 text-text-muted">
+                            <Calendar className="w-3.5 h-3.5 text-brand-primary" />
+                            <span>
+                              {exam.examDate
+                                ? new Date(exam.examDate).toLocaleDateString(undefined, {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  })
+                                : "Date TBA"}
+                            </span>
+                          </div>
+                          <div className="font-semibold text-text-main">
+                            Total: <span className="text-brand-primary font-bold">{exam.totalMarks}</span> Marks
+                            {exam.passMarks ? ` (Pass: ${exam.passMarks})` : ""}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-text-muted text-xs space-y-2">
+                    <Trophy className="w-8 h-8 mx-auto opacity-40" />
+                    <p>Model test schedules and evaluation exams will be uploaded as the term progresses.</p>
                   </div>
                 )}
               </div>
@@ -626,7 +738,7 @@ export const BatchDetailsPage: React.FC = () => {
 
                 {batch.subjectTeachers && batch.subjectTeachers.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {batch.subjectTeachers.map((fac, idx) => (
+                    {batch.subjectTeachers.map((fac: FacultyMember, idx: number) => (
                       <div
                         key={idx}
                         className="p-4 bg-bg-app border border-accent rounded-sm flex items-start gap-3"
@@ -748,8 +860,9 @@ export const BatchDetailsPage: React.FC = () => {
       {/* ============================================================ */}
       {/* SELF-ADMISSION MODAL (STUDENT CHECKOUT) */}
       {/* ============================================================ */}
-      {isEnrollModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      {isEnrollModalOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-surface border border-accent w-full max-w-lg rounded-sm shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Modal Header */}
             <div className="px-5 py-4 border-b border-accent flex justify-between items-center bg-accent-subtle/30">
@@ -999,7 +1112,8 @@ export const BatchDetailsPage: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

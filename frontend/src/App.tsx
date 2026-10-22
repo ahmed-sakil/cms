@@ -3,11 +3,15 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { SonnerToaster } from "./components/ui/SonnerToaster.js";
 import { RoleRouteGuard } from "./components/common/RoleRouteGuard.js";
 import { UserRole } from "./types/index.js";
+import { initializeBranding, setDynamicPageTitle } from "./utils/dynamicFavicon.js";
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
 
   useEffect(() => {
+    // Automatically update dynamic document title on route transition
+    setDynamicPageTitle(pathname);
+
     if (hash) {
       // Delay slightly to let target render if navigating from another route
       const timer = setTimeout(() => {
@@ -42,6 +46,12 @@ const LandingPage = lazy(() =>
 const BatchDetailsPage = lazy(() =>
   import("./modules/public/BatchDetailsPage.js").then((m) => ({ default: m.BatchDetailsPage }))
 );
+const FacultyTipDetailsPage = lazy(() =>
+  import("./modules/public/FacultyTipDetailsPage.js").then((m) => ({ default: m.FacultyTipDetailsPage }))
+);
+const ReviewsPage = lazy(() =>
+  import("./modules/public/ReviewsPage.js").then((m) => ({ default: m.ReviewsPage }))
+);
 const LoginPage = lazy(() =>
   import("./modules/auth/LoginPage.js").then((m) => ({ default: m.LoginPage }))
 );
@@ -50,6 +60,15 @@ const RegisterPage = lazy(() =>
 );
 
 // Lazy-loaded Admin Modules
+const AchievementsManagement = lazy(() =>
+  import("./modules/admin/AchievementsManagement.js").then((m) => ({ default: m.AchievementsManagement }))
+);
+const FacultyTipsManagement = lazy(() =>
+  import("./modules/admin/FacultyTipsManagement.js").then((m) => ({ default: m.FacultyTipsManagement }))
+);
+const ReviewsManagement = lazy(() =>
+  import("./modules/admin/ReviewsManagement.js").then((m) => ({ default: m.ReviewsManagement }))
+);
 const AdminDashboard = lazy(() =>
   import("./modules/admin/AdminDashboard.js").then((m) => ({ default: m.AdminDashboard }))
 );
@@ -74,6 +93,11 @@ const TeachersManagement = lazy(() =>
 );
 const BatchesManagement = lazy(() =>
   import("./modules/admin/BatchesManagement.js").then((m) => ({ default: m.BatchesManagement }))
+);
+const BatchCurriculumPlanner = lazy(() =>
+  import("./modules/admin/batches/BatchCurriculumPlanner.js").then((m) => ({
+    default: m.BatchCurriculumPlanner,
+  }))
 );
 const CoursesManagement = lazy(() =>
   import("./modules/admin/CoursesManagement.js").then((m) => ({ default: m.CoursesManagement }))
@@ -148,9 +172,13 @@ const RouteLoadingFallback: React.FC = () => (
 );
 
 export function App() {
+  useEffect(() => {
+    initializeBranding();
+  }, []);
+
   return (
     <BrowserRouter>
-      {/* Scroll restoration & smooth hash jumps */}
+      {/* Scroll restoration & dynamic route title */}
       <ScrollToTop />
 
       {/* Global Toaster with instant cross button */}
@@ -162,6 +190,10 @@ export function App() {
           <Route element={<PublicLayout />}>
             <Route path="/" element={<LandingPage />} />
             <Route path="/batches/:id" element={<BatchDetailsPage />} />
+            <Route path="/tips/:id" element={<FacultyTipDetailsPage />} />
+            <Route path="/faculty-tips/:id" element={<FacultyTipDetailsPage />} />
+            <Route path="/reviews" element={<ReviewsPage />} />
+            <Route path="/testimonials" element={<ReviewsPage />} />
           </Route>
 
           {/* Auth Entry */}
@@ -191,10 +223,14 @@ export function App() {
             <Route path="branches" element={<BranchesManagement />} />
             <Route path="teachers" element={<TeachersManagement />} />
             <Route path="batches" element={<BatchesManagement />} />
+            <Route path="batches/:id/planner" element={<BatchCurriculumPlanner />} />
             <Route path="materials" element={<StudyMaterialsManagement />} />
             <Route path="courses" element={<CoursesManagement />} />
             <Route path="exams" element={<ExamsAndResultsManagement />} />
             <Route path="notices" element={<NoticesManagement />} />
+            <Route path="achievements" element={<AchievementsManagement />} />
+            <Route path="faculty-tips" element={<FacultyTipsManagement />} />
+            <Route path="reviews" element={<ReviewsManagement />} />
             <Route path="fees" element={<FeesAndAccountsManagement />} />
             <Route path="expenses" element={<ExpensesManagement />} />
             <Route path="referrals" element={<ReferralsManagement />} />

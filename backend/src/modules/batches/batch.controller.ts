@@ -127,6 +127,15 @@ export class BatchController {
     }
   }
 
+  static async updateCurriculum(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const updated = await BatchService.updateBatchCurriculum(req.params.id, req.body, req.user);
+      ResponseUtil.success(res, updated, "Batch syllabus and exam curriculum published successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async deleteBatch(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       await BatchService.deleteBatch(req.params.id, req.user);

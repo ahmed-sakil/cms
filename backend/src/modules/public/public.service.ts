@@ -20,7 +20,7 @@ export class PublicService {
       return landingCache.data;
     }
 
-    const [courses, batchesList, notices, branches, organization, achievements, testimonials, exams] = await Promise.all([
+    const [courses, batchesList, notices, branches, organization, achievements, testimonials, exams, facultyTipsList] = await Promise.all([
       prisma.course.findMany({
         where: {
           isPublic: true,
@@ -83,6 +83,7 @@ export class PublicService {
           name: true,
           tagline: true,
           logoUrl: true,
+          faviconUrl: true,
           phone: true,
           email: true,
           address: true,
@@ -133,6 +134,10 @@ export class PublicService {
         },
         orderBy: { examDate: "desc" },
         take: 8,
+      }),
+      prisma.facultyTip.findMany({
+        where: { isPublished: true },
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
       }),
     ]);
 
@@ -193,36 +198,23 @@ export class PublicService {
       })),
     }));
 
-    // Curated study tips and strategies
-    const studyTips = [
-      {
-        id: "tip-1",
-        category: "Mathematics",
-        title: "Calculus & Vector Problem Solving Mastery for Board & Admission",
-        excerpt: "Master standard integration techniques, limit shortcuts, and 3D vector scalar products with proven step-by-step methods.",
-        readTime: "4 min read",
-        author: "Prof. Mahmud Hasan (Math Faculty)",
-        content: "1. Prioritize standard substitution methods in indefinite integrals.\n2. In vectors, memorize the cross-product normal unit vector formula to solve spatial area questions under 60 seconds.\n3. Keep a formula notebook updated daily and practice 5 board CQ questions every evening.",
-      },
-      {
-        id: "tip-2",
-        category: "Physics",
-        title: "Conquering Mechanics & Electromagnetism: The 90-Second Rule",
-        excerpt: "How top engineering aspirants break down complex friction, rotational kinematics, and capacitor circuit diagrams.",
-        readTime: "5 min read",
-        author: "Engr. Tanvir Ahmed (BUET)",
-        content: "1. Always draw a free-body diagram (FBD) before writing equilibrium equations.\n2. In electrostatics, calculate electric field using symmetry whenever Gauss's law is applicable.\n3. Solve past BUET and Dhaka University problem sets under timed exam conditions.",
-      },
-      {
-        id: "tip-3",
-        category: "Exam Strategy",
-        title: "Time Management in 100-Mark Model Tests: The 3-Pass Technique",
-        excerpt: "Prevent exam hall panic and ensure you never leave high-scoring questions untouched on the answer script.",
-        readTime: "3 min read",
-        author: "Academic Advisory Panel",
-        content: "Pass 1: Solve direct recall and easy 1-step questions in the first 30 minutes.\nPass 2: Tackle standard analytical questions with clear working.\nPass 3: Dedicate the final 25 minutes to difficult derivation and proof questions, leaving 5 minutes for rechecking.",
-      },
-    ];
+    // Curated study tips and strategies from database
+    const studyTips = facultyTipsList.map((t) => ({
+      id: t.id,
+      category: t.category,
+      title: t.title,
+      slug: t.slug,
+      excerpt: t.excerpt,
+      readTime: t.readTime,
+      author: t.authorTitle ? `${t.author} (${t.authorTitle})` : t.author,
+      authorName: t.author,
+      authorTitle: t.authorTitle,
+      authorImage: t.authorImage,
+      coverImage: t.coverImage,
+      content: t.content,
+      viewsCount: t.viewsCount,
+      createdAt: t.createdAt.toISOString(),
+    }));
 
     const payload = {
       courses,
@@ -235,6 +227,7 @@ export class PublicService {
       testimonials,
       evaluatedExams,
       studyTips,
+      facultyTips: studyTips,
     };
 
     landingCache = {
@@ -359,5 +352,79 @@ export class PublicService {
       },
       orderBy: [{ isMainBranch: "desc" }, { name: "asc" }],
     });
+  }
+
+  static async listFacultyTips(category?: string, search?: string) {
+    const where: any = { isPublished: true };
+    if (category && category !== "ALL") {
+      where.category = { equals: category, mode: "insensitive" };
+    }
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { excerpt: { contains: search, mode: "insensitive" } },
+        { author: { contains: search, mode: "insensitive" } },
+        { category: { contains: search, mode: "insensitive" } },
+      ];
+    }
+    return prisma.facultyTip.findMany({
+      where,
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+    });
+  }
+
+  static async getFacultyTipById(idOrSlug: string) {
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(idOrSlug);
+    const where = isUuid ? { id: idOrSlug } : { slug: idOrSlug };
+    const tip = await prisma.facultyTip.findFirst({
+      where: { ...where, isPublished: true },
+    });
+    if (!tip) return null;
+
+    // Increment view count asynchronously in background
+    prisma.facultyTip.update({
+      where: { id: tip.id },
+      data: { viewsCount: { increment: 1 } },
+    }).catch(() => {});
+
+    return tip;
+  }
+
+  static async listPublicTestimonials(role?: string, rating?: number) {
+    const where: any = { isApproved: true };
+    if (role && role !== "ALL") {
+      where.role = { equals: role, mode: "insensitive" };
+    }
+    if (rating && rating > 0) {
+      where.rating = Number(rating);
+    }
+    const [testimonials, totalCount, ratingStats] = await Promise.all([
+      prisma.testimonial.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.testimonial.count({ where: { isApproved: true } }),
+      prisma.testimonial.groupBy({
+        by: ["rating"],
+        where: { isApproved: true },
+        _count: { rating: true },
+      }),
+    ]);
+
+    const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let totalScore = 0;
+    ratingStats.forEach((stat) => {
+      distribution[stat.rating] = stat._count.rating;
+      totalScore += stat.rating * stat._count.rating;
+    });
+
+    const averageRating = totalCount > 0 ? Number((totalScore / totalCount).toFixed(1)) : 5.0;
+
+    return {
+      testimonials,
+      totalCount,
+      averageRating,
+      distribution,
+    };
   }
 }

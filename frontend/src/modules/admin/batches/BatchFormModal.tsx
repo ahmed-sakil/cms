@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { X, Calendar } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { X, Image as ImageIcon, DoorOpen, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { FileUpload } from "../../../components/common/FileUpload.js";
 import {
   BatchFeeType,
   type BranchRecord,
@@ -32,6 +34,7 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
   isBranchAdmin,
   userBranchId,
 }) => {
+  const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [batchForm, setBatchForm] = useState({
     name: "",
@@ -60,26 +63,26 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
   useEffect(() => {
     if (editingBatch) {
       setBatchForm({
-        name: editingBatch.name,
-        title: editingBatch.title || "",
+        name: editingBatch.name || "",
+        title: editingBatch.title || editingBatch.name || "",
         academicClassId: editingBatch.academicClass?.id || "",
         courseId: editingBatch.course?.id || "",
-        branchId: editingBatch.branch.id,
+        branchId: editingBatch.branch?.id || (isBranchAdmin && userBranchId ? userBranchId : branches[0]?.id || ""),
         teacherId: editingBatch.teacher?.id || "",
         classroom: editingBatch.classroom || "",
         classTime: editingBatch.classTime || editingBatch.scheduleTime || "04:30 PM - 06:00 PM",
         scheduleTime: editingBatch.scheduleTime || editingBatch.classTime || "04:30 PM - 06:00 PM",
-        seatLimit: editingBatch.seatLimit || editingBatch.maxCapacity,
-        totalClasses: editingBatch.totalClasses,
-        totalExams: editingBatch.totalExams,
-        classesPerWeek: editingBatch.classesPerWeek,
-        daysOfWeek: editingBatch.daysOfWeek || [],
-        feeAmount: editingBatch.feeAmount,
-        feeType: editingBatch.feeType,
+        seatLimit: editingBatch.seatLimit || editingBatch.maxCapacity || 40,
+        totalClasses: editingBatch.totalClasses || 36,
+        totalExams: editingBatch.totalExams || 12,
+        classesPerWeek: editingBatch.classesPerWeek || 3,
+        daysOfWeek: editingBatch.daysOfWeek || ["SAT", "MON", "WED"],
+        feeAmount: editingBatch.feeAmount !== undefined ? editingBatch.feeAmount : 12000,
+        feeType: editingBatch.feeType || BatchFeeType.ONE_TIME,
         coverImage: editingBatch.coverImage || "",
-        startDate: editingBatch.startDate ? editingBatch.startDate.split("T")[0] : "",
+        startDate: editingBatch.startDate ? editingBatch.startDate.split("T")[0] : new Date().toISOString().split("T")[0],
         endDate: editingBatch.endDate ? editingBatch.endDate.split("T")[0] : "",
-        status: editingBatch.status,
+        status: editingBatch.status || "UPCOMING",
         isPublic: true,
       });
     } else {
@@ -117,7 +120,16 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!batchForm.name.trim()) {
-      toast.error("Batch internal name is required");
+      toast.error("Internal batch identifier is required (e.g. BUET-2026-M1)");
+      return;
+    }
+
+    const selectedBranchId = isBranchAdmin && userBranchId
+      ? userBranchId
+      : batchForm.branchId || branches[0]?.id || "";
+
+    if (!selectedBranchId) {
+      toast.error("Please select a physical campus / branch");
       return;
     }
 
@@ -128,27 +140,28 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       };
+
       const payload: any = {
         name: batchForm.name.trim(),
         title: batchForm.title.trim() || batchForm.name.trim(),
-        academicClassId: batchForm.academicClassId || undefined,
-        courseId: batchForm.courseId || undefined,
-        branchId: isBranchAdmin && userBranchId ? userBranchId : batchForm.branchId,
-        teacherId: batchForm.teacherId || null,
-        classroom: batchForm.classroom || null,
-        classTime: batchForm.classTime || batchForm.scheduleTime,
-        scheduleTime: batchForm.scheduleTime || batchForm.classTime,
-        seatLimit: Number(batchForm.seatLimit),
-        maxCapacity: Number(batchForm.seatLimit),
-        totalClasses: Number(batchForm.totalClasses),
-        totalExams: Number(batchForm.totalExams),
-        classesPerWeek: Number(batchForm.classesPerWeek),
-        daysOfWeek: batchForm.daysOfWeek,
-        feeAmount: Number(batchForm.feeAmount),
-        feeType: batchForm.feeType,
-        coverImage: batchForm.coverImage.trim() || undefined,
+        academicClassId: batchForm.academicClassId?.trim() || null,
+        courseId: batchForm.courseId?.trim() || null,
+        branchId: selectedBranchId,
+        teacherId: batchForm.teacherId?.trim() || null,
+        classroom: batchForm.classroom?.trim() || null,
+        classTime: batchForm.classTime?.trim() || batchForm.scheduleTime?.trim() || null,
+        scheduleTime: batchForm.scheduleTime?.trim() || batchForm.classTime?.trim() || null,
+        seatLimit: Number(batchForm.seatLimit) || 40,
+        maxCapacity: Number(batchForm.seatLimit) || 40,
+        totalClasses: Number(batchForm.totalClasses) || 36,
+        totalExams: Number(batchForm.totalExams) || 12,
+        classesPerWeek: Number(batchForm.classesPerWeek) || 3,
+        daysOfWeek: batchForm.daysOfWeek || [],
+        feeAmount: Number(batchForm.feeAmount) || 0,
+        feeType: batchForm.feeType || BatchFeeType.ONE_TIME,
+        coverImage: batchForm.coverImage?.trim() || null,
         startDate: batchForm.startDate,
-        endDate: batchForm.endDate ? batchForm.endDate : null,
+        endDate: batchForm.endDate?.trim() || null,
         status: batchForm.status,
         isPublic: batchForm.isPublic,
       };
@@ -160,9 +173,31 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
 
       const res = await fetch(url, { method, headers, body: JSON.stringify(payload) });
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.message || "Failed to schedule batch");
+      if (!res.ok || !json.success) {
+        if (json.errors && typeof json.errors === "object") {
+          const formatted = Object.entries(json.errors)
+            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : msgs}`)
+            .join("; ");
+          throw new Error(formatted || json.message || "Failed to schedule batch");
+        }
+        throw new Error(json.message || "Failed to schedule batch");
+      }
 
-      toast.success(editingBatch ? "Batch details updated successfully" : "New batch scheduled!");
+      const createdBatch = json.data;
+      if (editingBatch) {
+        toast.success("Batch details updated successfully");
+      } else {
+        toast.success("New batch scheduled successfully!", {
+          description: "Click below to plan syllabus, lecture schedule & exams.",
+          action: createdBatch?.id
+            ? {
+                label: "Open Planner",
+                onClick: () => navigate(`/admin/batches/${createdBatch.id}/planner`),
+              }
+            : undefined,
+          duration: 8000,
+        });
+      }
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -172,15 +207,22 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
     }
   };
 
+  const quickRooms = ["Room 101", "Room 202", "Room 303", "Main Hall", "Science Lab", "Seminar Room"];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
       <div className="bg-surface border border-accent rounded-sm max-w-2xl w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center border-b border-accent pb-3">
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-brand-primary" />
-            <h2 className="font-bold text-sm text-text-main">
-              {editingBatch ? `Edit Batch: ${editingBatch.name}` : "Schedule New Learning Cohort / Batch"}
-            </h2>
+            <DoorOpen className="w-4.5 h-4.5 text-brand-primary" />
+            <div>
+              <h2 className="font-bold text-sm text-text-main">
+                {editingBatch ? `Edit Batch: ${editingBatch.name}` : "Schedule New Offline Batch & Classroom"}
+              </h2>
+              <p className="text-[11px] text-text-muted">
+                Configure classroom assignment, seat limit, routine schedules, and poster banner.
+              </p>
+            </div>
           </div>
           <button onClick={onClose} className="text-text-muted hover:text-text-main p-1 rounded-sm">
             <X className="w-4 h-4" />
@@ -188,145 +230,183 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          {/* Public Title & Code */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-text-main">Public Program Title *</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. BUET Engineering Admission Master Batch 2026"
-                value={batchForm.title}
-                onChange={(e) => setBatchForm({ ...batchForm, title: e.target.value })}
-                className="w-full px-3 py-1.5 text-xs bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-text-main">Internal Code / Batch Name *</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. BUET-ENG-MORN-01"
-                value={batchForm.name}
-                onChange={(e) => setBatchForm({ ...batchForm, name: e.target.value })}
-                className="w-full px-3 py-1.5 text-xs bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-mono"
-              />
-            </div>
-          </div>
-
-          {/* Academic Class & Campus */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-text-main">Academic Class / Standard *</label>
-              <select
-                required
-                value={batchForm.academicClassId}
-                onChange={(e) => setBatchForm({ ...batchForm, academicClassId: e.target.value })}
-                className="w-full px-2.5 py-1.5 text-xs bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
-              >
-                <option value="">-- Select Class --</option>
-                {academicClasses.map((cls) => (
-                  <option key={cls.id} value={cls.id}>
-                    {cls.name} ({cls.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-text-main">Campus / Physical Branch *</label>
-              {isBranchAdmin ? (
+          {/* Section 1: Program Identity & Academic Standard */}
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-main">Public Program Title *</label>
                 <input
                   type="text"
-                  disabled
-                  value={currentBranchName}
-                  className="w-full px-3 py-1.5 text-xs bg-bg-app/50 border border-accent rounded-sm text-text-muted cursor-not-allowed font-medium"
+                  required
+                  placeholder="e.g. BUET Engineering Admission Master Batch 2026"
+                  value={batchForm.title}
+                  onChange={(e) => setBatchForm({ ...batchForm, title: e.target.value })}
+                  className="w-full px-3 py-1.5 text-xs bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
                 />
-              ) : (
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-main">Internal Code / Batch ID *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. BUET-ENG-MORN-01"
+                  value={batchForm.name}
+                  onChange={(e) => setBatchForm({ ...batchForm, name: e.target.value })}
+                  className="w-full px-3 py-1.5 text-xs bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-main">Academic Class / Standard *</label>
                 <select
                   required
-                  value={batchForm.branchId}
-                  onChange={(e) => setBatchForm({ ...batchForm, branchId: e.target.value })}
+                  value={batchForm.academicClassId}
+                  onChange={(e) => setBatchForm({ ...batchForm, academicClassId: e.target.value })}
                   className="w-full px-2.5 py-1.5 text-xs bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
                 >
-                  <option value="">-- Select Campus --</option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} ({b.code})
+                  <option value="">-- Select Class --</option>
+                  {academicClasses.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.name} ({cls.code})
                     </option>
                   ))}
                 </select>
-              )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-main">Campus / Physical Branch *</label>
+                {isBranchAdmin ? (
+                  <input
+                    type="text"
+                    disabled
+                    value={currentBranchName}
+                    className="w-full px-3 py-1.5 text-xs bg-bg-app/50 border border-accent rounded-sm text-text-muted cursor-not-allowed font-medium"
+                  />
+                ) : (
+                  <select
+                    required
+                    value={batchForm.branchId}
+                    onChange={(e) => setBatchForm({ ...batchForm, branchId: e.target.value })}
+                    className="w-full px-2.5 py-1.5 text-xs bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
+                  >
+                    <option value="">-- Select Campus --</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.code})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Assigned Faculty & Classroom */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-text-main">Faculty / Lead Mentor</label>
-              <select
-                value={batchForm.teacherId}
-                onChange={(e) => setBatchForm({ ...batchForm, teacherId: e.target.value })}
-                className="w-full px-2.5 py-1.5 text-xs bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
-              >
-                <option value="">-- Unassigned / To Be Announced --</option>
-                {teachers.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.fullName} ({t.email})
-                  </option>
-                ))}
-              </select>
+          {/* Section 2: Classroom & Physical Routine */}
+          <div className="p-3 bg-bg-app border border-accent rounded-sm space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-text-main">
+              <DoorOpen className="w-3.5 h-3.5 text-brand-primary" />
+              <span>Classroom & Routine Configuration</span>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-text-main">Room / Classroom</label>
-              <input
-                type="text"
-                placeholder="e.g. Room 402, Science Building"
-                value={batchForm.classroom}
-                onChange={(e) => setBatchForm({ ...batchForm, classroom: e.target.value })}
-                className="w-full px-3 py-1.5 text-xs bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-main">Room / Classroom Number</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Room 402, Science Building"
+                  value={batchForm.classroom}
+                  onChange={(e) => setBatchForm({ ...batchForm, classroom: e.target.value })}
+                  className="w-full px-3 py-1.5 text-xs bg-surface border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
+                />
+                {/* Quick Room Presets */}
+                <div className="flex flex-wrap items-center gap-1 pt-1">
+                  <span className="text-[10px] text-text-muted">Suggestions:</span>
+                  {quickRooms.map((qr) => (
+                    <button
+                      key={qr}
+                      type="button"
+                      onClick={() => setBatchForm({ ...batchForm, classroom: qr })}
+                      className="px-1.5 py-0.5 text-[10px] bg-accent-subtle hover:bg-accent border border-accent text-text-main rounded-xs transition-colors"
+                    >
+                      {qr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-main">Faculty / Lead Mentor</label>
+                <select
+                  value={batchForm.teacherId}
+                  onChange={(e) => setBatchForm({ ...batchForm, teacherId: e.target.value })}
+                  className="w-full px-2.5 py-1.5 text-xs bg-surface border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
+                >
+                  <option value="">-- Unassigned / To Be Announced --</option>
+                  {teachers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.fullName} ({t.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-main">Class Slot / Routine Time</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 04:30 PM - 06:00 PM"
+                  value={batchForm.classTime}
+                  onChange={(e) =>
+                    setBatchForm({
+                      ...batchForm,
+                      classTime: e.target.value,
+                      scheduleTime: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-1.5 text-xs bg-surface border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-text-main">Physical Seat Limit *</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="500"
+                  required
+                  value={batchForm.seatLimit}
+                  onChange={(e) =>
+                    setBatchForm({ ...batchForm, seatLimit: Math.max(1, parseInt(e.target.value) || 1) })
+                  }
+                  className="w-full px-3 py-1.5 text-xs bg-surface border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-mono"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Schedule Time & Physical Seat Capacity */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-text-main">Class Slot / Routine Time</label>
-              <input
-                type="text"
-                placeholder="e.g. 04:30 PM - 06:00 PM"
-                value={batchForm.classTime}
-                onChange={(e) =>
-                  setBatchForm({
-                    ...batchForm,
-                    classTime: e.target.value,
-                    scheduleTime: e.target.value,
-                  })
-                }
-                className="w-full px-3 py-1.5 text-xs bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-mono"
-              />
+          {/* Section 3: Batch Cover / Poster Image Upload */}
+          <div className="p-3 bg-bg-app border border-accent rounded-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-text-main flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-brand-primary" />
+                Batch Banner / Poster / Classroom Media
+              </label>
+              <span className="text-[10px] text-text-muted">16:9 banner or flyer recommended</span>
             </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-text-main">Physical Seat Limit *</label>
-              <input
-                type="number"
-                min="1"
-                max="500"
-                required
-                value={batchForm.seatLimit}
-                onChange={(e) =>
-                  setBatchForm({ ...batchForm, seatLimit: Math.max(1, parseInt(e.target.value) || 1) })
-                }
-                className="w-full px-3 py-1.5 text-xs bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-mono"
-              />
-            </div>
+            <FileUpload
+              folder="posters"
+              value={batchForm.coverImage}
+              onChange={(url) => setBatchForm({ ...batchForm, coverImage: url })}
+              helperText="Upload program poster or classroom photo. Displayed on public website and student portal."
+            />
           </div>
 
-          {/* Total Classes & Exams */}
+          {/* Section 4: Academic Metrics & Tuition Fee */}
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-text-main">Total Classes</label>
@@ -448,13 +528,18 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
             <button
               type="submit"
               disabled={isSaving}
-              className="px-4 py-1.5 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:opacity-90 shadow-xs transition-opacity disabled:opacity-60"
+              className="px-4 py-1.5 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:opacity-90 shadow-xs transition-opacity disabled:opacity-60 flex items-center gap-1.5"
             >
-              {isSaving
-                ? "Saving..."
-                : editingBatch
-                ? "Save Batch Changes"
-                : "Confirm & Schedule Batch"}
+              {isSaving ? (
+                <span>Saving...</span>
+              ) : editingBatch ? (
+                <span>Save Batch Changes</span>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Confirm & Schedule Batch</span>
+                </>
+              )}
             </button>
           </div>
         </form>

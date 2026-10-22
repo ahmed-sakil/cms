@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Link, useOutletContext } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -26,6 +27,7 @@ import {
   Building2,
   Search,
   Download,
+  DoorOpen,
 } from "lucide-react";
 import type { PosterSlide, PaymentChannel } from "../../types/index.js";
 
@@ -113,11 +115,9 @@ export const LandingPage: React.FC = () => {
   const [examSearchFilter, setExamSearchFilter] = useState<string>("");
   const [expandedExamIds, setExpandedExamIds] = useState<Record<string, boolean>>({});
 
-  // Review List Display State
-  const [showAllReviews, setShowAllReviews] = useState<boolean>(false);
-
-  // Exam Results Filter
+  // Exam Results Filter (Two-tier: Batch & Exam)
   const [selectedExamBatch, setSelectedExamBatch] = useState<string>("ALL");
+  const [selectedExamId, setSelectedExamId] = useState<string>("ALL");
 
   // Organization info
   const [organization, setOrganization] = useState<{
@@ -223,11 +223,21 @@ export const LandingPage: React.FC = () => {
     };
   }, [outletContext.landingData]);
 
-  // Filter exam results by selected batch
-  const filteredExams = evaluatedExams.filter((e) => {
-    if (selectedExamBatch === "ALL") return true;
-    return e.batchId === selectedExamBatch;
+  // Filter exam results by selected batch and specific exam
+  const availableExamsForSelectedBatch = evaluatedExams.filter((e) => {
+    return selectedExamBatch === "ALL" || e.batchId === selectedExamBatch;
   });
+
+  const filteredExams = evaluatedExams.filter((e) => {
+    const matchesBatch = selectedExamBatch === "ALL" || e.batchId === selectedExamBatch;
+    const matchesExam = selectedExamId === "ALL" || e.id === selectedExamId;
+    return matchesBatch && matchesExam;
+  });
+
+  const handleExamBatchChange = (batchId: string) => {
+    setSelectedExamBatch(batchId);
+    setSelectedExamId("ALL");
+  };
 
   const handleInquirySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -297,7 +307,7 @@ export const LandingPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* 1. HERO SECTION (DYNAMIC REAL POSTERS OR INSTITUTIONAL HERO - NO DEMO PHOTOS) */}
       {/* ========================================================================= */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+      <section className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 pt-4">
         {loading ? (
           <div className="relative w-full rounded-sm overflow-hidden border border-theme bg-surface shadow-xs h-[240px] xs:h-[300px] sm:h-[400px] md:h-[440px] p-6 sm:p-12 flex flex-col justify-end space-y-3 animate-pulse">
             <div className="h-4 w-28 bg-accent rounded-xs" />
@@ -432,7 +442,7 @@ export const LandingPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* 2. NOTICE BOARD (IMMEDIATELY AFTER POSTERS - MAX 3 WITH VIEW MORE BUTTON) */}
       {/* ========================================================================= */}
-      <section id="notices" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 scroll-mt-20">
+      <section id="notices" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
           <div className="flex items-start sm:items-center gap-3">
             <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
@@ -555,7 +565,7 @@ export const LandingPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* 3. AVAILABLE BATCHES & COURSES (CURRENTLY ENROLLING / ACTIVE) */}
       {/* ========================================================================= */}
-      <section id="batches" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 scroll-mt-20">
+      <section id="batches" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
           <div className="flex items-start sm:items-center gap-3">
             <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
@@ -575,7 +585,7 @@ export const LandingPage: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {loading ? (
             [1, 2, 3].map((n) => (
               <div
@@ -608,49 +618,57 @@ export const LandingPage: React.FC = () => {
                 </div>
               )}
               {availableBatches.map((batch) => {
-            const seatLimit = batch.seatLimit || batch.maxCapacity || 40;
-            const confirmed = batch.enrolledCount || 0;
-            const remaining = batch.availableSeats !== undefined ? batch.availableSeats : Math.max(0, seatLimit - confirmed);
-            const isFull = batch.isHouseFull || remaining <= 0;
+                const seatLimit = batch.seatLimit || batch.maxCapacity || 40;
+                const confirmed = batch.enrolledCount || 0;
+                const remaining = batch.availableSeats !== undefined ? batch.availableSeats : Math.max(0, seatLimit - confirmed);
+                const isFull = batch.isHouseFull || remaining <= 0;
 
-            return (
-              <div
-                key={batch.id}
-                className="bg-surface border border-theme rounded-sm overflow-hidden flex flex-col justify-between hover:border-brand-primary/50 transition-all shadow-xs group"
-              >
-                {batch.coverImage && (
-                  <div className="h-36 w-full bg-slate-900 overflow-hidden relative">
-                    <img
-                      src={batch.coverImage}
-                      alt={batch.title || batch.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                    />
-                    <div className="absolute top-2 left-2 flex gap-1">
-                      {batch.academicClass && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-xs uppercase">
-                          {batch.academicClass.name}
-                        </span>
-                      )}
-                    </div>
-                    <div className="absolute top-2 right-2">
-                      <span
-                        className={`text-[10px] px-2 py-0.5 font-bold rounded-xs ${
-                          isFull ? "bg-rose-500 text-white" : "bg-emerald-500 text-white"
-                        }`}
-                      >
-                        {isFull ? "Housefull" : `${remaining} Seats Left`}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    {!batch.coverImage && (
-                      <div className="flex justify-between items-start">
-                        <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider block">
-                          {batch.academicClass?.name || batch.course?.name || "Offline Program"}
-                        </span>
+                return (
+                  <div
+                    key={batch.id}
+                    className="bg-surface border border-theme rounded-sm overflow-hidden flex flex-col justify-between hover:border-brand-primary/50 transition-all shadow-xs group"
+                  >
+                    {batch.coverImage ? (
+                      <div className="h-40 w-full bg-slate-900 overflow-hidden relative">
+                        <img
+                          src={batch.coverImage}
+                          alt={batch.title || batch.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                        />
+                        <div className="absolute top-2 left-2 flex flex-wrap gap-1">
+                          {batch.academicClass && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-xs uppercase shadow-xs">
+                              {batch.academicClass.name}
+                            </span>
+                          )}
+                          {batch.classroom && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 bg-surface/90 text-text-main border border-accent rounded-xs shadow-xs backdrop-blur-xs flex items-center gap-1">
+                              <DoorOpen className="w-3 h-3 text-brand-primary" /> {batch.classroom}
+                            </span>
+                          )}
+                        </div>
+                        <div className="absolute top-2 right-2">
+                          <span
+                            className={`text-[10px] px-2 py-0.5 font-bold rounded-xs shadow-xs ${
+                              isFull ? "bg-rose-500 text-white" : "bg-emerald-500 text-white"
+                            }`}
+                          >
+                            {isFull ? "Housefull" : `${remaining} Seats Left`}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 pb-0 flex justify-between items-start">
+                        <div className="flex flex-wrap gap-1">
+                          <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider block bg-brand-primary/10 px-2 py-0.5 rounded-xs">
+                            {batch.academicClass?.name || batch.course?.name || "Offline Program"}
+                          </span>
+                          {batch.classroom && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 bg-bg-app text-text-main border border-accent rounded-xs flex items-center gap-1">
+                              <DoorOpen className="w-3 h-3 text-brand-primary" /> {batch.classroom}
+                            </span>
+                          )}
+                        </div>
                         <span
                           className={`text-[10px] px-2 py-0.5 font-bold rounded-xs border ${
                             isFull
@@ -663,57 +681,82 @@ export const LandingPage: React.FC = () => {
                       </div>
                     )}
 
-                    <h4 className="font-bold text-sm text-text-main group-hover:text-brand-primary transition-colors">
-                      {batch.title || batch.name}
-                    </h4>
+                    <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <h4 className="font-bold text-sm text-text-main group-hover:text-brand-primary transition-colors">
+                          {batch.title || batch.name}
+                        </h4>
 
-                    <div className="space-y-1.5 text-xs text-text-main/70 pt-1">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                        <span>Starts: <strong className="text-text-main">{new Date(batch.startDate).toLocaleDateString()}</strong></span>
-                      </div>
-                      {(batch.classTime || batch.scheduleTime) && (
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                          <span>{batch.classTime || batch.scheduleTime}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                        <span>{batch.branch?.name || "Main Campus"}</span>
-                      </div>
-                      {batch.feeAmount && (
-                        <div className="flex items-center gap-2 font-semibold text-text-main pt-1">
-                          <CreditCard className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                          <span>৳{Number(batch.feeAmount).toLocaleString()}</span>
-                          {batch.feeType && (
-                            <span className="text-[10px] text-text-muted font-normal">
-                              ({batch.feeType.replace("_", " ")})
-                            </span>
+                        <div className="space-y-1.5 text-xs text-text-main/70 pt-1">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                            <span>Starts: <strong className="text-text-main">{new Date(batch.startDate).toLocaleDateString()}</strong></span>
+                          </div>
+                          {(batch.classTime || batch.scheduleTime) && (
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                              <span>{batch.classTime || batch.scheduleTime}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                            <span>{batch.branch?.name || "Main Campus"}</span>
+                          </div>
+                          {((batch.totalClasses ?? 0) > 0 || (batch.totalExams ?? 0) > 0) && (
+                            <div className="flex items-center gap-2">
+                              <BookOpen className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                              <span>{batch.totalClasses || 0} Lectures • {batch.totalExams || 0} Model Tests</span>
+                            </div>
+                          )}
+                          {batch.feeAmount && (
+                            <div className="flex items-center gap-2 font-semibold text-text-main pt-1 border-t border-accent">
+                              <CreditCard className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                              <span>৳{Number(batch.feeAmount).toLocaleString()}</span>
+                              {batch.feeType && (
+                                <span className="text-[10px] text-text-muted font-normal">
+                                  ({batch.feeType.replace("_", " ")})
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {Array.isArray(batch.subjects) && batch.subjects.length > 0 && (
+                            <div className="flex flex-wrap gap-1 pt-1">
+                              {batch.subjects.slice(0, 4).map((sub: string, sIdx: number) => (
+                                <span
+                                  key={sIdx}
+                                  className="text-[10px] px-1.5 py-0.5 bg-accent/60 rounded-xs text-text-muted"
+                                >
+                                  {sub}
+                                </span>
+                              ))}
+                              {batch.subjects.length > 4 && (
+                                <span className="text-[10px] px-1 py-0.5 text-text-muted">
+                                  +{batch.subjects.length - 4} more
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
-                      )}
+                      </div>
+
+                      <div className="pt-3 border-t border-theme flex items-center justify-between gap-2">
+                        <span className="text-[11px] text-text-muted flex items-center gap-1">
+                          <Users className="w-3 h-3 text-brand-primary" />
+                          {confirmed}/{seatLimit} seats
+                        </span>
+
+                        <Link
+                          to={`/batches/${batch.id}`}
+                          className="py-1.5 px-3 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors flex items-center gap-1 shadow-xs"
+                        >
+                          <span>Details & Routine</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="pt-3 border-t border-theme flex items-center justify-between gap-2">
-                    <span className="text-[11px] text-text-muted flex items-center gap-1">
-                      <Users className="w-3 h-3 text-brand-primary" />
-                      {confirmed}/{seatLimit} seats
-                    </span>
-
-                    <Link
-                      to={`/batches/${batch.id}`}
-                      className="py-1.5 px-3 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors flex items-center gap-1 shadow-xs"
-                    >
-                      <span>Details & Routine</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
             </>
           )}
         </div>
@@ -723,7 +766,7 @@ export const LandingPage: React.FC = () => {
       {/* 4. UPCOMING BATCHES & ADMISSION SESSIONS */}
       {/* ========================================================================= */}
       {upcomingBatches.length > 0 && (
-        <section id="upcoming" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 scroll-mt-20">
+        <section id="upcoming" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
             <div className="flex items-start sm:items-center gap-3">
               <div className="p-2.5 bg-amber-500/10 text-amber-600 rounded-sm shrink-0">
@@ -743,7 +786,7 @@ export const LandingPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {upcomingBatches.map((batch) => {
               const seatLimit = batch.seatLimit || batch.maxCapacity || 40;
               const confirmed = batch.enrolledCount || 0;
@@ -755,11 +798,18 @@ export const LandingPage: React.FC = () => {
                   className="bg-surface border border-theme rounded-sm p-5 space-y-4 flex flex-col justify-between hover:border-brand-primary/50 transition-colors shadow-xs"
                 >
                   <div className="space-y-3">
-                    <div className="flex justify-between items-start">
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-xs uppercase">
-                        {batch.academicClass?.name || "Upcoming Program"}
-                      </span>
-                      <span className="text-[11px] font-mono text-text-muted font-bold">
+                    <div className="flex justify-between items-start gap-1">
+                      <div className="flex flex-wrap gap-1">
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-xs uppercase">
+                          {batch.academicClass?.name || "Upcoming Program"}
+                        </span>
+                        {batch.classroom && (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 bg-bg-app text-text-main border border-accent rounded-xs flex items-center gap-1">
+                            <DoorOpen className="w-3 h-3 text-brand-primary" /> {batch.classroom}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] font-mono text-text-muted font-bold whitespace-nowrap">
                         {remaining} Seats Left
                       </span>
                     </div>
@@ -781,6 +831,24 @@ export const LandingPage: React.FC = () => {
                         <MapPin className="w-3.5 h-3.5 text-brand-primary" />
                         <span>{batch.branch?.name || "Campus Desk"}</span>
                       </div>
+                      {((batch.totalClasses ?? 0) > 0 || (batch.totalExams ?? 0) > 0) && (
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                          <span>{batch.totalClasses || 0} Lectures • {batch.totalExams || 0} Tests</span>
+                        </div>
+                      )}
+                      {Array.isArray(batch.subjects) && batch.subjects.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {batch.subjects.slice(0, 3).map((sub: string, sIdx: number) => (
+                            <span
+                              key={sIdx}
+                              className="text-[10px] px-1.5 py-0.5 bg-accent/60 rounded-xs text-text-muted"
+                            >
+                              {sub}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -805,8 +873,8 @@ export const LandingPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* 5. TAKEN EXAMS & PUBLIC RESULTS LEADERBOARD (NAME, MARKS, STANDING ONLY) */}
       {/* ========================================================================= */}
-      <section id="results" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 scroll-mt-20">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
+      <section id="results" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-theme pb-4">
           <div className="flex items-start sm:items-center gap-3">
             <div className="p-2.5 bg-amber-500/10 text-amber-600 rounded-sm shrink-0">
               <Trophy className="w-5 h-5" />
@@ -821,21 +889,39 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Batch Selector Dropdown */}
-          <div className="flex items-center gap-2 w-full sm:w-auto self-start sm:self-auto">
-            <span className="text-xs font-semibold text-text-muted whitespace-nowrap">Filter Batch:</span>
-            <select
-              value={selectedExamBatch}
-              onChange={(e) => setSelectedExamBatch(e.target.value)}
-              className="w-full sm:w-auto px-3 py-1.5 text-xs bg-surface border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-medium shadow-2xs"
-            >
-              <option value="ALL">All Offline Batches</option>
-              {batchesListUnique(evaluatedExams).map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.title || b.name}
-                </option>
-              ))}
-            </select>
+          {/* Connected Selectors: Select Batch and Select Exam */}
+          <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto self-start lg:self-auto">
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              <span className="text-xs font-semibold text-text-muted whitespace-nowrap">Batch:</span>
+              <select
+                value={selectedExamBatch}
+                onChange={(e) => handleExamBatchChange(e.target.value)}
+                className="w-full sm:w-auto px-3 py-1.5 text-xs bg-surface border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-medium shadow-2xs cursor-pointer"
+              >
+                <option value="ALL">All Batches</option>
+                {batchesListUnique(evaluatedExams).map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.title || b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              <span className="text-xs font-semibold text-text-muted whitespace-nowrap">Exam:</span>
+              <select
+                value={selectedExamId}
+                onChange={(e) => setSelectedExamId(e.target.value)}
+                className="w-full sm:w-auto px-3 py-1.5 text-xs bg-surface border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-medium shadow-2xs cursor-pointer"
+              >
+                <option value="ALL">All Evaluated Exams ({availableExamsForSelectedBatch.length})</option>
+                {availableExamsForSelectedBatch.map((ex) => (
+                  <option key={ex.id} value={ex.id}>
+                    {ex.title} ({ex.academicClass} - {ex.subject})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -1011,7 +1097,7 @@ export const LandingPage: React.FC = () => {
       {/* 6. ACHIEVEMENTS OF OUR BRIGHT STUDENTS (COMPACT POSTERS / HALL OF FAME) */}
       {/* ========================================================================= */}
       {(loading || achievements.length > 0) && (
-        <section id="achievements" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 scroll-mt-20">
+        <section id="achievements" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
             <div className="flex items-start sm:items-center gap-3">
               <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
@@ -1109,7 +1195,7 @@ export const LandingPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* 7. ACADEMIC TIPS & BLOGS (STUDY STRATEGIES & PROBLEM SOLVING) */}
       {/* ========================================================================= */}
-      <section id="tips" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 scroll-mt-20">
+      <section id="tips" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
           <div className="flex items-start sm:items-center gap-3">
             <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
@@ -1131,10 +1217,10 @@ export const LandingPage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {studyTips.map((tip) => (
-            <div
+            <Link
               key={tip.id}
-              onClick={() => setSelectedTip(tip)}
-              className="bg-surface border border-theme rounded-sm p-5 space-y-3 cursor-pointer hover:border-brand-primary/60 transition-all flex flex-col justify-between group shadow-xs"
+              to={`/tips/${tip.id}`}
+              className="bg-surface border border-theme rounded-sm p-5 space-y-3 hover:border-brand-primary/60 transition-all flex flex-col justify-between group shadow-xs block"
             >
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-[11px]">
@@ -1156,10 +1242,10 @@ export const LandingPage: React.FC = () => {
               <div className="pt-3 border-t border-theme flex items-center justify-between text-xs">
                 <span className="text-[11px] text-text-muted italic">{tip.author}</span>
                 <span className="font-semibold text-brand-primary flex items-center gap-1">
-                  Read Guide <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                  Read Full Guide <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                 </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>
@@ -1167,7 +1253,7 @@ export const LandingPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* 8. PARENTS & STUDENTS COMMENTS / REVIEWS (WITH 5-STAR RATING & PHONE) */}
       {/* ========================================================================= */}
-      <section id="reviews" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 scroll-mt-20">
+      <section id="reviews" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
           <div className="flex items-start sm:items-center gap-3">
             <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
@@ -1184,6 +1270,13 @@ export const LandingPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+            <Link
+              to="/reviews"
+              className="px-3 py-1.5 text-xs font-bold bg-surface border border-theme hover:border-brand-primary hover:text-brand-primary text-text-main rounded-sm shadow-xs flex items-center gap-1.5 transition-colors"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-brand-primary" />
+              <span>View All Reviews</span>
+            </Link>
             <button
               onClick={() => setIsReviewModalOpen(true)}
               className="px-3.5 py-1.5 text-xs font-bold bg-brand-primary text-white rounded-sm hover:bg-brand-hover shadow-xs flex items-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
@@ -1215,7 +1308,7 @@ export const LandingPage: React.FC = () => {
             ))
           ) : (
             <>
-              {(showAllReviews ? testimonials : testimonials.slice(0, 3)).map((t, idx) => (
+              {testimonials.slice(0, 3).map((t, idx) => (
                 <div
                   key={t.id || idx}
                   className="bg-surface border border-theme rounded-sm p-4 sm:p-5 space-y-3 hover:border-brand-primary/50 transition-colors shadow-2xs"
@@ -1263,24 +1356,15 @@ export const LandingPage: React.FC = () => {
                 </div>
               ))}
 
-              {testimonials.length > 3 && (
-                <div className="flex justify-center pt-2">
-                  <button
-                    onClick={() => setShowAllReviews(!showAllReviews)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-surface border border-theme hover:border-brand-primary hover:text-brand-primary text-text-main rounded-sm transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-                  >
-                    {showAllReviews ? (
-                      <>
-                        <ChevronUp className="w-3.5 h-3.5" /> Show Top 3 Reviews Only
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="w-3.5 h-3.5" /> View All Reviews ({testimonials.length})
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
+              <div className="flex justify-center pt-2">
+                <Link
+                  to="/reviews"
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-bold bg-surface border border-theme hover:border-brand-primary hover:text-brand-primary text-text-main rounded-sm transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-brand-primary" />
+                  <span>View All Reviews & Advice ({testimonials.length > 0 ? `${testimonials.length}` : "All"}) →</span>
+                </Link>
+              </div>
 
               {testimonials.length === 0 && (
                 <div className="p-8 text-center text-xs text-text-muted bg-surface border border-theme rounded-sm">
@@ -1295,7 +1379,7 @@ export const LandingPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* 9. ADMISSION INQUIRY DESK */}
       {/* ========================================================================= */}
-      <section id="inquiry" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 scroll-mt-20">
+      <section id="inquiry" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
           <div className="flex items-start sm:items-center gap-3">
             <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
@@ -1379,18 +1463,15 @@ export const LandingPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* 10. COMPREHENSIVE FOOTER WITH CAMPUSES, WHATSAPP, CONTACT & BACK TO TOP */}
       {/* ========================================================================= */}
-      {/* ========================================================================= */}
-      {/* 10. COMPREHENSIVE FOOTER WITH CAMPUSES, WHATSAPP, CONTACT & BACK TO TOP */}
-      {/* ========================================================================= */}
       <footer className="border-t border-theme bg-surface pt-12 pb-6 text-xs text-text-muted">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+        <div className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Column 1: Institute Brand & Bio */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-sm bg-brand-primary text-white flex items-center justify-center font-bold overflow-hidden">
+                <div className="w-9 h-9 rounded-sm bg-brand-primary text-white flex items-center justify-center font-bold overflow-hidden">
                   {organization.logoUrl ? (
-                    <img src={organization.logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+                    <img src={organization.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                   ) : (
                     <BookOpen className="w-4 h-4" />
                   )}
@@ -1564,391 +1645,424 @@ export const LandingPage: React.FC = () => {
       </footer>
 
       {/* ========================================================================= */}
-      {/* MODAL: SINGLE NOTICE DETAIL VIEW */}
+      {/* MODAL: SINGLE NOTICE DETAIL VIEW (ENLARGED & VIEWPORT SAFE) */}
       {/* ========================================================================= */}
-      {selectedNotice && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-theme max-w-lg w-full rounded-sm p-6 space-y-4 shadow-xl animate-page-enter">
-            <div className="flex justify-between items-start border-b border-theme pb-3">
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-xs uppercase">
-                  {selectedNotice.branch?.name || "Official Notice"}
-                </span>
-                <h3 className="font-bold text-sm text-text-main mt-1">{selectedNotice.title}</h3>
-                <p className="text-[11px] text-text-muted">
-                  Published on {new Date(selectedNotice.publishedAt).toLocaleDateString()}
-                </p>
-              </div>
-              <button onClick={() => setSelectedNotice(null)} className="text-text-muted hover:text-text-main p-1">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="text-xs text-text-main leading-relaxed space-y-3 max-h-72 overflow-y-auto whitespace-pre-line">
-              <p>{selectedNotice.content}</p>
-              {selectedNotice.attachmentUrl && (
-                <div className="pt-2">
-                  <a
-                    href={selectedNotice.attachmentUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary/10 text-brand-primary border border-brand-primary/30 rounded-sm text-xs font-semibold hover:bg-brand-primary hover:text-white transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download Official Document / Circular</span>
-                  </a>
+      {selectedNotice &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            <div className="bg-surface border border-theme max-w-2xl sm:max-w-3xl w-full rounded-sm p-6 sm:p-8 space-y-5 shadow-2xl my-auto animate-page-enter">
+              <div className="flex justify-between items-start border-b border-theme pb-4">
+                <div className="space-y-1.5 pr-4">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 bg-brand-primary text-white rounded-xs uppercase tracking-wide">
+                      {selectedNotice.branch?.name || "Official Notice"}
+                    </span>
+                    {selectedNotice.category && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 bg-bg-app border border-theme rounded-xs text-text-muted">
+                        {selectedNotice.category}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-extrabold text-base sm:text-lg text-text-main mt-1 leading-snug">
+                    {selectedNotice.title}
+                  </h3>
+                  <p className="text-xs text-text-muted flex items-center gap-1.5 font-mono">
+                    <Calendar className="w-3.5 h-3.5 text-brand-primary" />
+                    Published on {new Date(selectedNotice.publishedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                  </p>
                 </div>
-              )}
-            </div>
+                <button
+                  onClick={() => setSelectedNotice(null)}
+                  className="text-text-muted hover:text-text-main p-1.5 rounded-sm hover:bg-bg-app transition-colors shrink-0"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-            <div className="pt-3 border-t border-theme flex justify-end">
-              <button
-                onClick={() => setSelectedNotice(null)}
-                className="px-4 py-1.5 text-xs font-semibold bg-bg-app border border-theme rounded-sm hover:bg-accent"
-              >
-                Close
-              </button>
+              <div className="text-xs sm:text-sm text-text-main leading-relaxed space-y-4 max-h-[60vh] overflow-y-auto whitespace-pre-line pr-1">
+                <p>{selectedNotice.content}</p>
+                {selectedNotice.attachmentUrl && (
+                  <div className="pt-3 border-t border-theme">
+                    <a
+                      href={selectedNotice.attachmentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-sm text-xs font-bold hover:bg-brand-hover shadow-xs transition-colors"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download Official Attachment / Circular Document</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-theme flex justify-end">
+                <button
+                  onClick={() => setSelectedNotice(null)}
+                  className="px-5 py-2 text-xs font-semibold bg-bg-app border border-theme rounded-sm hover:bg-accent text-text-main transition-colors cursor-pointer"
+                >
+                  Close Notice
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* ========================================================================= */}
       {/* MODAL: ALL NOTICES ARCHIVE */}
       {/* ========================================================================= */}
-      {isAllNoticesOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-theme max-w-2xl w-full rounded-sm p-6 space-y-4 shadow-xl max-h-[85vh] flex flex-col justify-between animate-page-enter">
-            <div className="flex justify-between items-center border-b border-theme pb-3">
-              <div className="flex items-center gap-2">
-                <BellRing className="w-5 h-5 text-brand-primary" />
-                <h3 className="font-bold text-sm text-text-main">All Official Notices & Bulletins</h3>
-              </div>
-              <button onClick={() => setIsAllNoticesOpen(false)} className="text-text-muted hover:text-text-main p-1">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto space-y-3 flex-1 pr-1">
-              {notices.map((n) => (
-                <div
-                  key={n.id}
-                  onClick={() => {
-                    setIsAllNoticesOpen(false);
-                    setSelectedNotice(n);
-                  }}
-                  className="p-3.5 bg-bg-app border border-theme rounded-sm space-y-1 cursor-pointer hover:border-brand-primary/70 transition-all shadow-2xs group"
-                >
-                  <div className="flex justify-between items-center text-[11px] text-text-muted font-mono">
-                    <span className="text-brand-primary font-bold">
-                      {new Date(n.publishedAt).toLocaleDateString()}
-                    </span>
-                    <span>{n.branch?.name || "All Campuses"}</span>
+      {isAllNoticesOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            <div className="bg-surface border border-theme max-w-3xl sm:max-w-4xl w-full rounded-sm p-6 sm:p-8 space-y-4 shadow-2xl max-h-[88vh] flex flex-col justify-between my-auto animate-page-enter">
+              <div className="flex justify-between items-center border-b border-theme pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-brand-primary/10 text-brand-primary rounded-sm">
+                    <BellRing className="w-5 h-5" />
                   </div>
-                  <h4 className="font-bold text-xs text-text-main group-hover:text-brand-primary transition-colors">
-                    {n.title}
-                  </h4>
-                  <p className="text-xs text-text-muted leading-relaxed line-clamp-2">{n.content}</p>
+                  <div>
+                    <h3 className="font-bold text-base text-text-main">All Official Notices & Bulletins</h3>
+                    <p className="text-xs text-text-muted">Archives of circulars and administrative updates</p>
+                  </div>
                 </div>
-              ))}
-              {notices.length === 0 && (
-                <div className="p-8 text-center text-xs text-text-muted">
-                  No notices found in archive.
-                </div>
-              )}
-            </div>
+                <button
+                  onClick={() => setIsAllNoticesOpen(false)}
+                  className="text-text-muted hover:text-text-main p-1.5 rounded-sm hover:bg-bg-app transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-            <div className="pt-3 border-t border-theme flex justify-end">
-              <button
-                onClick={() => setIsAllNoticesOpen(false)}
-                className="px-4 py-1.5 text-xs font-semibold bg-bg-app border border-theme rounded-sm hover:bg-accent"
-              >
-                Close Notice Archive
-              </button>
+              <div className="overflow-y-auto space-y-3 flex-1 pr-2">
+                {notices.map((n) => (
+                  <div
+                    key={n.id}
+                    onClick={() => {
+                      setIsAllNoticesOpen(false);
+                      setSelectedNotice(n);
+                    }}
+                    className="p-4 bg-bg-app border border-theme rounded-sm space-y-1.5 cursor-pointer hover:border-brand-primary/70 transition-all shadow-2xs group"
+                  >
+                    <div className="flex justify-between items-center text-[11px] text-text-muted font-mono">
+                      <span className="text-brand-primary font-bold">
+                        {new Date(n.publishedAt).toLocaleDateString()}
+                      </span>
+                      <span>{n.branch?.name || "All Campuses"}</span>
+                    </div>
+                    <h4 className="font-bold text-sm text-text-main group-hover:text-brand-primary transition-colors">
+                      {n.title}
+                    </h4>
+                    <p className="text-xs text-text-muted leading-relaxed line-clamp-2">{n.content}</p>
+                  </div>
+                ))}
+                {notices.length === 0 && (
+                  <div className="p-8 text-center text-xs text-text-muted">
+                    No notices found in archive.
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-theme flex justify-end">
+                <button
+                  onClick={() => setIsAllNoticesOpen(false)}
+                  className="px-5 py-2 text-xs font-semibold bg-bg-app border border-theme rounded-sm hover:bg-accent text-text-main cursor-pointer"
+                >
+                  Close Notice Archive
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* ========================================================================= */}
       {/* MODAL: FULL STUDY GUIDE / TIP DETAIL */}
       {/* ========================================================================= */}
-      {selectedTip && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-theme max-w-lg w-full rounded-sm p-6 space-y-4 shadow-xl">
-            <div className="flex justify-between items-start border-b border-theme pb-3">
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-xs uppercase">
-                  {selectedTip.category}
-                </span>
-                <h3 className="font-bold text-sm text-text-main mt-1">{selectedTip.title}</h3>
-                <p className="text-[11px] text-text-muted">By {selectedTip.author}</p>
+      {selectedTip &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-surface border border-theme max-w-lg w-full rounded-sm p-6 space-y-4 shadow-2xl my-auto animate-page-enter">
+              <div className="flex justify-between items-start border-b border-theme pb-3">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-xs uppercase">
+                    {selectedTip.category}
+                  </span>
+                  <h3 className="font-bold text-sm text-text-main mt-1">{selectedTip.title}</h3>
+                  <p className="text-[11px] text-text-muted">By {selectedTip.author}</p>
+                </div>
+                <button onClick={() => setSelectedTip(null)} className="text-text-muted hover:text-text-main p-1">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button onClick={() => setSelectedTip(null)} className="text-text-muted hover:text-text-main p-1">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            <div className="text-xs text-text-main leading-relaxed space-y-3 max-h-72 overflow-y-auto whitespace-pre-line">
-              <p>{selectedTip.content}</p>
-            </div>
+              <div className="text-xs text-text-main leading-relaxed space-y-3 max-h-72 overflow-y-auto whitespace-pre-line">
+                <p>{selectedTip.content}</p>
+              </div>
 
-            <div className="pt-3 border-t border-theme flex justify-end">
-              <button
-                onClick={() => setSelectedTip(null)}
-                className="px-4 py-1.5 text-xs font-semibold bg-bg-app border border-theme rounded-sm hover:bg-accent"
-              >
-                Close Article
-              </button>
+              <div className="pt-3 border-t border-theme flex justify-end">
+                <button
+                  onClick={() => setSelectedTip(null)}
+                  className="px-4 py-1.5 text-xs font-semibold bg-bg-app border border-theme rounded-sm hover:bg-accent"
+                >
+                  Close Article
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* ========================================================================= */}
       {/* MODAL: SUBMIT PARENT / STUDENT REVIEW */}
       {/* ========================================================================= */}
-      {isReviewModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-theme max-w-md w-full rounded-sm p-6 space-y-4 shadow-xl">
-            <div className="flex justify-between items-center border-b border-theme pb-3">
-              <h3 className="font-bold text-sm text-text-main flex items-center gap-1.5">
-                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                Leave Parent / Student Advice
-              </h3>
-              <button onClick={() => setIsReviewModalOpen(false)} className="text-text-muted hover:text-text-main p-1">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleReviewSubmit} className="space-y-3 text-xs">
-              <div className="space-y-1">
-                <label className="font-semibold text-text-main">Your Full Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Kazi Mokhlesur Rahman"
-                  value={reviewForm.name}
-                  onChange={(e) => setReviewForm({ ...reviewForm, name: e.target.value })}
-                  className="w-full p-2 bg-bg-app border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
-                />
+      {isReviewModalOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-surface border border-theme max-w-md w-full rounded-sm p-6 space-y-4 shadow-2xl my-auto animate-page-enter">
+              <div className="flex justify-between items-center border-b border-theme pb-3">
+                <h3 className="font-bold text-sm text-text-main flex items-center gap-1.5">
+                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  Leave Parent / Student Advice
+                </h3>
+                <button onClick={() => setIsReviewModalOpen(false)} className="text-text-muted hover:text-text-main p-1">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <form onSubmit={handleReviewSubmit} className="space-y-3 text-xs">
                 <div className="space-y-1">
-                  <label className="font-semibold text-text-main">You are a *</label>
-                  <select
-                    value={reviewForm.role}
-                    onChange={(e) => setReviewForm({ ...reviewForm, role: e.target.value })}
-                    className="w-full p-2 bg-bg-app border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
-                  >
-                    <option value="PARENT">Parent</option>
-                    <option value="STUDENT">Enrolled Student</option>
-                    <option value="ALUMNI">Alumni / Past Student</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-semibold text-text-main">Phone (Optional)</label>
+                  <label className="font-semibold text-text-main">Your Full Name *</label>
                   <input
                     type="text"
-                    placeholder="e.g. 01712345678"
-                    value={reviewForm.phone}
-                    onChange={(e) => setReviewForm({ ...reviewForm, phone: e.target.value })}
-                    className="w-full p-2 bg-bg-app border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-mono"
+                    required
+                    placeholder="e.g. Kazi Mokhlesur Rahman"
+                    value={reviewForm.name}
+                    onChange={(e) => setReviewForm({ ...reviewForm, name: e.target.value })}
+                    className="w-full p-2 bg-bg-app border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="font-semibold text-text-main">Rating (out of 5 Stars)</label>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <button
-                      type="button"
-                      key={s}
-                      onClick={() => setReviewForm({ ...reviewForm, rating: s })}
-                      className="p-1 hover:scale-110 transition-transform"
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-semibold text-text-main">You are a *</label>
+                    <select
+                      value={reviewForm.role}
+                      onChange={(e) => setReviewForm({ ...reviewForm, role: e.target.value })}
+                      className="w-full p-2 bg-bg-app border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
                     >
-                      <Star
-                        className={`w-5 h-5 ${
-                          s <= reviewForm.rating ? "text-amber-500 fill-amber-500" : "text-slate-300"
-                        }`}
-                      />
-                    </button>
-                  ))}
-                  <span className="font-bold text-text-main ml-2">{reviewForm.rating} / 5 Stars</span>
+                      <option value="PARENT">Parent</option>
+                      <option value="STUDENT">Enrolled Student</option>
+                      <option value="ALUMNI">Alumni / Past Student</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-semibold text-text-main">Phone (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 01712345678"
+                      value={reviewForm.phone}
+                      onChange={(e) => setReviewForm({ ...reviewForm, phone: e.target.value })}
+                      className="w-full p-2 bg-bg-app border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-mono"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="font-semibold text-text-main">Message / Advice for New Learners *</label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Share your advice or learning experience with the coaching..."
-                  value={reviewForm.message}
-                  onChange={(e) => setReviewForm({ ...reviewForm, message: e.target.value })}
-                  className="w-full p-2 bg-bg-app border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2 border-t border-theme">
-                <button
-                  type="button"
-                  onClick={() => setIsReviewModalOpen(false)}
-                  className="px-3 py-1.5 border border-theme rounded-sm hover:bg-accent text-text-muted"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingReview}
-                  className="px-4 py-1.5 bg-brand-primary text-white font-bold rounded-sm hover:bg-brand-hover shadow-xs"
-                >
-                  {submittingReview ? "Submitting..." : "Submit Advice"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: FULL EXAM RESULTS & LEADERBOARD SHEET */}
-      {/* ========================================================================= */}
-      {selectedExamModal && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-theme max-w-3xl w-full rounded-sm p-6 space-y-4 shadow-xl max-h-[90vh] flex flex-col justify-between animate-page-enter">
-            {/* Modal Header */}
-            <div className="flex justify-between items-start border-b border-theme pb-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-xs uppercase tracking-wider">
-                    {selectedExamModal.academicClass} • {selectedExamModal.subject}
-                  </span>
-                  <span className="text-[11px] font-mono text-text-muted">
-                    Exam Date: {new Date(selectedExamModal.examDate).toLocaleDateString()}
-                  </span>
-                </div>
-                <h3 className="font-bold text-base text-text-main mt-1">
-                  {selectedExamModal.title} — Official Standings
-                </h3>
-                <div className="text-xs text-text-muted flex items-center gap-2">
-                  <span>Batch: <strong className="text-text-main">{selectedExamModal.batchTitle}</strong></span>
-                  <span>•</span>
-                  <span>Campus: {selectedExamModal.branchName}</span>
-                  <span>•</span>
-                  <span>Total Marks: <strong className="text-text-main font-mono">{selectedExamModal.totalMarks}</strong></span>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedExamModal(null)}
-                className="text-text-muted hover:text-text-main p-1.5 rounded-sm hover:bg-bg-app transition-colors"
-                aria-label="Close Modal"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Quick Search inside modal */}
-            <div className="flex items-center justify-between gap-3">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  placeholder="Search student by name..."
-                  value={examSearchFilter}
-                  onChange={(e) => setExamSearchFilter(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 bg-bg-app border border-theme rounded-sm text-xs text-text-main placeholder:text-text-muted focus:outline-none focus:border-brand-primary"
-                />
-              </div>
-              <span className="text-xs text-text-muted font-mono">
-                {selectedExamModal.standings.filter((s) => s.studentName.toLowerCase().includes(examSearchFilter.toLowerCase())).length} of {selectedExamModal.standings.length} Students
-              </span>
-            </div>
-
-            {/* Standings Table */}
-            <div className="overflow-y-auto max-h-[50vh] border border-theme rounded-sm">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-bg-app text-text-muted border-b border-theme text-[10px] uppercase font-bold sticky top-0 tracking-wider">
-                  <tr>
-                    <th className="py-2.5 px-3 w-16">Standing</th>
-                    <th className="py-2.5 px-3">Student Name</th>
-                    <th className="py-2.5 px-3 text-center">Marks Obtained</th>
-                    <th className="py-2.5 px-3 text-center">Percentage</th>
-                    <th className="py-2.5 px-3 text-right">Grade</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-theme">
-                  {selectedExamModal.standings
-                    .filter((s) => s.studentName.toLowerCase().includes(examSearchFilter.toLowerCase()))
-                    .map((st) => (
-                      <tr key={st.standing} className="hover:bg-bg-app/50 transition-colors">
-                        <td className="py-2.5 px-3">
-                          <span
-                            className={`inline-flex items-center justify-center w-6 h-6 rounded-xs font-bold text-xs ${
-                              st.standing === 1
-                                ? "bg-amber-400 text-slate-900 shadow-xs"
-                                : st.standing === 2
-                                ? "bg-slate-300 text-slate-900"
-                                : st.standing === 3
-                                ? "bg-amber-600/30 text-amber-800 dark:text-amber-300"
-                                : "bg-bg-app border border-theme text-text-muted"
-                            }`}
-                          >
-                            {st.standing}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 font-semibold text-text-main flex items-center gap-2">
-                          {st.avatarUrl ? (
-                            <img
-                              src={st.avatarUrl}
-                              alt={st.studentName}
-                              className="w-6 h-6 rounded-full object-cover border border-theme"
-                            />
-                          ) : (
-                            <div className="w-6 h-6 rounded-full bg-brand-primary/10 text-brand-primary font-bold text-[10px] flex items-center justify-center">
-                              {st.studentName.charAt(0)}
-                            </div>
-                          )}
-                          <span>{st.studentName}</span>
-                        </td>
-                        <td className="py-2.5 px-3 text-center font-mono font-bold text-text-main">
-                          {st.marksObtained} / {st.totalMarks}
-                        </td>
-                        <td className="py-2.5 px-3 text-center font-mono text-[11px] text-text-muted">
-                          {st.percentage}%
-                        </td>
-                        <td className="py-2.5 px-3 text-right">
-                          <span
-                            className={`px-2 py-0.5 text-[10px] font-bold rounded-xs ${
-                              st.grade === "A+"
-                                ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                                : "bg-brand-primary/10 text-brand-primary"
-                            }`}
-                          >
-                            {st.grade}
-                          </span>
-                        </td>
-                      </tr>
+                <div className="space-y-1">
+                  <label className="font-semibold text-text-main">Rating (out of 5 Stars)</label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <button
+                        type="button"
+                        key={s}
+                        onClick={() => setReviewForm({ ...reviewForm, rating: s })}
+                        className="p-1 hover:scale-110 transition-transform"
+                      >
+                        <Star
+                          className={`w-5 h-5 ${
+                            s <= reviewForm.rating ? "text-amber-500 fill-amber-500" : "text-slate-300"
+                          }`}
+                        />
+                      </button>
                     ))}
-                </tbody>
-              </table>
-            </div>
+                    <span className="font-bold text-text-main ml-2">{reviewForm.rating} / 5 Stars</span>
+                  </div>
+                </div>
 
-            {/* Modal Footer */}
-            <div className="pt-3 border-t border-theme flex justify-end">
-              <button
-                onClick={() => setSelectedExamModal(null)}
-                className="px-4 py-1.5 text-xs font-semibold bg-bg-app border border-theme rounded-sm hover:bg-accent text-text-main"
-              >
-                Close Results Sheet
-              </button>
+                <div className="space-y-1">
+                  <label className="font-semibold text-text-main">Message / Advice for New Learners *</label>
+                  <textarea
+                    rows={3}
+                    required
+                    placeholder="Share your advice or learning experience with the coaching..."
+                    value={reviewForm.message}
+                    onChange={(e) => setReviewForm({ ...reviewForm, message: e.target.value })}
+                    className="w-full p-2 bg-bg-app border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2 border-t border-theme">
+                  <button
+                    type="button"
+                    onClick={() => setIsReviewModalOpen(false)}
+                    className="px-3 py-1.5 border border-theme rounded-sm hover:bg-accent text-text-muted"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingReview}
+                    className="px-4 py-1.5 bg-brand-primary text-white font-bold rounded-sm hover:bg-brand-hover shadow-xs"
+                  >
+                    {submittingReview ? "Submitting..." : "Submit Advice"}
+                  </button>
+                </div>
+              </form>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: FULL EXAM RESULTS & LEADERBOARD SHEET (TOP-ALIGNED & VIEWPORT SAFE) */}
+      {/* ========================================================================= */}
+      {selectedExamModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-xs flex items-start justify-center p-3 sm:p-6 pt-6 sm:pt-10 md:pt-12 overflow-y-auto">
+            <div className="bg-surface border border-theme max-w-3xl sm:max-w-4xl w-full rounded-sm p-6 sm:p-8 space-y-4 shadow-2xl my-auto sm:my-0 animate-page-enter">
+              {/* Modal Header */}
+              <div className="flex justify-between items-start border-b border-theme pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-xs uppercase tracking-wider">
+                      {selectedExamModal.academicClass} • {selectedExamModal.subject}
+                    </span>
+                    <span className="text-[11px] font-mono text-text-muted">
+                      Exam Date: {new Date(selectedExamModal.examDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-base sm:text-lg text-text-main mt-1">
+                    {selectedExamModal.title} — Official Standings
+                  </h3>
+                  <div className="text-xs text-text-muted flex items-center gap-2 flex-wrap">
+                    <span>Batch: <strong className="text-text-main">{selectedExamModal.batchTitle}</strong></span>
+                    <span>•</span>
+                    <span>Campus: {selectedExamModal.branchName}</span>
+                    <span>•</span>
+                    <span>Total Marks: <strong className="text-text-main font-mono">{selectedExamModal.totalMarks}</strong></span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedExamModal(null)}
+                  className="text-text-muted hover:text-text-main p-1.5 rounded-sm hover:bg-bg-app transition-colors shrink-0"
+                  aria-label="Close Modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Quick Search inside modal */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Search student by name..."
+                    value={examSearchFilter}
+                    onChange={(e) => setExamSearchFilter(e.target.value)}
+                    className="w-full pl-9 pr-3 py-1.5 bg-bg-app border border-theme rounded-sm text-xs text-text-main placeholder:text-text-muted focus:outline-none focus:border-brand-primary"
+                  />
+                </div>
+                <span className="text-xs text-text-muted font-mono">
+                  {selectedExamModal.standings.filter((s) => s.studentName.toLowerCase().includes(examSearchFilter.toLowerCase())).length} of {selectedExamModal.standings.length} Students
+                </span>
+              </div>
+
+              {/* Standings Table */}
+              <div className="overflow-y-auto max-h-[55vh] border border-theme rounded-sm">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-bg-app text-text-muted border-b border-theme text-[10px] uppercase font-bold sticky top-0 tracking-wider">
+                    <tr>
+                      <th className="py-2.5 px-3 w-16">Standing</th>
+                      <th className="py-2.5 px-3">Student Name</th>
+                      <th className="py-2.5 px-3 text-center">Marks Obtained</th>
+                      <th className="py-2.5 px-3 text-center">Percentage</th>
+                      <th className="py-2.5 px-3 text-right">Grade</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-theme">
+                    {selectedExamModal.standings
+                      .filter((s) => s.studentName.toLowerCase().includes(examSearchFilter.toLowerCase()))
+                      .map((st) => (
+                        <tr key={st.standing} className="hover:bg-bg-app/50 transition-colors">
+                          <td className="py-2.5 px-3">
+                            <span
+                              className={`inline-flex items-center justify-center w-6 h-6 rounded-xs font-bold text-xs ${
+                                st.standing === 1
+                                  ? "bg-amber-400 text-slate-900 shadow-xs"
+                                  : st.standing === 2
+                                  ? "bg-slate-300 text-slate-900"
+                                  : st.standing === 3
+                                  ? "bg-amber-600/30 text-amber-800 dark:text-amber-300"
+                                  : "bg-bg-app border border-theme text-text-muted"
+                              }`}
+                            >
+                              {st.standing}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 font-semibold text-text-main flex items-center gap-2">
+                            {st.avatarUrl ? (
+                              <img
+                                src={st.avatarUrl}
+                                alt={st.studentName}
+                                className="w-6 h-6 rounded-full object-cover border border-theme"
+                              />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-brand-primary/10 text-brand-primary font-bold text-[10px] flex items-center justify-center">
+                                {st.studentName.charAt(0)}
+                              </div>
+                            )}
+                            <span>{st.studentName}</span>
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-mono font-bold text-text-main">
+                            {st.marksObtained} / {st.totalMarks}
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-mono text-[11px] text-text-muted">
+                            {st.percentage}%
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            <span
+                              className={`px-2 py-0.5 text-[10px] font-bold rounded-xs ${
+                                st.grade === "A+"
+                                  ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                                  : "bg-brand-primary/10 text-brand-primary"
+                              }`}
+                            >
+                              {st.grade}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-theme flex justify-end">
+                <button
+                  onClick={() => setSelectedExamModal(null)}
+                  className="px-4 py-1.5 text-xs font-semibold bg-bg-app border border-theme rounded-sm hover:bg-accent text-text-main cursor-pointer"
+                >
+                  Close Results Sheet
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

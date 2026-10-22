@@ -197,11 +197,11 @@ export const BatchesManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-accent pb-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-brand-primary" /> Batches & Academic Operations
+            <Calendar className="w-5 h-5 text-brand-primary" /> Batches & Classrooms
             {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin text-brand-primary ml-1" />}
           </h1>
           <p className="text-xs text-text-muted mt-0.5">
-            Manage cohort schedules, branch seat limits, pending admissions verification, and academic standards.
+            Manage cohort schedules, physical classrooms, seat occupancy, student rosters, and admissions.
           </p>
         </div>
         <Link
@@ -225,7 +225,7 @@ export const BatchesManagement: React.FC = () => {
           }`}
         >
           <Calendar className="w-4 h-4" />
-          Offline Batches ({batches.length})
+          Offline Batches & Classrooms ({batches.length})
         </button>
 
         <button

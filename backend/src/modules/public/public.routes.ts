@@ -20,5 +20,10 @@ router.get("/batches/:id", BatchController.getBatch);
 // Public Exam Standings & Reviews
 router.get("/exam-results", PublicController.getExamResults);
 router.post("/reviews", PublicController.submitReview);
+router.get("/testimonials", PublicController.listTestimonials);
+
+// Public Faculty Tips & Guides
+router.get("/tips", PublicController.listTips);
+router.get("/tips/:id", PublicController.getTipById);
 
 export default router;

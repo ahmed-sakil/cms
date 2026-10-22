@@ -2,9 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link id="app-favicon" rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link id="app-favicon" rel="icon" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Coaching Management System</title>
+    <script>
+      (function() {
+        try {
+          var fav = localStorage.getItem('cms_cached_favicon') || localStorage.getItem('cms_cached_logo');
+          var org = localStorage.getItem('cms_cached_org_name');
+          if (fav) {
+            var el = document.getElementById('app-favicon');
+            if (el) {
+              el.removeAttribute('type');
+              if (fav.endsWith('.svg')) el.setAttribute('type', 'image/svg+xml');
+              else if (fav.endsWith('.png')) el.setAttribute('type', 'image/png');
+              else if (fav.endsWith('.ico')) el.setAttribute('type', 'image/x-icon');
+              el.href = fav;
+            }
+          }
+          if (org) {
+            document.title = org + ' | Coaching Management System';
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -64,7 +64,11 @@ export const PublicLayout: React.FC = () => {
             setLandingData(json.data);
             if (json.data.organization) {
               setOrganization(json.data.organization);
-              setDynamicFavicon(json.data.organization.faviconUrl, json.data.organization.name);
+              setDynamicFavicon(
+                json.data.organization.faviconUrl || json.data.organization.logoUrl,
+                json.data.organization.name,
+                json.data.organization.logoUrl
+              );
             }
             const branches = json.data.branches || [];
             const mb = branches.find((b: any) => b.isMainBranch) || branches[0] || null;
@@ -101,6 +105,51 @@ export const PublicLayout: React.FC = () => {
       document.body.style.overflow = "";
     };
   }, [isMobileMenuOpen]);
+
+  // Scrollspy: Track active section on landing page
+  const [activeSection, setActiveSection] = useState<string>("");
+
+  useEffect(() => {
+    if (location.pathname !== "/") {
+      setActiveSection("");
+      return;
+    }
+
+    const sectionIds = [
+      "inquiry",
+      "reviews",
+      "tips",
+      "achievements",
+      "results",
+      "upcoming",
+      "batches",
+      "notices",
+    ];
+
+    const handleScroll = () => {
+      if (window.scrollY < 200) {
+        setActiveSection("");
+        return;
+      }
+
+      const scrollPosition = window.scrollY + 220;
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el) {
+          const top = el.offsetTop;
+          if (scrollPosition >= top) {
+            setActiveSection(id);
+            return;
+          }
+        }
+      }
+      setActiveSection("");
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [location.pathname]);
 
   const navLinks = [
     { label: "Home", href: "/", icon: GraduationCap },
@@ -151,9 +200,9 @@ export const PublicLayout: React.FC = () => {
       {/* ========================================================================= */}
       {/* 1. POLISHED VERY TOP BAR (DYNAMIC FROM DATABASE / SKELETON WHILE LOADING) */}
       {/* ========================================================================= */}
-      <div className="bg-slate-900 text-slate-200 text-[11px] sm:text-xs py-2 px-4 sm:px-6 lg:px-8 border-b border-slate-800 z-50">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-y-1.5 gap-x-4">
-          {/* Left: Established Badge & Main Branch Location */}
+      <div className="bg-slate-900 text-slate-200 text-[11px] sm:text-xs py-2 px-3 sm:px-6 lg:px-8 border-b border-slate-800 z-50">
+        <div className="w-full max-w-[95vw] mx-auto flex flex-wrap items-center justify-between gap-y-1.5 gap-x-4">
+          {/* Left: Main Campus Location & Established Year (Unified Styling) */}
           <div className="flex items-center gap-2.5 sm:gap-4 flex-wrap">
             {isLoading ? (
               <div className="flex items-center gap-3 animate-pulse">
@@ -162,19 +211,20 @@ export const PublicLayout: React.FC = () => {
               </div>
             ) : (
               <>
-                {organization?.establishedYear && (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-xs bg-brand-primary/20 text-brand-primary font-bold text-[10px] sm:text-[11px] tracking-wide border border-brand-primary/30">
-                    <Award className="w-3.5 h-3.5" />
-                    Est. {organization.establishedYear}
-                  </span>
-                )}
                 {campusAddress && (
                   <div className="flex items-center gap-1.5 text-slate-300">
                     <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                    <span className="truncate max-w-[220px] sm:max-w-none">
+                    <span className="max-w-[280px] sm:max-w-none truncate sm:overflow-visible">
                       {mainBranch?.isMainBranch ? "Main Campus" : mainBranch?.name || "Campus"}:{" "}
                       <strong className="text-white font-medium">{campusAddress}</strong>
                     </span>
+                  </div>
+                )}
+                {organization?.establishedYear && (
+                  <div className="flex items-center gap-1.5 text-slate-300">
+                    <span className="text-slate-600 hidden sm:inline">•</span>
+                    <span>Est.</span>
+                    <strong className="text-white font-medium">{organization.establishedYear}</strong>
                   </div>
                 )}
               </>
@@ -223,7 +273,7 @@ export const PublicLayout: React.FC = () => {
       {/* 2. STICKY NAVBAR WITH BRAND, DESKTOP LINKS, THEME & BURGER MENU */}
       {/* ========================================================================= */}
       <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-accent shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        <div className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
           {/* Logo & Brand Name */}
           <Link
             to="/"
@@ -236,33 +286,37 @@ export const PublicLayout: React.FC = () => {
                 }
               }
             }}
-            className="flex items-center gap-2.5 font-bold text-lg text-brand-primary shrink-0 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded-sm"
+            className="flex items-center gap-3 font-bold text-lg text-brand-primary shrink-0 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded-sm py-1"
           >
-            <div className="w-9 h-9 bg-brand-primary text-white flex items-center justify-center rounded-sm shadow-xs group-hover:scale-105 transition-transform overflow-hidden">
+            {/* Unpadded Large Logo Container */}
+            <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-sm overflow-hidden shrink-0 group-hover:scale-105 transition-transform">
               {organization?.logoUrl ? (
                 <img
                   src={organization.logoUrl}
                   alt={organization.name || "Logo"}
-                  className="w-full h-full object-contain p-1"
+                  className="w-full h-full object-contain"
                 />
               ) : (
-                <GraduationCap className="w-5 h-5" />
+                <div className="w-11 h-11 bg-brand-primary text-white flex items-center justify-center rounded-sm shadow-xs">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
               )}
             </div>
-            <div className="flex flex-col">
+
+            <div className="flex flex-col min-w-0 max-w-[200px] xs:max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
               {organization?.name ? (
-                <span className="tracking-tight text-text-main font-extrabold text-base leading-tight">
+                <span className="tracking-tight text-text-main font-extrabold text-base sm:text-lg leading-tight line-clamp-1 sm:line-clamp-none">
                   {organization.name}
                 </span>
               ) : isLoading ? (
-                <div className="w-28 h-4 bg-accent rounded-xs animate-pulse my-0.5" />
+                <div className="w-32 h-4 bg-accent rounded-xs animate-pulse my-0.5" />
               ) : (
                 <span className="tracking-tight text-text-main font-extrabold text-base leading-tight">
                   Coaching Portal
                 </span>
               )}
               {organization?.tagline ? (
-                <span className="text-[10px] text-text-muted font-normal uppercase tracking-wider truncate max-w-[220px]">
+                <span className="text-[10px] sm:text-[11px] text-text-muted font-normal uppercase tracking-wider break-words whitespace-normal leading-tight mt-0.5">
                   {organization.tagline}
                 </span>
               ) : (
@@ -273,39 +327,47 @@ export const PublicLayout: React.FC = () => {
             </div>
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden xl:flex items-center gap-4 text-xs font-semibold">
-            {navLinks.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                onClick={(e) => handleNavClick(e, item.href)}
-                className="text-text-muted hover:text-brand-primary transition-colors py-1 hover:border-b-2 hover:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded-xs whitespace-nowrap"
-              >
-                {item.label}
-              </a>
-            ))}
+          {/* Desktop Navigation Links with Active Scroll Indicator */}
+          <nav className="hidden xl:flex items-center gap-3.5 2xl:gap-5 text-xs font-semibold">
+            {navLinks.map((item) => {
+              const isActive =
+                (item.href === "/" && !activeSection) || item.href === `/#${activeSection}`;
+              return (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  onClick={(e) => handleNavClick(e, item.href)}
+                  className={`py-1.5 transition-all whitespace-nowrap rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary ${
+                    isActive
+                      ? "text-brand-primary font-bold border-b-2 border-brand-primary"
+                      : "text-text-muted hover:text-brand-primary border-b-2 border-transparent font-medium"
+                  }`}
+                >
+                  {item.label}
+                </a>
+              );
+            })}
           </nav>
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Theme Toggle */}
+            {/* Theme Toggle (Desktop only - in drawer for mobile & tablet) */}
             <button
               onClick={toggleTheme}
-              className="p-2 border border-accent rounded-sm hover:bg-accent transition-colors text-text-muted"
+              className="hidden xl:inline-flex p-2 border border-accent rounded-sm hover:bg-accent transition-colors text-text-muted"
               title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
               aria-label="Toggle Theme"
             >
-              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
             </button>
 
-            {/* Portal Login (Visible on tablet & desktop) */}
+            {/* Login button (Desktop only - in drawer for mobile & tablet) */}
             <Link
               to="/login"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors shadow-xs"
+              className="hidden xl:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors shadow-xs"
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>Portal Login</span>
+              <span>Login</span>
             </Link>
 
             {/* Mobile Burger Menu Button */}
@@ -344,33 +406,45 @@ export const PublicLayout: React.FC = () => {
           isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        {/* Drawer Header */}
+        {/* Drawer Header with Mobile Theme Switch */}
         <div className="p-4 border-b border-accent flex items-center justify-between bg-bg-app">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-brand-primary text-white flex items-center justify-center rounded-sm shrink-0 overflow-hidden">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-10 h-10 flex items-center justify-center rounded-sm shrink-0 overflow-hidden">
               {organization?.logoUrl ? (
-                <img src={organization.logoUrl} alt="" className="w-full h-full object-contain p-1" />
+                <img src={organization.logoUrl} alt="" className="w-full h-full object-contain" />
               ) : (
-                <GraduationCap className="w-4 h-4" />
+                <div className="w-9 h-9 bg-brand-primary text-white flex items-center justify-center rounded-sm">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
               )}
             </div>
             <div className="min-w-0">
               <span className="font-extrabold text-sm text-text-main block truncate">
                 {organization?.name || "Coaching Portal"}
               </span>
-              <span className="text-[10px] text-text-muted truncate block">
-                {organization?.establishedYear ? `Est. ${organization.establishedYear} • ` : ""}
-                Academic Portal
+              <span className="text-[10px] text-text-muted break-words leading-tight block">
+                {organization?.tagline || "Academic Portal"}
               </span>
             </div>
           </div>
-          <button
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="p-1.5 border border-accent rounded-sm text-text-muted hover:text-text-main hover:bg-accent transition-colors"
-            aria-label="Close navigation"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Mobile Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 border border-accent rounded-sm text-text-muted hover:text-text-main hover:bg-accent transition-colors"
+              title="Toggle Theme"
+              aria-label="Toggle Theme"
+            >
+              {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-1.5 border border-accent rounded-sm text-text-muted hover:text-text-main hover:bg-accent transition-colors"
+              aria-label="Close navigation"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Drawer Navigation Links */}
@@ -380,18 +454,34 @@ export const PublicLayout: React.FC = () => {
           </div>
           {navLinks.map((item) => {
             const Icon = item.icon;
+            const isActive =
+              (item.href === "/" && !activeSection) || item.href === `/#${activeSection}`;
             return (
               <a
                 key={item.label}
                 href={item.href}
                 onClick={(e) => handleNavClick(e, item.href)}
-                className="flex items-center justify-between p-2.5 rounded-sm text-xs font-semibold text-text-main hover:bg-brand-primary/10 hover:text-brand-primary transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                className={`flex items-center justify-between p-2.5 rounded-sm text-xs font-semibold transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary ${
+                  isActive
+                    ? "bg-brand-primary/15 text-brand-primary font-bold"
+                    : "text-text-main hover:bg-brand-primary/10 hover:text-brand-primary"
+                }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Icon className="w-4 h-4 text-text-muted group-hover:text-brand-primary transition-colors" />
+                  <Icon
+                    className={`w-4 h-4 transition-colors ${
+                      isActive ? "text-brand-primary" : "text-text-muted group-hover:text-brand-primary"
+                    }`}
+                  />
                   <span>{item.label}</span>
                 </div>
-                <ChevronRight className="w-3.5 h-3.5 text-text-muted/60 group-hover:text-brand-primary group-hover:translate-x-0.5 transition-all" />
+                <ChevronRight
+                  className={`w-3.5 h-3.5 transition-all ${
+                    isActive
+                      ? "text-brand-primary"
+                      : "text-text-muted/60 group-hover:text-brand-primary group-hover:translate-x-0.5"
+                  }`}
+                />
               </a>
             );
           })}
@@ -400,13 +490,14 @@ export const PublicLayout: React.FC = () => {
             <div className="text-[10px] uppercase font-bold tracking-wider text-text-muted px-2">
               Student & Faculty Access
             </div>
+            {/* Mobile Portal Login */}
             <Link
               to="/login"
               onClick={() => setIsMobileMenuOpen(false)}
               className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-brand-primary text-white rounded-sm font-bold text-xs hover:bg-brand-hover shadow-xs transition-colors"
             >
               <LogIn className="w-4 h-4" />
-              <span>Login to Portal</span>
+              <span>Login</span>
             </Link>
             <Link
               to="/register"
@@ -458,9 +549,9 @@ export const PublicLayout: React.FC = () => {
       </aside>
 
       {/* ========================================================================= */}
-      {/* 4. MAIN CONTENT AREA (NO PREVIOUS REDUNDANT FOOTER) */}
+      {/* 4. MAIN CONTENT AREA */}
       {/* ========================================================================= */}
-      <main className="flex-1 animate-page-enter" key={location.pathname}>
+      <main className="flex-1" key={location.pathname}>
         <Outlet context={{ landingData, isLoading }} />
       </main>
     </div>

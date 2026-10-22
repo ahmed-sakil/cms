@@ -1163,16 +1163,266 @@ export class AdminService {
   static async updateTestimonialStatus(id: string, isApproved: boolean) {
     const existing = await prisma.testimonial.findUnique({ where: { id } });
     if (!existing) throw new NotFoundError("Testimonial not found");
-    return prisma.testimonial.update({
+    const updated = await prisma.testimonial.update({
       where: { id },
       data: { isApproved },
     });
+    PublicService.invalidateLandingCache();
+    return updated;
+  }
+
+  static async createTestimonial(data: {
+    name: string;
+    role?: string;
+    phone?: string | null;
+    message: string;
+    rating?: number;
+    isApproved?: boolean;
+  }) {
+    const created = await prisma.testimonial.create({
+      data: {
+        name: data.name,
+        role: data.role || "STUDENT",
+        phone: data.phone || null,
+        message: data.message,
+        rating: Math.min(5, Math.max(1, data.rating || 5)),
+        isApproved: data.isApproved !== undefined ? data.isApproved : true,
+      },
+    });
+    PublicService.invalidateLandingCache();
+    return created;
+  }
+
+  static async updateTestimonial(
+    id: string,
+    data: {
+      name?: string;
+      role?: string;
+      phone?: string | null;
+      message?: string;
+      rating?: number;
+      isApproved?: boolean;
+    }
+  ) {
+    const existing = await prisma.testimonial.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundError("Testimonial not found");
+    const updated = await prisma.testimonial.update({
+      where: { id },
+      data: {
+        ...data,
+        rating: data.rating ? Math.min(5, Math.max(1, data.rating)) : undefined,
+      },
+    });
+    PublicService.invalidateLandingCache();
+    return updated;
   }
 
   static async deleteTestimonial(id: string) {
     const existing = await prisma.testimonial.findUnique({ where: { id } });
     if (!existing) throw new NotFoundError("Testimonial not found");
-    return prisma.testimonial.delete({ where: { id } });
+    const deleted = await prisma.testimonial.delete({ where: { id } });
+    PublicService.invalidateLandingCache();
+    return deleted;
+  }
+
+  // ========================================================
+  // STUDENT ACHIEVEMENTS (HALL OF FAME)
+  // ========================================================
+  static async listAchievements(search?: string, isFeatured?: boolean) {
+    const where: any = {};
+    if (typeof isFeatured === "boolean") {
+      where.isFeatured = isFeatured;
+    }
+    if (search) {
+      where.OR = [
+        { studentName: { contains: search, mode: "insensitive" } },
+        { achievement: { contains: search, mode: "insensitive" } },
+        { college: { contains: search, mode: "insensitive" } },
+        { batchName: { contains: search, mode: "insensitive" } },
+        { year: { contains: search, mode: "insensitive" } },
+      ];
+    }
+    return prisma.studentAchievement.findMany({
+      where,
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+    });
+  }
+
+  static async createAchievement(data: {
+    studentName: string;
+    avatarUrl?: string | null;
+    batchName: string;
+    achievement: string;
+    college?: string | null;
+    year?: string;
+    posterUrl?: string | null;
+    isFeatured?: boolean;
+    displayOrder?: number;
+  }) {
+    const created = await prisma.studentAchievement.create({
+      data: {
+        studentName: data.studentName,
+        avatarUrl: data.avatarUrl || null,
+        batchName: data.batchName,
+        achievement: data.achievement,
+        college: data.college || null,
+        year: data.year || "2025",
+        posterUrl: data.posterUrl || null,
+        isFeatured: data.isFeatured !== undefined ? data.isFeatured : true,
+        displayOrder: data.displayOrder ?? 0,
+      },
+    });
+    PublicService.invalidateLandingCache();
+    return created;
+  }
+
+  static async updateAchievement(
+    id: string,
+    data: {
+      studentName?: string;
+      avatarUrl?: string | null;
+      batchName?: string;
+      achievement?: string;
+      college?: string | null;
+      year?: string;
+      posterUrl?: string | null;
+      isFeatured?: boolean;
+      displayOrder?: number;
+    }
+  ) {
+    const existing = await prisma.studentAchievement.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundError("Student achievement not found");
+    const updated = await prisma.studentAchievement.update({
+      where: { id },
+      data,
+    });
+    PublicService.invalidateLandingCache();
+    return updated;
+  }
+
+  static async toggleAchievementFeatured(id: string, isFeatured: boolean) {
+    const existing = await prisma.studentAchievement.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundError("Student achievement not found");
+    const updated = await prisma.studentAchievement.update({
+      where: { id },
+      data: { isFeatured },
+    });
+    PublicService.invalidateLandingCache();
+    return updated;
+  }
+
+  static async deleteAchievement(id: string) {
+    const existing = await prisma.studentAchievement.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundError("Student achievement not found");
+    const deleted = await prisma.studentAchievement.delete({ where: { id } });
+    PublicService.invalidateLandingCache();
+    return deleted;
+  }
+
+  // ========================================================
+  // FACULTY TIPS & ACADEMIC GUIDES
+  // ========================================================
+  static async listFacultyTips(search?: string, category?: string, isPublished?: boolean) {
+    const where: any = {};
+    if (typeof isPublished === "boolean") {
+      where.isPublished = isPublished;
+    }
+    if (category && category !== "ALL") {
+      where.category = { equals: category, mode: "insensitive" };
+    }
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { excerpt: { contains: search, mode: "insensitive" } },
+        { author: { contains: search, mode: "insensitive" } },
+        { category: { contains: search, mode: "insensitive" } },
+      ];
+    }
+    return prisma.facultyTip.findMany({
+      where,
+      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+    });
+  }
+
+  static async createFacultyTip(data: {
+    category: string;
+    title: string;
+    slug?: string | null;
+    excerpt: string;
+    content: string;
+    author: string;
+    authorTitle?: string | null;
+    authorImage?: string | null;
+    coverImage?: string | null;
+    readTime?: string;
+    isPublished?: boolean;
+    displayOrder?: number;
+  }) {
+    const generatedSlug = data.slug || data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const created = await prisma.facultyTip.create({
+      data: {
+        category: data.category,
+        title: data.title,
+        slug: generatedSlug,
+        excerpt: data.excerpt,
+        content: data.content,
+        author: data.author,
+        authorTitle: data.authorTitle || null,
+        authorImage: data.authorImage || null,
+        coverImage: data.coverImage || null,
+        readTime: data.readTime || "4 min read",
+        isPublished: data.isPublished !== undefined ? data.isPublished : true,
+        displayOrder: data.displayOrder ?? 0,
+      },
+    });
+    PublicService.invalidateLandingCache();
+    return created;
+  }
+
+  static async updateFacultyTip(
+    id: string,
+    data: {
+      category?: string;
+      title?: string;
+      slug?: string | null;
+      excerpt?: string;
+      content?: string;
+      author?: string;
+      authorTitle?: string | null;
+      authorImage?: string | null;
+      coverImage?: string | null;
+      readTime?: string;
+      isPublished?: boolean;
+      displayOrder?: number;
+    }
+  ) {
+    const existing = await prisma.facultyTip.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundError("Faculty tip not found");
+    const updated = await prisma.facultyTip.update({
+      where: { id },
+      data,
+    });
+    PublicService.invalidateLandingCache();
+    return updated;
+  }
+
+  static async toggleFacultyTipPublished(id: string, isPublished: boolean) {
+    const existing = await prisma.facultyTip.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundError("Faculty tip not found");
+    const updated = await prisma.facultyTip.update({
+      where: { id },
+      data: { isPublished },
+    });
+    PublicService.invalidateLandingCache();
+    return updated;
+  }
+
+  static async deleteFacultyTip(id: string) {
+    const existing = await prisma.facultyTip.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundError("Faculty tip not found");
+    const deleted = await prisma.facultyTip.delete({ where: { id } });
+    PublicService.invalidateLandingCache();
+    return deleted;
   }
 }
 

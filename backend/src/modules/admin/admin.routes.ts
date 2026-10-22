@@ -83,8 +83,24 @@ router.delete("/students/:id", AdminController.deleteStudent);
 
 // Testimonials Moderation
 router.get("/testimonials", AdminController.listTestimonials);
+router.post("/testimonials", AdminController.createTestimonial);
+router.put("/testimonials/:id", AdminController.updateTestimonial);
 router.patch("/testimonials/:id/status", AdminController.updateTestimonialStatus);
 router.delete("/testimonials/:id", AdminController.deleteTestimonial);
+
+// Student Achievements (Hall of Fame)
+router.get("/achievements", AdminController.listAchievements);
+router.post("/achievements", AdminController.createAchievement);
+router.put("/achievements/:id", AdminController.updateAchievement);
+router.patch("/achievements/:id/featured", AdminController.toggleAchievementFeatured);
+router.delete("/achievements/:id", AdminController.deleteAchievement);
+
+// Faculty Tips & Academic Guides
+router.get("/faculty-tips", AdminController.listFacultyTips);
+router.post("/faculty-tips", AdminController.createFacultyTip);
+router.put("/faculty-tips/:id", AdminController.updateFacultyTip);
+router.patch("/faculty-tips/:id/publish", AdminController.toggleFacultyTipPublished);
+router.delete("/faculty-tips/:id", AdminController.deleteFacultyTip);
 
 export default router;
 

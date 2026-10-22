@@ -9,6 +9,7 @@ import {
   createCourseSchema,
   createBatchSchema,
   updateBatchSchema,
+  batchCurriculumSchema,
   enrollStudentSchema,
   selfEnrollBatchSchema,
   verifyEnrollmentSchema,
@@ -72,6 +73,12 @@ router.put(
   roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN]),
   validateRequest(updateBatchSchema),
   BatchController.updateBatch
+);
+router.put(
+  "/batches/:id/curriculum",
+  roleGuard([UserRole.SUPER_ADMIN, UserRole.BRANCH_ADMIN]),
+  validateRequest(batchCurriculumSchema),
+  BatchController.updateCurriculum
 );
 router.delete(
   "/batches/:id",

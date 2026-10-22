@@ -261,10 +261,141 @@ export class AdminController {
     }
   }
 
+  static async createTestimonial(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const created = await AdminService.createTestimonial(req.body);
+      ResponseUtil.success(res, created, "Testimonial created successfully", 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateTestimonial(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const updated = await AdminService.updateTestimonial(req.params.id, req.body);
+      ResponseUtil.success(res, updated, "Testimonial updated successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async deleteTestimonial(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       await AdminService.deleteTestimonial(req.params.id);
       ResponseUtil.success(res, null, "Testimonial deleted");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ========================================================
+  // STUDENT ACHIEVEMENTS (HALL OF FAME)
+  // ========================================================
+  static async listAchievements(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const search = req.query.search as string | undefined;
+      const isFeatured =
+        req.query.isFeatured === "true"
+          ? true
+          : req.query.isFeatured === "false"
+          ? false
+          : undefined;
+      const list = await AdminService.listAchievements(search, isFeatured);
+      ResponseUtil.success(res, list, "Student achievements retrieved");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async createAchievement(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const created = await AdminService.createAchievement(req.body);
+      ResponseUtil.success(res, created, "Student achievement created successfully", 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateAchievement(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const updated = await AdminService.updateAchievement(req.params.id, req.body);
+      ResponseUtil.success(res, updated, "Student achievement updated successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async toggleAchievementFeatured(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { isFeatured } = req.body;
+      const updated = await AdminService.toggleAchievementFeatured(req.params.id, Boolean(isFeatured));
+      ResponseUtil.success(res, updated, `Achievement featured status updated`);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteAchievement(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await AdminService.deleteAchievement(req.params.id);
+      ResponseUtil.success(res, null, "Student achievement deleted");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ========================================================
+  // FACULTY TIPS & ACADEMIC GUIDES
+  // ========================================================
+  static async listFacultyTips(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const search = req.query.search as string | undefined;
+      const category = req.query.category as string | undefined;
+      const isPublished =
+        req.query.isPublished === "true"
+          ? true
+          : req.query.isPublished === "false"
+          ? false
+          : undefined;
+      const list = await AdminService.listFacultyTips(search, category, isPublished);
+      ResponseUtil.success(res, list, "Faculty tips retrieved");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async createFacultyTip(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const created = await AdminService.createFacultyTip(req.body);
+      ResponseUtil.success(res, created, "Faculty tip created successfully", 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateFacultyTip(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const updated = await AdminService.updateFacultyTip(req.params.id, req.body);
+      ResponseUtil.success(res, updated, "Faculty tip updated successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async toggleFacultyTipPublished(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { isPublished } = req.body;
+      const updated = await AdminService.toggleFacultyTipPublished(req.params.id, Boolean(isPublished));
+      ResponseUtil.success(res, updated, "Faculty tip publication status updated");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteFacultyTip(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await AdminService.deleteFacultyTip(req.params.id);
+      ResponseUtil.success(res, null, "Faculty tip deleted");
     } catch (error) {
       next(error);
     }
