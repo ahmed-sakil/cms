@@ -240,13 +240,13 @@ export const StudentProfilePage: React.FC = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="bg-surface border border-theme rounded-sm p-6 space-y-3 animate-pulse">
+        <div className="bg-surface border border-accent rounded-sm p-6 space-y-3 animate-pulse">
           <div className="h-5 w-48 bg-accent rounded-xs" />
           <div className="h-4 w-72 bg-accent rounded-xs" />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-surface border border-theme rounded-sm p-6 space-y-4 animate-pulse">
+            <div className="bg-surface border border-accent rounded-sm p-6 space-y-4 animate-pulse">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 bg-accent rounded-sm shrink-0" />
                 <div className="space-y-2 flex-1">
@@ -255,7 +255,7 @@ export const StudentProfilePage: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-surface border border-theme rounded-sm p-6 space-y-4 animate-pulse">
+            <div className="bg-surface border border-accent rounded-sm p-6 space-y-4 animate-pulse">
               <div className="h-4 w-32 bg-accent rounded-xs" />
               <div className="grid grid-cols-2 gap-4">
                 <div className="h-10 bg-accent/40 rounded-xs" />
@@ -263,7 +263,7 @@ export const StudentProfilePage: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="bg-surface border border-theme rounded-sm p-6 space-y-4 animate-pulse">
+          <div className="bg-surface border border-accent rounded-sm p-6 space-y-4 animate-pulse">
             <div className="h-4 w-32 bg-accent rounded-xs" />
             <div className="h-10 bg-accent/40 rounded-xs" />
             <div className="h-10 bg-accent/40 rounded-xs" />
@@ -275,7 +275,7 @@ export const StudentProfilePage: React.FC = () => {
 
   if (error && !profile.fullName) {
     return (
-      <div className="bg-surface border border-theme rounded-sm p-8 text-center space-y-4 shadow-xs">
+      <div className="bg-surface border border-accent rounded-sm p-8 text-center space-y-4 shadow-xs">
         <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto" />
         <h2 className="text-base font-bold text-text-main">Unable to Load Student Profile</h2>
         <p className="text-xs text-text-main/60 max-w-md mx-auto">{error}</p>
@@ -292,7 +292,7 @@ export const StudentProfilePage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-theme pb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-accent pb-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
             <UserCircle className="w-5 h-5 text-brand-primary" /> Student Identity & Academic Profile
@@ -314,7 +314,7 @@ export const StudentProfilePage: React.FC = () => {
         {/* Left Column: Academic & Personal Profile Cards */}
         <div className="lg:col-span-2 space-y-6">
           {/* Main ID Badge Header Card */}
-          <div className="bg-surface border border-theme rounded-sm p-6 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="bg-surface border border-accent rounded-sm p-6 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-brand-primary text-white text-xl font-bold rounded-sm flex items-center justify-center font-mono shadow-xs shrink-0">
                 {profile.fullName ? profile.fullName.slice(0, 2).toUpperCase() : "ST"}
@@ -327,7 +327,7 @@ export const StudentProfilePage: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-text-main/60">
-                  <span className="font-mono bg-bg-app border border-theme px-2 py-0.5 rounded-xs font-bold text-text-main">
+                  <span className="font-mono bg-bg-app border border-accent px-2 py-0.5 rounded-xs font-bold text-text-main">
                     Roll: {profile.rollNumber || "Not Assigned"}
                   </span>
                   <span>•</span>
@@ -349,8 +349,8 @@ export const StudentProfilePage: React.FC = () => {
           </div>
 
           {/* Academic & Institution Particulars */}
-          <div className="bg-surface border border-theme rounded-sm p-6 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold text-text-main/70 uppercase tracking-wider border-b border-theme pb-2 flex items-center gap-2">
+          <div className="bg-surface border border-accent rounded-sm p-6 shadow-xs space-y-4">
+            <h3 className="text-xs font-bold text-text-main/70 uppercase tracking-wider border-b border-accent pb-2 flex items-center gap-2">
               <School className="w-4 h-4 text-brand-primary" /> Academic & Institution Background
             </h3>
 
@@ -393,8 +393,8 @@ export const StudentProfilePage: React.FC = () => {
           </div>
 
           {/* Contact & Guardian Details */}
-          <div className="bg-surface border border-theme rounded-sm p-6 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold text-text-main/70 uppercase tracking-wider border-b border-theme pb-2 flex items-center gap-2">
+          <div className="bg-surface border border-accent rounded-sm p-6 shadow-xs space-y-4">
+            <h3 className="text-xs font-bold text-text-main/70 uppercase tracking-wider border-b border-accent pb-2 flex items-center gap-2">
               <Users className="w-4 h-4 text-brand-primary" /> Contact & Guardian Information
             </h3>
 
@@ -441,8 +441,8 @@ export const StudentProfilePage: React.FC = () => {
         </div>
 
         {/* Right Column: Password & Security Management */}
-        <div className="bg-surface border border-theme rounded-sm p-6 shadow-xs space-y-5">
-          <div className="flex items-center gap-2 border-b border-theme pb-3">
+        <div className="bg-surface border border-accent rounded-sm p-6 shadow-xs space-y-5">
+          <div className="flex items-center gap-2 border-b border-accent pb-3">
             <KeyRound className="w-4 h-4 text-brand-primary" />
             <h3 className="font-bold text-sm text-text-main">Security & Password</h3>
           </div>
@@ -468,7 +468,7 @@ export const StudentProfilePage: React.FC = () => {
                 placeholder="Enter current password"
                 value={passwordForm.currentPassword}
                 onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:outline-none focus:border-brand-primary"
+                className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:outline-none focus:border-brand-primary"
               />
             </div>
 
@@ -482,7 +482,7 @@ export const StudentProfilePage: React.FC = () => {
                 placeholder="Minimum 8 chars (letters & numbers)"
                 value={passwordForm.newPassword}
                 onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:outline-none focus:border-brand-primary"
+                className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:outline-none focus:border-brand-primary"
               />
             </div>
 
@@ -496,7 +496,7 @@ export const StudentProfilePage: React.FC = () => {
                 onChange={(e) =>
                   setPasswordForm({ ...passwordForm, confirmNewPassword: e.target.value })
                 }
-                className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:outline-none focus:border-brand-primary"
+                className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:outline-none focus:border-brand-primary"
               />
             </div>
 
@@ -514,8 +514,8 @@ export const StudentProfilePage: React.FC = () => {
       {/* Edit Personal Information Modal */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-surface border border-theme rounded-sm max-w-2xl w-full p-6 space-y-4 shadow-xl my-8">
-            <div className="flex items-center justify-between border-b border-theme pb-3">
+          <div className="bg-surface border border-accent rounded-sm max-w-2xl w-full p-6 space-y-4 shadow-xl my-8">
+            <div className="flex items-center justify-between border-b border-accent pb-3">
               <div className="flex items-center gap-2">
                 <Edit2 className="w-4 h-4 text-brand-primary" />
                 <h3 className="text-sm font-bold text-text-main">Edit Personal & Guardian Information</h3>
@@ -537,7 +537,7 @@ export const StudentProfilePage: React.FC = () => {
                     required
                     value={editForm.fullName || ""}
                     onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none"
+                    className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none"
                   />
                 </div>
 
@@ -548,7 +548,7 @@ export const StudentProfilePage: React.FC = () => {
                     required
                     value={editForm.phone || ""}
                     onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none font-mono"
+                    className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none font-mono"
                   />
                 </div>
               </div>
@@ -560,7 +560,7 @@ export const StudentProfilePage: React.FC = () => {
                     type="text"
                     value={editForm.fatherName || ""}
                     onChange={(e) => setEditForm({ ...editForm, fatherName: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none"
+                    className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none"
                   />
                 </div>
 
@@ -570,7 +570,7 @@ export const StudentProfilePage: React.FC = () => {
                     type="text"
                     value={editForm.motherName || ""}
                     onChange={(e) => setEditForm({ ...editForm, motherName: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none"
+                    className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none"
                   />
                 </div>
               </div>
@@ -587,7 +587,7 @@ export const StudentProfilePage: React.FC = () => {
                       if (type === "MOTHER" && editForm.motherName) gName = editForm.motherName;
                       setEditForm({ ...editForm, guardianType: type, guardianName: gName });
                     }}
-                    className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none"
+                    className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none"
                   >
                     <option value="FATHER">Father</option>
                     <option value="MOTHER">Mother</option>
@@ -602,7 +602,7 @@ export const StudentProfilePage: React.FC = () => {
                     required
                     value={editForm.guardianName || ""}
                     onChange={(e) => setEditForm({ ...editForm, guardianName: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none"
+                    className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none"
                   />
                 </div>
 
@@ -613,7 +613,7 @@ export const StudentProfilePage: React.FC = () => {
                     required
                     value={editForm.guardianPhone || ""}
                     onChange={(e) => setEditForm({ ...editForm, guardianPhone: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none font-mono"
+                    className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none font-mono"
                   />
                 </div>
               </div>
@@ -624,7 +624,7 @@ export const StudentProfilePage: React.FC = () => {
                   <select
                     value={editForm.currentClass || "HSC 1st Year"}
                     onChange={(e) => setEditForm({ ...editForm, currentClass: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none"
+                    className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none"
                   >
                     <option value="Class 8">Class 8</option>
                     <option value="Class 9">Class 9</option>
@@ -642,7 +642,7 @@ export const StudentProfilePage: React.FC = () => {
                   <select
                     value={editForm.bloodGroup || "B+"}
                     onChange={(e) => setEditForm({ ...editForm, bloodGroup: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none"
+                    className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none"
                   >
                     {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
                       <option key={bg} value={bg}>
@@ -658,7 +658,7 @@ export const StudentProfilePage: React.FC = () => {
                     type="date"
                     value={editForm.dateOfBirth || ""}
                     onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none"
+                    className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none"
                   />
                 </div>
               </div>
@@ -670,7 +670,7 @@ export const StudentProfilePage: React.FC = () => {
                   placeholder="e.g. Notre Dame College, Dhaka"
                   value={editForm.institutionName || ""}
                   onChange={(e) => setEditForm({ ...editForm, institutionName: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none"
+                  className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none"
                 />
               </div>
 
@@ -680,15 +680,15 @@ export const StudentProfilePage: React.FC = () => {
                   type="text"
                   value={editForm.address || ""}
                   onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none"
+                  className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-theme">
+              <div className="flex justify-end gap-2 pt-3 border-t border-accent">
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="px-3 py-1.5 text-xs font-semibold text-text-main/70 hover:bg-bg-app border border-theme rounded-sm"
+                  className="px-3 py-1.5 text-xs font-semibold text-text-main/70 hover:bg-bg-app border border-accent rounded-sm"
                 >
                   Cancel
                 </button>

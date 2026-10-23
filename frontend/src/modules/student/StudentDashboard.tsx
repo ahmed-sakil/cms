@@ -9,11 +9,12 @@ import {
   CreditCard,
   AlertTriangle,
   X,
-  ChevronRight,
-  Filter,
   Award,
+  Receipt,
+  Bell,
+  ArrowRight,
+  User,
 } from "lucide-react";
-import { toast } from "sonner";
 import { StudentIdCardModal } from "../../components/StudentIdCardModal.js";
 
 interface NoticeItem {
@@ -33,28 +34,16 @@ interface BatchInfo {
   teacherName: string;
   room: string;
   schedule: string;
-  progress: string;
-}
-
-interface AttendanceRecord {
-  id: string;
-  date: string;
-  status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
-  batchId: string;
-  batchName: string;
-  remarks?: string | null;
 }
 
 export const StudentDashboard: React.FC = () => {
   const [showIdCard, setShowIdCard] = useState(false);
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [selectedNotice, setSelectedNotice] = useState<NoticeItem | null>(null);
-
-  // Filter state for attendance
-  const [attendanceBatchFilter, setAttendanceBatchFilter] = useState<string>("ALL");
-
-  // User profile & enrolled data
   const [studentProfile, setStudentProfile] = useState<any>(null);
+  const [batches, setBatches] = useState<BatchInfo[]>([]);
+  const [recentExams, setRecentExams] = useState<any[]>([]);
+  const [attendanceRate, setAttendanceRate] = useState<number>(100);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,9 +55,6 @@ export const StudentDashboard: React.FC = () => {
       return null;
     }
   })();
-
-  const [batches, setBatches] = useState<BatchInfo[]>([]);
-  const [attendances, setAttendances] = useState<AttendanceRecord[]>([]);
 
   const fetchDashboardData = async () => {
     try {
@@ -93,34 +79,30 @@ export const StudentDashboard: React.FC = () => {
           const mappedBatches: BatchInfo[] = json.data.enrollments.map((e: any) => ({
             id: e.batch.id,
             name: e.batch.name,
-            courseName: e.batch.course?.name || "Academic Program",
-            teacherName: e.batch.teacher?.user?.fullName || "Assigned Faculty",
-            room: e.batch.room || "Campus Classroom",
-            schedule: e.batch.schedule || "Scheduled Classes",
-            progress: "100%",
+            courseName: e.batch.course?.name || "Academic Course",
+            teacherName: e.batch.teacher?.user?.fullName || "Assigned Teacher",
+            room: e.batch.classroom || "Main Classroom",
+            schedule: e.batch.classTime || e.batch.scheduleTime || "Scheduled Timing",
           }));
           setBatches(mappedBatches);
-        } else {
-          setBatches([]);
         }
+
+        if (json.data.examResults?.length) {
+          setRecentExams(json.data.examResults);
+        }
+
         if (json.data.attendances?.length) {
-          const mappedAtt: AttendanceRecord[] = json.data.attendances.map((a: any) => ({
-            id: a.id,
-            date: a.date.split("T")[0],
-            status: a.status,
-            batchId: a.batchId,
-            batchName: a.batch?.name || "Enrolled Batch",
-            remarks: a.remarks,
-          }));
-          setAttendances(mappedAtt);
-        } else {
-          setAttendances([]);
+          const total = json.data.attendances.length;
+          const present = json.data.attendances.filter(
+            (a: any) => a.status === "PRESENT" || a.status === "LATE"
+          ).length;
+          setAttendanceRate(total > 0 ? Math.round((present / total) * 100) : 100);
         }
       } else {
-        setError(json.message || "Failed to retrieve student dashboard data.");
+        setError(json.message || "Failed to load academic records");
       }
     } catch {
-      setError("Network error: Unable to connect to student records server.");
+      setError("Unable to reach the server. Please check your connection.");
     } finally {
       setLoading(false);
     }
@@ -130,57 +112,35 @@ export const StudentDashboard: React.FC = () => {
     fetchDashboardData();
   }, []);
 
-  // Filtered attendances based on selected batch
-  const filteredAttendances =
-    attendanceBatchFilter === "ALL"
-      ? attendances
-      : attendances.filter((a) => a.batchId === attendanceBatchFilter);
+  const urgentNotice = notices.find(
+    (n) => n.priority === "URGENT" || n.priority === "HIGH"
+  );
 
-  // Compute attendance stats
-  const totalClasses = filteredAttendances.length;
-  const attendedCount = filteredAttendances.filter(
-    (a) => a.status === "PRESENT" || a.status === "LATE"
-  ).length;
-  const attendancePercentage =
-    totalClasses > 0 ? Math.round((attendedCount / totalClasses) * 100) : 100;
-
-  const urgentNotice = notices.find((n) => n.priority === "URGENT" || n.priority === "HIGH");
-
-  if (loading) {
+  if (loading && !studentProfile) {
     return (
-      <div className="space-y-6">
-        <div className="bg-surface border border-theme rounded-sm p-6 space-y-3 animate-pulse">
-          <div className="h-3 w-32 bg-accent rounded-xs" />
-          <div className="h-6 w-72 bg-accent rounded-xs" />
-          <div className="h-4 w-96 bg-accent rounded-xs" />
+      <div className="space-y-4 animate-pulse">
+        <div className="h-28 bg-surface border border-accent rounded-sm" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 bg-surface border border-accent rounded-sm" />
+          ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-surface border border-theme rounded-sm p-5 space-y-4 animate-pulse">
-            <div className="h-4 w-40 bg-accent rounded-xs" />
-            <div className="h-5 w-60 bg-accent rounded-xs" />
-            <div className="h-10 bg-accent/40 rounded-xs" />
-          </div>
-          <div className="bg-surface border border-theme rounded-sm p-5 space-y-4 animate-pulse">
-            <div className="h-4 w-40 bg-accent rounded-xs" />
-            <div className="h-5 w-60 bg-accent rounded-xs" />
-            <div className="h-10 bg-accent/40 rounded-xs" />
-          </div>
-        </div>
+        <div className="h-64 bg-surface border border-accent rounded-sm" />
       </div>
     );
   }
 
   if (error && !studentProfile) {
     return (
-      <div className="bg-surface border border-theme rounded-sm p-8 text-center space-y-4 shadow-xs">
+      <div className="bg-surface border border-accent rounded-sm p-8 text-center space-y-4">
         <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto" />
         <h2 className="text-base font-bold text-text-main">Unable to Load Academic Records</h2>
-        <p className="text-xs text-text-main/60 max-w-md mx-auto">{error}</p>
+        <p className="text-xs text-text-muted max-w-md mx-auto">{error}</p>
         <button
           onClick={fetchDashboardData}
-          className="px-4 py-2 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:opacity-90 transition-opacity"
+          className="px-4 py-2 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:opacity-90 transition-opacity cursor-pointer"
         >
-          Retry Connection
+          Retry
         </button>
       </div>
     );
@@ -190,7 +150,7 @@ export const StudentDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Urgent Notice Alert Banner */}
       {urgentNotice && (
-        <div className="bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-900 rounded-sm p-3.5 flex items-start justify-between gap-3 shadow-xs">
+        <div className="bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-900 rounded-sm p-3.5 flex items-start justify-between gap-3">
           <div className="flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
             <div>
@@ -209,66 +169,154 @@ export const StudentDashboard: React.FC = () => {
           </div>
           <button
             onClick={() => setSelectedNotice(urgentNotice)}
-            className="text-xs font-semibold text-red-700 dark:text-red-300 underline hover:text-red-900 shrink-0"
+            className="text-xs font-semibold text-red-700 dark:text-red-300 underline hover:text-red-900 shrink-0 cursor-pointer"
           >
             Read Notice
           </button>
         </div>
       )}
 
-      {/* Meaningful Academic Status Bar (Replaces generic Welcome banner) */}
-      <div className="bg-surface border border-theme rounded-sm p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xs">
-        <div className="space-y-1">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-brand-primary">
-            Academic Status Overview
-          </span>
-          <h1 className="text-lg font-bold text-text-main">
-            Enrolled Batches & Classroom Attendance
-          </h1>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-text-main/60 pt-0.5">
-            <span className="font-mono bg-bg-app border border-theme px-2 py-0.5 rounded-xs font-bold text-text-main">
+      {/* Quick Action Bar (Mobile-friendly 1-tap shortcuts) */}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <Link
+          to="/student/attendance"
+          className="flex flex-col items-center justify-center p-3 rounded-sm bg-surface border border-accent hover:border-brand-primary transition-colors text-center group cursor-pointer"
+        >
+          <CalendarCheck className="w-4 h-4 text-brand-primary mb-1.5 group-hover:scale-110 transition-transform" />
+          <span className="text-[11px] font-semibold text-text-main">Attendance</span>
+        </Link>
+
+        <Link
+          to="/student/exams"
+          className="flex flex-col items-center justify-center p-3 rounded-sm bg-surface border border-accent hover:border-brand-primary transition-colors text-center group cursor-pointer"
+        >
+          <Award className="w-4 h-4 text-brand-primary mb-1.5 group-hover:scale-110 transition-transform" />
+          <span className="text-[11px] font-semibold text-text-main">Exam Scores</span>
+        </Link>
+
+        <Link
+          to="/student/fees"
+          className="flex flex-col items-center justify-center p-3 rounded-sm bg-surface border border-accent hover:border-brand-primary transition-colors text-center group cursor-pointer"
+        >
+          <Receipt className="w-4 h-4 text-brand-primary mb-1.5 group-hover:scale-110 transition-transform" />
+          <span className="text-[11px] font-semibold text-text-main">Fee Invoices</span>
+        </Link>
+
+        <Link
+          to="/student/materials"
+          className="flex flex-col items-center justify-center p-3 rounded-sm bg-surface border border-accent hover:border-brand-primary transition-colors text-center group cursor-pointer"
+        >
+          <FileText className="w-4 h-4 text-brand-primary mb-1.5 group-hover:scale-110 transition-transform" />
+          <span className="text-[11px] font-semibold text-text-main">Study Notes</span>
+        </Link>
+
+        <Link
+          to="/student/notices"
+          className="flex flex-col items-center justify-center p-3 rounded-sm bg-surface border border-accent hover:border-brand-primary transition-colors text-center group cursor-pointer"
+        >
+          <Bell className="w-4 h-4 text-brand-primary mb-1.5 group-hover:scale-110 transition-transform" />
+          <span className="text-[11px] font-semibold text-text-main">Notices</span>
+        </Link>
+
+        <button
+          onClick={() => setShowIdCard(true)}
+          className="flex flex-col items-center justify-center p-3 rounded-sm bg-surface border border-accent hover:border-brand-primary transition-colors text-center group cursor-pointer"
+        >
+          <CreditCard className="w-4 h-4 text-brand-primary mb-1.5 group-hover:scale-110 transition-transform" />
+          <span className="text-[11px] font-semibold text-text-main">Digital ID</span>
+        </button>
+      </div>
+
+      {/* Student Academic Status Card */}
+      <div className="bg-surface border border-accent rounded-sm p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="space-y-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-text-main truncate">
+              {studentProfile?.user?.fullName || currentUser?.fullName || "Student Member"}
+            </span>
+            <span className="text-[10px] font-bold px-1.5 py-0.2 bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300 rounded-xs uppercase tracking-wider">
+              Enrolled
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted pt-0.5">
+            <span className="font-mono bg-bg-app border border-accent px-2 py-0.5 rounded-xs font-bold text-text-main">
               Roll: {studentProfile?.rollNumber || "Not Assigned"}
             </span>
             <span>•</span>
-            <span>Campus: <strong>{studentProfile?.user?.branch?.name || "Unassigned Campus"}</strong></span>
+            <span>Campus: <strong className="text-text-main">{studentProfile?.user?.branch?.name || "Main Campus"}</strong></span>
             <span>•</span>
-            <span>Class: <strong>{studentProfile?.currentClass || "Not Specified"}</strong></span>
-            <span>•</span>
-            <span>Active Batches: <strong className="text-brand-primary">{batches.length}</strong></span>
+            <span>Class: <strong className="text-text-main">{studentProfile?.currentClass || "General"}</strong></span>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <button
-            onClick={() => setShowIdCard(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-brand-primary text-white hover:opacity-90 rounded-sm transition-opacity shadow-xs"
-          >
-            <CreditCard className="w-3.5 h-3.5" /> View Digital ID Card
-          </button>
-          <button
-            onClick={() => toast.success("Downloading Exam Routine & Syllabus PDF")}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-bg-app hover:bg-surface border border-theme rounded-sm text-text-main transition-colors"
-          >
-            <FileText className="w-3.5 h-3.5 text-brand-primary" /> Class Routine
-          </button>
+        <button
+          onClick={() => setShowIdCard(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-brand-primary text-white hover:opacity-90 rounded-sm transition-opacity shrink-0 cursor-pointer"
+        >
+          <CreditCard className="w-3.5 h-3.5" /> View Digital ID
+        </button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Active Batches */}
+        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1">
+          <div className="flex items-center justify-between text-text-muted">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Active Batches</span>
+            <BookOpen className="w-4 h-4 text-brand-primary" />
+          </div>
+          <p className="text-2xl font-bold text-text-main">{batches.length}</p>
+          <p className="text-[10px] text-text-muted">Enrolled courses</p>
+        </div>
+
+        {/* Attendance Rate */}
+        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1">
+          <div className="flex items-center justify-between text-text-muted">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Attendance</span>
+            <CalendarCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
+          </div>
+          <p className="text-2xl font-bold text-text-main">{attendanceRate}%</p>
+          <p className="text-[10px] text-text-muted">Physical presence rate</p>
+        </div>
+
+        {/* Recent Exams */}
+        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1">
+          <div className="flex items-center justify-between text-text-muted">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Evaluated Exams</span>
+            <Award className="w-4 h-4 text-amber-500" />
+          </div>
+          <p className="text-2xl font-bold text-text-main">{recentExams.length}</p>
+          <p className="text-[10px] text-text-muted">Published scorecards</p>
+        </div>
+
+        {/* Circulars */}
+        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1">
+          <div className="flex items-center justify-between text-text-muted">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Notices</span>
+            <Bell className="w-4 h-4 text-brand-primary" />
+          </div>
+          <p className="text-2xl font-bold text-text-main">{notices.length}</p>
+          <p className="text-[10px] text-text-muted">Active announcements</p>
         </div>
       </div>
 
-      {/* Enrolled Batches Grid */}
+      {/* Enrolled Batches */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-text-main flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-brand-primary" /> Active Enrolled Batches ({batches.length})
+          <h2 className="text-xs font-bold uppercase tracking-wider text-text-main flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-brand-primary" />
+            My Enrolled Batches ({batches.length})
           </h2>
-          <span className="text-[11px] text-text-main/50">Current Academic Term</span>
+          <span className="text-[11px] text-text-muted">Current Academic Term</span>
         </div>
 
         {batches.length === 0 ? (
-          <div className="bg-surface border border-theme rounded-sm p-8 text-center space-y-2">
-            <BookOpen className="w-7 h-7 text-text-main/30 mx-auto" />
+          <div className="bg-surface border border-accent rounded-sm p-8 text-center space-y-2">
+            <BookOpen className="w-7 h-7 text-text-muted/40 mx-auto" />
             <p className="text-sm font-bold text-text-main">No Active Enrolled Batches</p>
-            <p className="text-xs text-text-main/50 max-w-sm mx-auto">
-              You are currently not assigned to any batches. Please contact the campus administration or register for your academic courses.
+            <p className="text-xs text-text-muted max-w-sm mx-auto">
+              You are currently not assigned to any batches. Please contact your campus administration.
             </p>
           </div>
         ) : (
@@ -276,173 +324,53 @@ export const StudentDashboard: React.FC = () => {
             {batches.map((batch) => (
               <div
                 key={batch.id}
-                className="bg-surface border border-theme rounded-sm p-5 space-y-4 shadow-xs hover:border-brand-primary transition-colors group"
+                className="bg-surface border border-accent rounded-sm p-5 space-y-3 hover:border-brand-primary transition-colors"
               >
-                <div className="flex justify-between items-start">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider">
+                    <h3 className="text-sm font-bold text-text-main">{batch.name}</h3>
+                    <p className="text-xs text-text-muted font-medium mt-0.5">
                       {batch.courseName}
-                    </span>
-                    <h3 className="text-sm font-bold text-text-main mt-0.5">{batch.name}</h3>
-                    <p className="text-xs text-text-main/60 mt-0.5">Faculty: <strong>{batch.teacherName}</strong></p>
+                    </p>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded-xs">
+                  <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded-xs uppercase tracking-wider shrink-0">
                     Active
                   </span>
                 </div>
 
-                <div className="space-y-1.5 text-xs text-text-main/70 pt-2 border-t border-theme">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-brand-primary" />
-                    <span>{batch.schedule}</span>
+                <div className="pt-2 border-t border-accent grid grid-cols-2 gap-2 text-xs text-text-muted">
+                  <div className="flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                    <span className="truncate">{batch.teacherName}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-brand-primary" />
-                    <span>{batch.room}</span>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                    <span className="truncate">{batch.room}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 col-span-2">
+                    <Clock className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                    <span className="truncate">{batch.schedule}</span>
                   </div>
                 </div>
 
-                <div className="pt-2 flex justify-between items-center text-xs border-t border-theme">
-                  <span className="text-text-main/60">
-                    Syllabus Covered: <strong className="text-text-main font-bold">{batch.progress}</strong>
-                  </span>
+                <div className="pt-2 flex items-center justify-between">
+                  <Link
+                    to="/student/attendance"
+                    className="text-xs font-semibold text-brand-primary hover:underline flex items-center gap-1"
+                  >
+                    Attendance Record <ArrowRight className="w-3 h-3" />
+                  </Link>
                   <Link
                     to="/student/materials"
-                    className="px-2.5 py-1 bg-bg-app hover:bg-brand-primary hover:text-white border border-theme rounded-sm font-semibold transition-colors flex items-center gap-1"
+                    className="text-xs font-semibold text-text-muted hover:text-text-main flex items-center gap-1"
                   >
-                    Lecture Notes <ChevronRight className="w-3 h-3" />
+                    Study Materials <ArrowRight className="w-3 h-3" />
                   </Link>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
-
-      {/* Batch Attendance Tracker */}
-      <div className="bg-surface border border-theme rounded-sm p-5 space-y-4 shadow-xs">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-theme pb-4">
-          <div>
-            <h2 className="text-sm font-bold text-text-main flex items-center gap-2">
-              <CalendarCheck className="w-4 h-4 text-brand-primary" /> Batch Attendance Tracker
-            </h2>
-            <p className="text-xs text-text-main/60 mt-0.5">
-              Select an enrolled batch to audit your physical classroom presence.
-            </p>
-          </div>
-
-          {/* Batch Selector Dropdown */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Filter className="w-3.5 h-3.5 text-text-main/40 shrink-0" />
-            <select
-              value={attendanceBatchFilter}
-              onChange={(e) => setAttendanceBatchFilter(e.target.value)}
-              className="w-full sm:w-auto px-3 py-1.5 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none font-semibold text-text-main"
-            >
-              <option value="ALL">All Batches (Consolidated)</option>
-              {batches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Attendance Summary Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="p-3 bg-bg-app border border-theme rounded-sm space-y-0.5">
-            <span className="text-[10px] uppercase font-bold text-text-main/50">Total Classes</span>
-            <p className="text-xl font-black text-text-main">{totalClasses}</p>
-          </div>
-          <div className="p-3 bg-bg-app border border-theme rounded-sm space-y-0.5">
-            <span className="text-[10px] uppercase font-bold text-text-main/50">Attended</span>
-            <p className="text-xl font-black text-green-600">{attendedCount}</p>
-          </div>
-          <div className="p-3 bg-bg-app border border-theme rounded-sm space-y-0.5">
-            <span className="text-[10px] uppercase font-bold text-text-main/50">Missed / Absent</span>
-            <p className="text-xl font-black text-red-600">{totalClasses - attendedCount}</p>
-          </div>
-          <div className="p-3 bg-brand-primary/5 border border-brand-primary/20 rounded-sm space-y-0.5">
-            <span className="text-[10px] uppercase font-bold text-brand-primary">Attendance Ratio</span>
-            <p className="text-xl font-black text-brand-primary font-mono">{attendancePercentage}%</p>
-          </div>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="space-y-1">
-          <div className="flex justify-between text-[11px] text-text-main/60">
-            <span>Minimum Requirement: 75% for Board Exam Clearance</span>
-            <span className="font-bold text-text-main">{attendancePercentage}% Attained</span>
-          </div>
-          <div className="w-full h-2 bg-bg-app rounded-xs overflow-hidden border border-theme">
-            <div
-              className={`h-full transition-all duration-500 ${
-                attendancePercentage >= 75 ? "bg-green-600" : "bg-amber-500"
-              }`}
-              style={{ width: `${Math.min(attendancePercentage, 100)}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Attendance Log Table */}
-        {filteredAttendances.length === 0 ? (
-          <div className="border border-theme rounded-sm p-8 text-center space-y-2 bg-bg-app/30">
-            <CalendarCheck className="w-7 h-7 text-text-main/30 mx-auto" />
-            <p className="text-sm font-bold text-text-main">No Attendance Records Found</p>
-            <p className="text-xs text-text-main/50 max-w-sm mx-auto">
-              Physical classroom attendance logs will appear here as your lectures and workshops commence.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto border border-theme rounded-sm">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-bg-app border-b border-theme text-[10px] uppercase font-bold text-text-main/60">
-                <tr>
-                  <th className="p-2.5">Date</th>
-                  <th className="p-2.5">Batch</th>
-                  <th className="p-2.5">Attendance Status</th>
-                  <th className="p-2.5">Remarks / Topic</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-theme">
-                {filteredAttendances.map((att) => (
-                  <tr key={att.id} className="hover:bg-bg-app/50 transition-colors">
-                    <td className="p-2.5 font-mono text-[11px] text-text-main/70">{att.date}</td>
-                    <td className="p-2.5 font-semibold text-text-main">{att.batchName}</td>
-                    <td className="p-2.5">
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider ${
-                          att.status === "PRESENT"
-                            ? "bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300"
-                            : att.status === "LATE"
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
-                            : "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300"
-                        }`}
-                      >
-                        {att.status}
-                      </span>
-                    </td>
-                    <td className="p-2.5 text-text-main/60">{att.remarks || "Regular session"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Shortcut Banner to Exam Scores */}
-        <div className="pt-2 flex justify-between items-center text-xs">
-          <span className="text-text-main/60">
-            Looking for your past exam results and percentage analytics?
-          </span>
-          <Link
-            to="/student/exams"
-            className="font-semibold text-brand-primary hover:underline flex items-center gap-1"
-          >
-            <Award className="w-3.5 h-3.5" /> View Exam Scores & Performance Chart →
-          </Link>
-        </div>
       </div>
 
       {/* Official ID Card Modal */}
@@ -474,7 +402,7 @@ export const StudentDashboard: React.FC = () => {
       {/* Read Notice Modal */}
       {selectedNotice && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-surface border border-theme rounded-sm max-w-lg w-full p-6 space-y-4 shadow-xl">
+          <div className="bg-surface border border-accent rounded-sm max-w-lg w-full p-6 space-y-4 shadow-xl">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -482,12 +410,12 @@ export const StudentDashboard: React.FC = () => {
                     className={`text-[10px] font-bold px-1.5 py-0.5 rounded-xs uppercase tracking-wider ${
                       selectedNotice.priority === "URGENT"
                         ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
-                        : "bg-bg-app text-text-main/60 border border-theme"
+                        : "bg-bg-app text-text-muted border border-accent"
                     }`}
                   >
                     {selectedNotice.priority}
                   </span>
-                  <span className="text-[11px] text-text-main/50 font-mono">
+                  <span className="text-[11px] text-text-muted font-mono">
                     {new Date(selectedNotice.publishedAt).toLocaleDateString()}
                   </span>
                 </div>
@@ -495,13 +423,13 @@ export const StudentDashboard: React.FC = () => {
               </div>
               <button
                 onClick={() => setSelectedNotice(null)}
-                className="p-1 hover:bg-bg-app rounded-sm text-text-main/60"
+                className="p-1 hover:bg-bg-app rounded-sm text-text-muted hover:text-text-main cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="text-xs text-text-main/90 leading-relaxed whitespace-pre-wrap bg-bg-app p-4 rounded-sm border border-theme">
+            <div className="text-xs text-text-main leading-relaxed whitespace-pre-wrap bg-bg-app p-4 rounded-sm border border-accent">
               {selectedNotice.content}
             </div>
 
@@ -513,7 +441,7 @@ export const StudentDashboard: React.FC = () => {
                   rel="noreferrer"
                   className="px-3 py-1.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:opacity-90 transition-opacity"
                 >
-                  Download Circular Attachment
+                  Download Attachment
                 </a>
               </div>
             )}

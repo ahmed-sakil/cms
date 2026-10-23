@@ -5,6 +5,13 @@ export enum UserRole {
   STAFF = "STAFF",
   STUDENT = "STUDENT",
   PARENT = "PARENT",
+  APPLICANT = "APPLICANT",
+}
+
+export enum ApplicationStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
 }
 
 export enum Gender {

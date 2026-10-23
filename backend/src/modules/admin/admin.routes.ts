@@ -102,5 +102,11 @@ router.put("/faculty-tips/:id", AdminController.updateFacultyTip);
 router.patch("/faculty-tips/:id/publish", AdminController.toggleFacultyTipPublished);
 router.delete("/faculty-tips/:id", AdminController.deleteFacultyTip);
 
+// Teacher Onboarding Applications
+router.get("/teacher-applications", AdminController.listTeacherApplications);
+router.get("/teacher-applications/:id", AdminController.getTeacherApplication);
+router.post("/teacher-applications/:id/approve", AdminController.approveTeacherApplication);
+router.post("/teacher-applications/:id/reject", AdminController.rejectTeacherApplication);
+
 export default router;
 

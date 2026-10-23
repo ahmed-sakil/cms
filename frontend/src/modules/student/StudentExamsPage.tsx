@@ -137,26 +137,26 @@ export const StudentExamsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Meaningful Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-theme pb-4">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-accent pb-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
-            <Award className="w-5 h-5 text-brand-primary" /> Examination Performance & Scorecards
+          <h1 className="text-lg font-bold text-text-main flex items-center gap-2">
+            <Award className="w-5 h-5 text-brand-primary" /> Exams & Results
           </h1>
-          <p className="text-xs text-text-main/60 mt-0.5">
-            Historical percentage trend chart, merit ranking, and downloadable institutional scorecards.
+          <p className="text-xs text-text-muted mt-0.5">
+            Review your marks, grade trajectory, and download official scorecards.
           </p>
         </div>
 
         {/* Batch Filter Dropdown */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter className="w-3.5 h-3.5 text-text-main/40 shrink-0" />
+          <Filter className="w-3.5 h-3.5 text-text-muted shrink-0" />
           <select
             value={batchFilter}
             onChange={(e) => setBatchFilter(e.target.value)}
-            className="w-full sm:w-auto px-3 py-1.5 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none font-semibold text-text-main"
+            className="w-full sm:w-auto px-3 py-1.5 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-hidden font-medium text-text-main"
           >
-            <option value="ALL">All Batches (Consolidated)</option>
+            <option value="ALL">All Batches</option>
             {batchOptions.map(([id, name]) => (
               <option key={id} value={id}>
                 {name}
@@ -168,116 +168,116 @@ export const StudentExamsPage: React.FC = () => {
 
       {/* Analytics Summary Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-surface border border-theme rounded-sm p-4 space-y-1 shadow-xs">
-          <div className="flex justify-between items-center text-text-main/60">
+        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1">
+          <div className="flex justify-between items-center text-text-muted">
             <span className="text-xs font-medium">Exams Evaluated</span>
             <BookOpen className="w-4 h-4 text-brand-primary" />
           </div>
           {loading ? (
             <div className="space-y-1.5 py-1">
-              <div className="h-7 w-16 bg-theme/40 animate-pulse rounded-xs" />
-              <div className="h-3 w-24 bg-theme/30 animate-pulse rounded-xs" />
+              <div className="h-7 w-16 bg-accent/40 animate-pulse rounded-xs" />
+              <div className="h-3 w-24 bg-accent/30 animate-pulse rounded-xs" />
             </div>
           ) : (
             <>
-              <p className="text-2xl font-black text-text-main">{totalExams}</p>
-              <p className="text-[10px] text-green-600 font-medium">{passedExams} of {totalExams} Passed</p>
+              <p className="text-2xl font-bold text-text-main">{totalExams}</p>
+              <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">{passedExams} of {totalExams} Passed</p>
             </>
           )}
         </div>
 
-        <div className="bg-surface border border-theme rounded-sm p-4 space-y-1 shadow-xs">
-          <div className="flex justify-between items-center text-text-main/60">
+        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1">
+          <div className="flex justify-between items-center text-text-muted">
             <span className="text-xs font-medium">Average Score</span>
             <TrendingUp className="w-4 h-4 text-brand-primary" />
           </div>
           {loading ? (
             <div className="space-y-1.5 py-1">
-              <div className="h-7 w-20 bg-theme/40 animate-pulse rounded-xs" />
-              <div className="h-3 w-28 bg-theme/30 animate-pulse rounded-xs" />
+              <div className="h-7 w-20 bg-accent/40 animate-pulse rounded-xs" />
+              <div className="h-3 w-28 bg-accent/30 animate-pulse rounded-xs" />
             </div>
           ) : (
             <>
-              <p className="text-2xl font-black text-brand-primary font-mono">{averagePercentage}%</p>
-              <p className="text-[10px] text-text-main/50">Across all evaluated tests</p>
+              <p className="text-2xl font-bold text-brand-primary font-mono">{averagePercentage}%</p>
+              <p className="text-[10px] text-text-muted">Average marks obtained</p>
             </>
           )}
         </div>
 
-        <div className="bg-surface border border-theme rounded-sm p-4 space-y-1 shadow-xs">
-          <div className="flex justify-between items-center text-text-main/60">
-            <span className="text-xs font-medium">Peak Performance</span>
-            <Award className="w-4 h-4 text-green-600" />
+        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1">
+          <div className="flex justify-between items-center text-text-muted">
+            <span className="text-xs font-medium">Highest Score</span>
+            <Award className="w-4 h-4 text-green-600 dark:text-green-400" />
           </div>
           {loading ? (
             <div className="space-y-1.5 py-1">
-              <div className="h-7 w-20 bg-theme/40 animate-pulse rounded-xs" />
-              <div className="h-3 w-28 bg-theme/30 animate-pulse rounded-xs" />
+              <div className="h-7 w-20 bg-accent/40 animate-pulse rounded-xs" />
+              <div className="h-3 w-28 bg-accent/30 animate-pulse rounded-xs" />
             </div>
           ) : (
             <>
-              <p className="text-2xl font-black text-green-600 font-mono">{highestPercentage}%</p>
-              <p className="text-[10px] text-text-main/50">Personal highest mark</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400 font-mono">{highestPercentage}%</p>
+              <p className="text-[10px] text-text-muted">Personal peak score</p>
             </>
           )}
         </div>
 
-        <div className="bg-surface border border-theme rounded-sm p-4 space-y-1 shadow-xs">
-          <div className="flex justify-between items-center text-text-main/60">
-            <span className="text-xs font-medium">Clearance Status</span>
-            <CheckCircle2 className="w-4 h-4 text-green-600" />
+        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1">
+          <div className="flex justify-between items-center text-text-muted">
+            <span className="text-xs font-medium">Academic Standing</span>
+            <CheckCircle2 className="w-4 h-4 text-brand-primary" />
           </div>
           {loading ? (
             <div className="space-y-1.5 py-1">
-              <div className="h-7 w-24 bg-theme/40 animate-pulse rounded-xs" />
-              <div className="h-3 w-28 bg-theme/30 animate-pulse rounded-xs" />
+              <div className="h-7 w-24 bg-accent/40 animate-pulse rounded-xs" />
+              <div className="h-3 w-28 bg-accent/30 animate-pulse rounded-xs" />
             </div>
           ) : (
             <>
-              <p className="text-2xl font-black text-text-main">
+              <p className="text-2xl font-bold text-text-main">
                 {averagePercentage >= 80 ? "Grade A+" : averagePercentage >= 70 ? "Grade A" : "Grade B"}
               </p>
-              <p className="text-[10px] text-text-main/50 font-mono">Board Qualifying Level</p>
+              <p className="text-[10px] text-text-muted font-mono">Current Standing</p>
             </>
           )}
         </div>
       </div>
 
-      {/* Exam Performance Percentage Chart (Pure Responsive SVG) */}
-      <div className="bg-surface border border-theme rounded-sm p-5 space-y-4 shadow-xs">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-theme pb-3">
+      {/* Exam Performance Percentage Chart */}
+      <div className="bg-surface border border-accent rounded-sm p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-accent pb-3">
           <div>
             <h2 className="text-sm font-bold text-text-main flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-brand-primary" /> Historical Exam Percentage Trajectory
+              <TrendingUp className="w-4 h-4 text-brand-primary" /> Performance Trajectory
             </h2>
-            <p className="text-xs text-text-main/60 mt-0.5">
-              Click on any score bar to generate and inspect your printable examination report card.
+            <p className="text-xs text-text-muted mt-0.5">
+              Click on any score bar to view or print the official scorecard.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 text-[11px] text-text-main/60">
+          <div className="flex items-center gap-3 text-[11px] text-text-muted">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 bg-brand-primary rounded-xs inline-block" /> Percentage
             </span>
-            <span className="flex items-center gap-1.5 text-text-main/40">
-              <span className="w-2.5 h-0.5 bg-red-400 inline-block" /> Pass Threshold (40%)
+            <span className="flex items-center gap-1.5 text-text-muted/60">
+              <span className="w-2.5 h-0.5 bg-red-400 inline-block" /> Pass Mark (40%)
             </span>
           </div>
         </div>
 
         {loading ? (
-          <div className="p-4 bg-bg-app border border-theme rounded-sm space-y-2 animate-pulse">
-            <div className="grid grid-cols-4 gap-4 h-52 items-end border-b border-theme pb-1">
+          <div className="p-4 bg-bg-app border border-accent rounded-sm space-y-2 animate-pulse">
+            <div className="grid grid-cols-4 gap-4 h-52 items-end border-b border-accent pb-1">
               {[40, 75, 60, 90].map((h, idx) => (
                 <div key={idx} className="flex flex-col items-center h-full justify-end gap-2">
-                  <div className="w-full max-w-[48px] bg-theme/30 rounded-t-sm" style={{ height: `${h}%` }} />
-                  <div className="h-3 w-16 bg-theme/40 rounded-xs" />
+                  <div className="w-full max-w-[48px] bg-accent/30 rounded-t-sm" style={{ height: `${h}%` }} />
+                  <div className="h-3 w-16 bg-accent/40 rounded-xs" />
                 </div>
               ))}
             </div>
           </div>
         ) : filteredResults.length === 0 ? (
-          <div className="py-12 text-center text-xs text-text-main/40">
+          <div className="py-12 text-center text-xs text-text-muted">
             No exams evaluated for the selected batch.
           </div>
         ) : (
@@ -338,13 +338,13 @@ export const StudentExamsPage: React.FC = () => {
       </div>
 
       {/* Assessment History Table */}
-      <div className="bg-surface border border-theme rounded-sm shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-theme flex items-center justify-between">
+      <div className="bg-surface border border-accent rounded-sm overflow-hidden">
+        <div className="p-4 border-b border-accent flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-brand-primary" />
-            <h2 className="text-sm font-bold text-text-main">Official Marksheet & Results Registry</h2>
+            <h2 className="text-sm font-bold text-text-main">Marksheets & Result Registry</h2>
           </div>
-          <span className="text-[11px] text-text-main/50">
+          <span className="text-[11px] text-text-muted">
             {loading ? "..." : `${filteredResults.length} records found`}
           </span>
         </div>
@@ -352,47 +352,47 @@ export const StudentExamsPage: React.FC = () => {
         {loading ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
-              <tbody className="divide-y divide-theme">
+              <tbody className="divide-y divide-accent">
                 {[...Array(4)].map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td className="p-3"><div className="h-3.5 w-20 bg-theme/40 rounded-xs" /></td>
-                    <td className="p-3"><div className="h-3.5 w-36 bg-theme/40 rounded-xs" /></td>
-                    <td className="p-3"><div className="h-3.5 w-24 bg-theme/40 rounded-xs" /></td>
-                    <td className="p-3"><div className="h-3.5 w-20 bg-theme/40 rounded-xs" /></td>
-                    <td className="p-3"><div className="h-3.5 w-12 bg-theme/40 rounded-xs" /></td>
-                    <td className="p-3"><div className="h-3.5 w-10 bg-theme/40 rounded-xs" /></td>
-                    <td className="p-3"><div className="h-3.5 w-16 bg-theme/40 rounded-xs" /></td>
-                    <td className="p-3 text-right"><div className="h-6 w-24 bg-theme/40 rounded-xs ml-auto" /></td>
+                    <td className="p-3"><div className="h-3.5 w-20 bg-accent/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-36 bg-accent/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-24 bg-accent/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-20 bg-accent/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-12 bg-accent/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-10 bg-accent/40 rounded-xs" /></td>
+                    <td className="p-3"><div className="h-3.5 w-16 bg-accent/40 rounded-xs" /></td>
+                    <td className="p-3 text-right"><div className="h-6 w-24 bg-accent/40 rounded-xs ml-auto" /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : filteredResults.length === 0 ? (
-          <div className="p-8 text-center text-xs text-text-main/50">
+          <div className="p-8 text-center text-xs text-text-muted">
             No exam results recorded for the selected filter.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-bg-app border-b border-theme text-[10px] uppercase font-bold text-text-main/60 tracking-wider">
+              <thead className="bg-bg-app border-b border-accent text-[10px] uppercase font-bold text-text-muted tracking-wider">
                 <tr>
                   <th className="p-3">Exam Date</th>
                   <th className="p-3">Exam Title & Subject</th>
                   <th className="p-3">Batch</th>
-                  <th className="p-3">Marks Secured</th>
+                  <th className="p-3">Marks</th>
                   <th className="p-3">Grade</th>
-                  <th className="p-3">Batch Rank</th>
+                  <th className="p-3">Rank</th>
                   <th className="p-3">Status</th>
-                  <th className="p-3 text-right">Official Scorecard</th>
+                  <th className="p-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-theme">
+              <tbody className="divide-y divide-accent">
                 {filteredResults.map((r) => {
                   const percent = Math.round((r.marksObtained / (r.exam.totalMarks || 100)) * 100);
                   return (
                     <tr key={r.id} className="hover:bg-bg-app/40 transition-colors">
-                      <td className="p-3 font-mono text-[11px] text-text-main/70">
+                      <td className="p-3 font-mono text-[11px] text-text-muted">
                         {r.exam.examDate ? r.exam.examDate.split("T")[0] : "—"}
                       </td>
                       <td className="p-3">
@@ -401,7 +401,7 @@ export const StudentExamsPage: React.FC = () => {
                           {r.exam.subject || r.exam.examType.replace(/_/g, " ")}
                         </p>
                       </td>
-                      <td className="p-3 text-text-main/70">
+                      <td className="p-3 text-text-muted">
                         {r.exam.batch?.name || "Enrolled Batch"}
                       </td>
                       <td className="p-3 font-mono font-bold text-text-main">
@@ -429,9 +429,9 @@ export const StudentExamsPage: React.FC = () => {
                       <td className="p-3 text-right">
                         <button
                           onClick={() => handleOpenScorecard(r)}
-                          className="px-2.5 py-1 text-xs font-semibold bg-bg-app hover:bg-brand-primary hover:text-white border border-theme rounded-sm transition-colors inline-flex items-center gap-1.5 shadow-xs"
+                          className="px-2.5 py-1 text-xs font-semibold bg-bg-app hover:bg-brand-primary hover:text-white border border-accent rounded-sm transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                         >
-                          <Printer className="w-3.5 h-3.5" /> Print Scorecard
+                          <Printer className="w-3.5 h-3.5" /> Scorecard
                         </button>
                       </td>
                     </tr>

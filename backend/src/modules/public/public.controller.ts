@@ -83,4 +83,18 @@ export class PublicController {
       next(error);
     }
   }
+
+  static async getFacultyProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await PublicService.getFacultyPublicProfile(req.params.id);
+      if (!data) {
+        ResponseUtil.error(res, "Faculty member not found", 404);
+        return;
+      }
+      ResponseUtil.success(res, data, "Faculty profile retrieved successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
 }
+

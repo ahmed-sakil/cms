@@ -139,10 +139,10 @@ export const AdminDashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-text-main">
-            Executive Operations Dashboard
+            Admin Dashboard
           </h1>
           <p className="text-xs text-text-muted mt-0.5">
-            Cross-branch overview and real-time admission metrics.
+            Overview and key metrics.
           </p>
         </div>
 

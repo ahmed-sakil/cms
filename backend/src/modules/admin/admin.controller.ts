@@ -400,5 +400,47 @@ export class AdminController {
       next(error);
     }
   }
+
+  // ========================================================
+  // TEACHER ONBOARDING APPLICATIONS
+  // ========================================================
+  static async listTeacherApplications(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const status = req.query.status as string | undefined;
+      const branchId = (req.query.branchId as string) || (req.user?.role === "BRANCH_ADMIN" ? req.user.branchId || undefined : undefined);
+      const list = await AdminService.listTeacherApplications(status, branchId);
+      ResponseUtil.success(res, list, "Teacher applications retrieved");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getTeacherApplication(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const application = await AdminService.getTeacherApplication(req.params.id);
+      ResponseUtil.success(res, application, "Teacher application details retrieved");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async approveTeacherApplication(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AdminService.approveTeacherApplication(req.params.id, req.body, req.user?.userId);
+      ResponseUtil.success(res, result, "Teacher application approved and role updated to Faculty");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async rejectTeacherApplication(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { rejectionReason } = req.body;
+      const result = await AdminService.rejectTeacherApplication(req.params.id, rejectionReason, req.user?.userId);
+      ResponseUtil.success(res, result, "Teacher application rejected");
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 

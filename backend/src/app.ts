@@ -15,6 +15,7 @@ import { uploadRouter } from "./modules/upload/upload.routes.js";
 import batchRoutes from "./modules/batches/batch.routes.js";
 import financeRoutes from "./modules/finance/finance.routes.js";
 import opsRoutes from "./modules/academic-ops/academic-ops.routes.js";
+import teacherRoutes from "./modules/teacher/teacher.routes.js";
 import { authRateLimiter, publicRateLimiter } from "./middleware/rateLimiter.js";
 
 
@@ -80,6 +81,7 @@ export const createApp = () => {
   app.use("/api/v1/academics", batchRoutes);
   app.use("/api/v1/finance", financeRoutes);
   app.use("/api/v1/ops", opsRoutes);
+  app.use("/api/v1/teacher", teacherRoutes);
 
   // Centralized Error Handling Middleware
   app.use(errorHandler);

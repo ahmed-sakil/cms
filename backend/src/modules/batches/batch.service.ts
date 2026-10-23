@@ -80,6 +80,7 @@ export class BatchService {
     branchId?: string;
     courseId?: string;
     academicClassId?: string;
+    teacherId?: string;
     status?: BatchStatus;
     isPublicOnly?: boolean;
   }) {
@@ -89,6 +90,12 @@ export class BatchService {
     if (filter.academicClassId) where.academicClassId = filter.academicClassId;
     if (filter.status) where.status = filter.status;
     if (filter.isPublicOnly) where.isPublic = true;
+    if (filter.teacherId) {
+      where.OR = [
+        { teacherId: filter.teacherId },
+        { teacher: { userId: filter.teacherId } },
+      ];
+    }
 
     const batches = await prisma.batch.findMany({
       where,

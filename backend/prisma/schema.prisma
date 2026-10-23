@@ -18,6 +18,13 @@ enum UserRole {
   STAFF
   STUDENT
   PARENT
+  APPLICANT
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum Gender {
@@ -205,6 +212,7 @@ model Branch {
   invoices       StudentInvoice[]
   payments       PaymentTransaction[]
   expenseRecords ExpenseRecord[]
+  teacherApplications TeacherApplication[]
 
   @@index([institutionId, isActive])
 }
@@ -238,10 +246,13 @@ model User {
   teacherProfile TeacherProfile?
   staffProfile   StaffProfile?
   studentProfile StudentProfile?
+  teacherApplication TeacherApplication?
+  reviewedTeacherApplications TeacherApplication[] @relation("ReviewedTeacherApplications")
   uploadedMaterials StudyMaterial[]
   recordedExpenses  ExpenseRecord[] @relation("ExpenseRecorder")
   approvedExpenses  ExpenseRecord[] @relation("ExpenseApprover")
   collectedPayments PaymentTransaction[]
+  authoredNotices   PublicNotice[]  @relation("NoticeAuthor")
 
   @@index([branchId, role])
   @@index([role, isActive])
@@ -280,6 +291,37 @@ model TeacherProfile {
 
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   batches        Batch[]
+}
+
+model TeacherApplication {
+  id                        String            @id @default(uuid()) @db.Uuid
+  userId                    String            @unique @db.Uuid
+  gender                    Gender            @default(MALE)
+  dateOfBirth               DateTime?
+  fatherName                String?
+  motherName                String?
+  religion                  String?
+  presentAddress            String?
+  permanentAddress          String?
+  educationalQualifications Json?             @default("[]")
+  preferredClass            String?
+  preferredSubject          String?
+  preferredBranchId         String?           @db.Uuid
+  avatarUrl                 String?
+  bio                       String?
+  status                    ApplicationStatus @default(PENDING)
+  adminNotes                String?
+  reviewedById              String?           @db.Uuid
+  reviewedAt                DateTime?
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
+
+  user                      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredBranch           Branch?           @relation(fields: [preferredBranchId], references: [id], onDelete: SetNull)
+  reviewedBy                User?             @relation("ReviewedTeacherApplications", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([preferredBranchId])
 }
 
 model StudentProfile {
@@ -338,6 +380,7 @@ model Course {
   batches       Batch[]
   studyMaterials StudyMaterial[]
   feeStructures FeeStructure[]
+  notices       PublicNotice[]
 
   @@unique([branchId, code])
   @@index([branchId, isPublic, isPublished])
@@ -466,13 +509,17 @@ model Exam {
   totalMarks   Decimal      @db.Decimal(5, 2)
   passMarks    Decimal      @db.Decimal(5, 2)
   examDate     DateTime
+  isPublished  Boolean      @default(false)
+  publishedAt  DateTime?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
   batch        Batch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
   results      ExamResult[]
+  studyMaterials StudyMaterial[]
 
   @@index([batchId, examDate])
+  @@index([batchId, isPublished])
 }
 
 model ExamResult {
@@ -501,6 +548,8 @@ model PublicNotice {
   id            String    @id @default(uuid()) @db.Uuid
   branchId      String?   @db.Uuid
   batchId       String?   @db.Uuid
+  courseId      String?   @db.Uuid
+  authorId      String?   @db.Uuid
   title         String
   content       String
   isPublic      Boolean   @default(true)
@@ -514,9 +563,12 @@ model PublicNotice {
 
   branch        Branch?   @relation(fields: [branchId], references: [id], onDelete: Cascade)
   batch         Batch?    @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  course        Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  author        User?     @relation("NoticeAuthor", fields: [authorId], references: [id], onDelete: SetNull)
 
   @@index([branchId, isPublic, publishedAt])
   @@index([batchId])
+  @@index([courseId])
 }
 
 model ReferralPayout {
@@ -613,9 +665,11 @@ model StudyMaterial {
   branchId    String?   @db.Uuid
   courseId    String?   @db.Uuid
   batchId     String?   @db.Uuid
+  examId      String?   @db.Uuid
   uploaderId  String    @db.Uuid
   title       String
   description String?
+  classTopic  String?
   fileUrl     String
   fileType    String?   // pdf, docx, image, zip, link
   fileSize    Int?      // in bytes
@@ -626,11 +680,13 @@ model StudyMaterial {
   branch      Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
   course      Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
   batch       Batch?    @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  exam        Exam?     @relation(fields: [examId], references: [id], onDelete: SetNull)
   uploader    User      @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
 
   @@index([batchId])
   @@index([courseId])
   @@index([branchId])
+  @@index([examId])
 }
 
 // ----------------------------------------------------

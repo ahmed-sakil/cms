@@ -164,22 +164,22 @@ export const StudentReferralsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-theme pb-5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-accent pb-5">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
-            <Share2 className="w-5 h-5 text-brand-primary" /> Student Referral & Rewards Hub
+          <h1 className="text-lg font-bold text-text-main flex items-center gap-2">
+            <Share2 className="w-5 h-5 text-brand-primary" /> Referrals & Rewards
           </h1>
-          <p className="text-xs text-text-main/60 mt-0.5">
-            Share your unique invite link with peers. Once they register and enroll in a batch, you automatically earn ৳500 commission!
+          <p className="text-xs text-text-muted mt-0.5">
+            Share your invite link with peers and earn commission when they enroll.
           </p>
         </div>
 
         <button
           onClick={() => setShowPayoutModal(true)}
           disabled={data.availableBalance < 500}
-          className="px-4 py-2 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:opacity-95 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed shadow-xs flex items-center gap-1.5"
+          className="px-4 py-2 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:opacity-95 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
         >
-          <CreditCard className="w-3.5 h-3.5" /> Request Commission Payout
+          <CreditCard className="w-3.5 h-3.5" /> Request Payout
         </button>
       </div>
 
@@ -201,7 +201,7 @@ export const StudentReferralsPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <div className="flex items-center gap-2 bg-bg-app border border-theme px-3 py-2 rounded-sm w-full md:w-auto">
+            <div className="flex items-center gap-2 bg-bg-app border border-accent px-3 py-2 rounded-sm w-full md:w-auto">
               <span className="text-[10px] text-text-main/50 uppercase font-bold tracking-wider">Code:</span>
               {loading ? (
                 <div className="h-4 w-24 bg-theme/40 animate-pulse rounded-xs" />
@@ -223,7 +223,7 @@ export const StudentReferralsPage: React.FC = () => {
         </div>
 
         {/* Complete URL Box */}
-        <div className="p-2.5 bg-bg-app border border-theme rounded-sm flex items-center justify-between gap-2 overflow-x-auto text-xs font-mono text-text-main/80">
+        <div className="p-2.5 bg-bg-app border border-accent rounded-sm flex items-center justify-between gap-2 overflow-x-auto text-xs font-mono text-text-main/80">
           {loading ? (
             <div className="h-4 w-64 bg-theme/40 animate-pulse rounded-xs" />
           ) : (
@@ -241,7 +241,7 @@ export const StudentReferralsPage: React.FC = () => {
 
       {/* Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-surface border border-theme rounded-sm p-4 space-y-1 shadow-xs">
+        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
           <div className="flex justify-between items-center text-text-main/60">
             <span className="text-xs font-medium">Referred Students</span>
             <TrendingUp className="w-4 h-4 text-brand-primary" />
@@ -259,7 +259,7 @@ export const StudentReferralsPage: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-surface border border-theme rounded-sm p-4 space-y-1 shadow-xs">
+        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
           <div className="flex justify-between items-center text-text-main/60">
             <span className="text-xs font-medium">Total Commission</span>
             <TrendingUp className="w-4 h-4 text-brand-primary" />
@@ -277,7 +277,7 @@ export const StudentReferralsPage: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-surface border border-theme rounded-sm p-4 space-y-1 shadow-xs">
+        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
           <div className="flex justify-between items-center text-text-main/60">
             <span className="text-xs font-medium">Paid Out</span>
             <CheckCircle2 className="w-4 h-4 text-green-600" />
@@ -319,8 +319,8 @@ export const StudentReferralsPage: React.FC = () => {
       </div>
 
       {/* Payout History Table */}
-      <div className="bg-surface border border-theme rounded-sm shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-theme flex items-center justify-between">
+      <div className="bg-surface border border-accent rounded-sm shadow-xs overflow-hidden">
+        <div className="p-4 border-b border-accent flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-brand-primary" />
             <h2 className="text-sm font-bold text-text-main">Commission Withdrawal History</h2>
@@ -358,7 +358,7 @@ export const StudentReferralsPage: React.FC = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-bg-app border-b border-theme text-[10px] uppercase font-bold text-text-main/60 tracking-wider">
+              <thead className="bg-bg-app border-b border-accent text-[10px] uppercase font-bold text-text-main/60 tracking-wider">
                 <tr>
                   <th className="p-3">Request Date</th>
                   <th className="p-3">Amount</th>
@@ -378,7 +378,7 @@ export const StudentReferralsPage: React.FC = () => {
                       ৳{Number(p.amount).toLocaleString()}
                     </td>
                     <td className="p-3">
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xs border border-theme bg-bg-app">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xs border border-accent bg-bg-app">
                         {p.method}
                       </span>
                     </td>
@@ -414,8 +414,8 @@ export const StudentReferralsPage: React.FC = () => {
       {/* Payout Request Modal */}
       {showPayoutModal && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-surface border border-theme rounded-sm max-w-md w-full p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between border-b border-theme pb-3">
+          <div className="bg-surface border border-accent rounded-sm max-w-md w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-accent pb-3">
               <div className="flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-brand-primary" />
                 <h3 className="text-sm font-bold text-text-main">
@@ -454,7 +454,7 @@ export const StudentReferralsPage: React.FC = () => {
                     setPayoutForm({ ...payoutForm, amount: Number(e.target.value) })
                   }
                   required
-                  className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none font-mono"
+                  className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none font-mono"
                 />
                 <p className="text-[10px] text-text-main/50 mt-1">
                   Minimum withdrawal threshold: ৳500
@@ -470,7 +470,7 @@ export const StudentReferralsPage: React.FC = () => {
                   onChange={(e) =>
                     setPayoutForm({ ...payoutForm, method: e.target.value as PaymentMethod })
                   }
-                  className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none"
+                  className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none"
                 >
                   <option value={PaymentMethod.BKASH}>bKash Personal Mobile Wallet</option>
                   <option value={PaymentMethod.NAGAD}>Nagad Personal Mobile Wallet</option>
@@ -493,7 +493,7 @@ export const StudentReferralsPage: React.FC = () => {
                       setPayoutForm({ ...payoutForm, accountNumber: e.target.value })
                     }
                     required
-                    className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none font-mono"
+                    className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none font-mono"
                   />
                 </div>
               )}
@@ -507,15 +507,15 @@ export const StudentReferralsPage: React.FC = () => {
                   placeholder="e.g. Personal bKash number, urgent payout"
                   value={payoutForm.notes}
                   onChange={(e) => setPayoutForm({ ...payoutForm, notes: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-bg-app border border-theme rounded-sm focus:border-brand-primary outline-none"
+                  className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:border-brand-primary outline-none"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-theme">
+              <div className="flex justify-end gap-2 pt-3 border-t border-accent">
                 <button
                   type="button"
                   onClick={() => setShowPayoutModal(false)}
-                  className="px-3 py-1.5 text-xs font-medium text-text-main/70 hover:bg-bg-app border border-theme rounded-sm"
+                  className="px-3 py-1.5 text-xs font-medium text-text-main/70 hover:bg-bg-app border border-accent rounded-sm"
                 >
                   Cancel
                 </button>

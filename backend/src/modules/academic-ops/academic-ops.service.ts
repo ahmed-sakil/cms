@@ -363,7 +363,10 @@ export class AcademicOpsService {
     if (!student) throw new NotFoundError("Student record not found");
 
     return prisma.examResult.findMany({
-      where: { studentId: student.id },
+      where: {
+        studentId: student.id,
+        exam: { isPublished: true },
+      },
       include: {
         exam: {
           include: {

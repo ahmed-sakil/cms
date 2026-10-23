@@ -249,7 +249,7 @@ export const StudentFeesPage: React.FC = () => {
         <div className="bg-surface border border-accent rounded-sm shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-accent-subtle text-text-muted border-b border-accent uppercase text-[10px] tracking-wider font-semibold">
+              <thead className="bg-bg-app text-text-muted border-b border-accent uppercase text-[10px] tracking-wider font-semibold">
                 <tr>
                   <th className="py-2.5 px-4">Invoice #</th>
                   <th className="py-2.5 px-4">Fee Description</th>
@@ -281,7 +281,7 @@ export const StudentFeesPage: React.FC = () => {
                   </tr>
                 ) : (
                   invoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-accent-subtle/40 transition-colors">
+                    <tr key={inv.id} className="hover:bg-bg-app/40 transition-colors">
                       <td className="py-3 px-4 font-mono font-bold text-text-main">
                         {inv.invoiceNumber}
                       </td>
@@ -336,7 +336,7 @@ export const StudentFeesPage: React.FC = () => {
         <div className="bg-surface border border-accent rounded-sm shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-accent-subtle text-text-muted border-b border-accent uppercase text-[10px] tracking-wider font-semibold">
+              <thead className="bg-bg-app text-text-muted border-b border-accent uppercase text-[10px] tracking-wider font-semibold">
                 <tr>
                   <th className="py-2.5 px-4">Receipt #</th>
                   <th className="py-2.5 px-4">Payment Method</th>
@@ -366,7 +366,7 @@ export const StudentFeesPage: React.FC = () => {
                   </tr>
                 ) : (
                   payments.map((p) => (
-                    <tr key={p.id} className="hover:bg-accent-subtle/40 transition-colors">
+                    <tr key={p.id} className="hover:bg-bg-app/40 transition-colors">
                       <td className="py-3 px-4 font-mono font-bold text-text-main">
                         {p.receiptNumber}
                       </td>
@@ -415,7 +415,7 @@ export const StudentFeesPage: React.FC = () => {
                               collectedBy: "Accounts Department",
                             })
                           }
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-accent-subtle hover:bg-brand-primary hover:text-white border border-accent rounded-sm transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-bg-app hover:bg-brand-primary hover:text-white border border-accent rounded-sm transition-colors cursor-pointer"
                         >
                           <Printer className="w-3.5 h-3.5" /> Print Receipt
                         </button>

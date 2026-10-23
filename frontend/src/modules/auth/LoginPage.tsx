@@ -17,6 +17,7 @@ import {
   Trophy,
   CreditCard,
   Building2,
+  UserCheck,
 } from "lucide-react";
 import { UserRole } from "../../types/index.js";
 import { setDynamicFavicon } from "../../utils/dynamicFavicon.js";
@@ -103,6 +104,10 @@ export const LoginPage: React.FC = () => {
         navigate(redirect);
       } else if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.BRANCH_ADMIN) {
         navigate("/admin");
+      } else if (user.role === UserRole.TEACHER) {
+        navigate("/teacher");
+      } else if (user.role === UserRole.APPLICANT) {
+        navigate("/teacher/application-status");
       } else {
         navigate("/student");
       }
@@ -297,30 +302,42 @@ export const LoginPage: React.FC = () => {
           {/* Card Box */}
           <div className="bg-surface border border-accent rounded-sm p-6 sm:p-7 space-y-5 shadow-sm">
             {/* Role Switcher Tabs */}
-            <div className="grid grid-cols-2 gap-1 p-1 bg-bg-app border border-accent rounded-sm text-xs font-semibold">
+            <div className="grid grid-cols-3 gap-1 p-1 bg-bg-app border border-accent rounded-sm text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => handleRoleSwitch(UserRole.SUPER_ADMIN)}
-                className={`py-2 rounded-sm transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-1 rounded-sm transition-all flex items-center justify-center gap-1 text-[11px] sm:text-xs ${
                   role === UserRole.SUPER_ADMIN
                     ? "bg-surface text-brand-primary shadow-xs border border-accent font-bold"
                     : "text-text-muted hover:text-text-main"
                 }`}
               >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Admin / Staff</span>
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Admin</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRoleSwitch(UserRole.TEACHER)}
+                className={`py-2 px-1 rounded-sm transition-all flex items-center justify-center gap-1 text-[11px] sm:text-xs ${
+                  role === UserRole.TEACHER
+                    ? "bg-surface text-brand-primary shadow-xs border border-accent font-bold"
+                    : "text-text-muted hover:text-text-main"
+                }`}
+              >
+                <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Teacher</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleRoleSwitch(UserRole.STUDENT)}
-                className={`py-2 rounded-sm transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-1 rounded-sm transition-all flex items-center justify-center gap-1 text-[11px] sm:text-xs ${
                   role === UserRole.STUDENT
                     ? "bg-surface text-brand-primary shadow-xs border border-accent font-bold"
                     : "text-text-muted hover:text-text-main"
                 }`}
               >
-                <GraduationCap className="w-3.5 h-3.5" />
-                <span>Student Portal</span>
+                <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Student</span>
               </button>
             </div>
 
@@ -332,7 +349,13 @@ export const LoginPage: React.FC = () => {
                 <input
                   type="email"
                   required
-                  placeholder={role === UserRole.STUDENT ? "student@apexcoaching.com" : "admin@apexcoaching.com"}
+                  placeholder={
+                    role === UserRole.STUDENT
+                      ? "student@apexcoaching.com"
+                      : role === UserRole.TEACHER
+                      ? "teacher@apexcoaching.com"
+                      : "admin@apexcoaching.com"
+                  }
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-3.5 py-2.5 text-xs bg-bg-app border border-accent rounded-sm focus:outline-none focus:border-brand-primary font-mono text-text-main placeholder:text-text-muted/50"
@@ -368,6 +391,8 @@ export const LoginPage: React.FC = () => {
                       toast.info(
                         role === UserRole.SUPER_ADMIN
                           ? "Default password for admin is 'password123'"
+                          : role === UserRole.TEACHER
+                          ? "Default password for demo faculty is 'password123'"
                           : "For admitted students, your default password is your registered email. You can change it once logged in."
                       )
                     }
@@ -390,21 +415,32 @@ export const LoginPage: React.FC = () => {
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    Sign In to {role === UserRole.STUDENT ? "Student" : "Admin"} Console
+                    Sign In to {role === UserRole.STUDENT ? "Student" : role === UserRole.TEACHER ? "Faculty" : "Admin"} Console
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
 
-            <div className="pt-3 border-t border-accent text-center text-xs">
-              <span className="text-text-muted">Don't have an account yet? </span>
-              <Link
-                to="/register"
-                className="font-bold text-brand-primary hover:underline inline-block"
-              >
-                Register as New Student →
-              </Link>
+            <div className="pt-3 border-t border-accent space-y-2 text-center text-xs">
+              <div>
+                <span className="text-text-muted">Don't have a student account? </span>
+                <Link
+                  to="/register"
+                  className="font-bold text-brand-primary hover:underline inline-block"
+                >
+                  Register as Student →
+                </Link>
+              </div>
+              <div className="pt-1 border-t border-accent/50">
+                <span className="text-text-muted">Want to teach at our coaching? </span>
+                <Link
+                  to="/teacher/register"
+                  className="font-bold text-brand-primary hover:underline inline-block"
+                >
+                  Apply as Faculty / Teacher →
+                </Link>
+              </div>
             </div>
           </div>
         </div>

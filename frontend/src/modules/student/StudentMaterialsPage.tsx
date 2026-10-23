@@ -81,7 +81,7 @@ export const StudentMaterialsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="text-xs font-semibold px-3 py-1.5 bg-accent-subtle border border-accent rounded-sm text-text-main flex items-center gap-1.5">
+        <div className="text-xs font-semibold px-3 py-1.5 bg-bg-app border border-accent rounded-sm text-text-main flex items-center gap-1.5">
           <Layers className="w-3.5 h-3.5 text-brand-primary" /> {loading ? "..." : `${materials.length} Resources Available`}
         </div>
       </div>
@@ -209,7 +209,7 @@ export const StudentMaterialsPage: React.FC = () => {
                   href={item.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-1.5 border border-accent hover:bg-accent-subtle rounded-sm text-text-muted hover:text-text-main transition-colors"
+                  className="p-1.5 border border-accent hover:bg-bg-app rounded-sm text-text-muted hover:text-text-main transition-colors"
                   title="Open in new tab"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />

@@ -74,13 +74,14 @@ export class BatchController {
   // ==========================================
   static async listBatches(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { branchId, courseId, academicClassId, status, isPublicOnly } = req.query;
+      const { branchId, courseId, academicClassId, teacherId, status, isPublicOnly } = req.query;
       const effectiveBranchId = (branchId as string) || req.user?.branchId || undefined;
 
       const batches = await BatchService.listBatches({
         branchId: effectiveBranchId,
         courseId: courseId as string | undefined,
         academicClassId: academicClassId as string | undefined,
+        teacherId: teacherId as string | undefined,
         status: status as BatchStatus | undefined,
         isPublicOnly: isPublicOnly === "true",
       });

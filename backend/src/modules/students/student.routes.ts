@@ -17,10 +17,12 @@ router.use(authGuard);
 router.use(roleGuard([UserRole.STUDENT]));
 
 router.get("/dashboard", StudentController.getDashboard);
+router.get("/attendance", StudentController.getAttendance);
 router.get("/profile", StudentController.getDashboard);
 router.put("/profile", validateRequest(updateStudentProfileSchema), StudentController.updateProfile);
 router.put("/change-password", validateRequest(changePasswordSchema), StudentController.changePassword);
 router.get("/materials", BatchController.getStudentMaterials);
+router.get("/notices", StudentController.getNotices);
 router.get("/invoices", FinanceController.getStudentInvoices);
 router.get("/payments", FinanceController.getStudentPayments);
 router.get("/exams", AcademicOpsController.getStudentExams);

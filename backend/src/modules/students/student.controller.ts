@@ -44,4 +44,29 @@ export class StudentController {
       next(error);
     }
   }
+
+  static async getNotices(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError();
+      }
+      const notices = await StudentService.getStudentNotices(req.user.userId);
+      ResponseUtil.success(res, notices, "Student notices retrieved successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getAttendance(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError();
+      }
+      const attendance = await StudentService.getStudentAttendance(req.user.userId);
+      ResponseUtil.success(res, attendance, "Student attendance retrieved successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
 }
+

@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../config/prisma.js";
 import { BadRequestError, NotFoundError, ForbiddenError } from "../../common/errors/appError.js";
-import { UserRole } from "../../types/index.js";
+import { UserRole, ApplicationStatus } from "../../types/index.js";
 import type {
   CreateStudentInput,
   AdminUpdateStudentInput,
@@ -1423,6 +1423,141 @@ export class AdminService {
     const deleted = await prisma.facultyTip.delete({ where: { id } });
     PublicService.invalidateLandingCache();
     return deleted;
+  }
+
+  // ==========================================
+  // TEACHER ONBOARDING & APPLICATIONS DESK
+  // ==========================================
+  static async listTeacherApplications(status?: string, branchId?: string) {
+    const where: any = {};
+    if (status && status !== "ALL") {
+      where.status = status as ApplicationStatus;
+    }
+    if (branchId) {
+      where.preferredBranchId = branchId;
+    }
+
+    return prisma.teacherApplication.findMany({
+      where,
+      include: {
+        user: {
+          select: { id: true, fullName: true, email: true, phone: true, avatarUrl: true, role: true },
+        },
+        preferredBranch: { select: { id: true, name: true, code: true } },
+        reviewedBy: { select: { id: true, fullName: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  static async getTeacherApplication(id: string) {
+    const application = await prisma.teacherApplication.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: { id: true, fullName: true, email: true, phone: true, avatarUrl: true, role: true },
+        },
+        preferredBranch: { select: { id: true, name: true, code: true } },
+        reviewedBy: { select: { id: true, fullName: true, email: true } },
+      },
+    });
+
+    if (!application) throw new NotFoundError("Teacher application not found");
+    return application;
+  }
+
+  static async approveTeacherApplication(
+    applicationId: string,
+    input: { assignedBranchId?: string; designation?: string; adminNotes?: string },
+    reviewerId?: string
+  ) {
+    const application = await prisma.teacherApplication.findUnique({
+      where: { id: applicationId },
+      include: { user: true },
+    });
+
+    if (!application) throw new NotFoundError("Application not found");
+
+    const targetBranchId = input.assignedBranchId || application.preferredBranchId;
+    if (!targetBranchId) {
+      const firstBranch = await prisma.branch.findFirst({ select: { id: true } });
+      if (!firstBranch) throw new NotFoundError("No active campus branch found to assign faculty to");
+    }
+
+    const effectiveBranchId = targetBranchId || (await prisma.branch.findFirst({ select: { id: true } }))?.id;
+
+    // Run promotion in transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Promote User to TEACHER role and set branch
+      const updatedUser = await tx.user.update({
+        where: { id: application.userId },
+        data: {
+          role: UserRole.TEACHER,
+          branchId: effectiveBranchId,
+          isActive: true,
+        },
+      });
+
+      // 2. Extract qualifications summary from application
+      let qualSummary = "";
+      if (Array.isArray(application.educationalQualifications) && application.educationalQualifications.length > 0) {
+        const latest = (application.educationalQualifications as any[])[0];
+        qualSummary = `${latest?.degree || ""} from ${latest?.institute || ""}`.trim();
+      }
+
+      // 3. Upsert TeacherProfile
+      const teacherProfile = await tx.teacherProfile.upsert({
+        where: { userId: application.userId },
+        create: {
+          userId: application.userId,
+          qualification: qualSummary || "Faculty",
+          specialization: application.preferredSubject || "General Faculty",
+          bio: application.bio || null,
+        },
+        update: {
+          qualification: qualSummary || undefined,
+          specialization: application.preferredSubject || undefined,
+          bio: application.bio || undefined,
+        },
+      });
+
+      // 4. Update application status
+      const updatedApp = await tx.teacherApplication.update({
+        where: { id: applicationId },
+        data: {
+          status: ApplicationStatus.APPROVED,
+          adminNotes: input.adminNotes || "Approved by Super Administrator",
+          reviewedById: reviewerId || null,
+          reviewedAt: new Date(),
+        },
+      });
+
+      return { user: updatedUser, teacherProfile, application: updatedApp };
+    });
+
+    return result;
+  }
+
+  static async rejectTeacherApplication(
+    applicationId: string,
+    rejectionReason?: string,
+    reviewerId?: string
+  ) {
+    const application = await prisma.teacherApplication.findUnique({
+      where: { id: applicationId },
+    });
+
+    if (!application) throw new NotFoundError("Application not found");
+
+    return prisma.teacherApplication.update({
+      where: { id: applicationId },
+      data: {
+        status: ApplicationStatus.REJECTED,
+        adminNotes: rejectionReason || "Application declined",
+        reviewedById: reviewerId || null,
+        reviewedAt: new Date(),
+      },
+    });
   }
 }
 

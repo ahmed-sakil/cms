@@ -19,6 +19,7 @@ import {
   MessageSquare,
   Send,
   ChevronRight,
+  Briefcase,
 } from "lucide-react";
 import { useTheme } from "../lib/theme.js";
 import { setDynamicFavicon } from "../utils/dynamicFavicon.js";
@@ -361,6 +362,15 @@ export const PublicLayout: React.FC = () => {
               {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
             </button>
 
+            {/* Apply as Faculty CTA */}
+            <Link
+              to="/teacher/register"
+              className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface border border-accent hover:border-brand-primary/50 text-text-main rounded-sm transition-colors shadow-xs"
+            >
+              <Briefcase className="w-3.5 h-3.5 text-brand-primary" />
+              <span>Apply as Faculty</span>
+            </Link>
+
             {/* Login button (Desktop only - in drawer for mobile & tablet) */}
             <Link
               to="/login"
@@ -498,6 +508,14 @@ export const PublicLayout: React.FC = () => {
             >
               <LogIn className="w-4 h-4" />
               <span>Login</span>
+            </Link>
+            <Link
+              to="/teacher/register"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-surface border border-accent text-text-main rounded-sm font-semibold text-xs hover:border-brand-primary/50 transition-colors"
+            >
+              <Briefcase className="w-3.5 h-3.5 text-brand-primary" />
+              <span>Apply as Faculty Member</span>
             </Link>
             <Link
               to="/register"

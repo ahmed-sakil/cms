@@ -22,8 +22,14 @@ export class StudentService {
         attendances: {
           take: 10,
           orderBy: { date: "desc" },
+          include: {
+            batch: { select: { name: true } },
+          },
         },
         examResults: {
+          where: {
+            exam: { isPublished: true },
+          },
           take: 5,
           orderBy: { createdAt: "desc" },
           include: {
@@ -56,6 +62,45 @@ export class StudentService {
     });
 
     return { ...student, notices };
+  }
+
+  static async getStudentNotices(userId: string) {
+    const student = await prisma.studentProfile.findUnique({
+      where: { userId },
+      include: {
+        user: { select: { branchId: true } },
+        enrollments: { select: { batchId: true, batch: { select: { courseId: true } } } },
+      },
+    });
+
+    if (!student) {
+      throw new NotFoundError("Student profile not found for this user");
+    }
+
+    const batchIds = student.enrollments.map((e) => e.batchId);
+    const courseIds = student.enrollments.map((e) => e.batch.courseId).filter(Boolean) as string[];
+    const branchId = student.user.branchId;
+
+    return prisma.publicNotice.findMany({
+      where: {
+        OR: [
+          { isPublic: true },
+          ...(branchId ? [{ branchId }] : []),
+          ...(batchIds.length > 0 ? [{ batchId: { in: batchIds } }] : []),
+          ...(courseIds.length > 0 ? [{ courseId: { in: courseIds } }] : []),
+        ],
+        AND: [
+          { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+        ],
+      },
+      include: {
+        branch: { select: { id: true, name: true, code: true } },
+        batch: { select: { id: true, name: true } },
+        course: { select: { id: true, name: true } },
+        author: { select: { fullName: true } },
+      },
+      orderBy: [{ pinned: "desc" }, { publishedAt: "desc" }],
+    });
   }
 
   static async changePassword(userId: string, currentPassword: string, newPassword: string) {
@@ -127,4 +172,31 @@ export class StudentService {
 
     return updatedUser;
   }
+
+  static async getStudentAttendance(userId: string) {
+    const student = await prisma.studentProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!student) {
+      throw new NotFoundError("Student profile not found for this user");
+    }
+
+    return prisma.attendance.findMany({
+      where: { studentId: student.id },
+      orderBy: { date: "desc" },
+      include: {
+        batch: {
+          select: {
+            id: true,
+            name: true,
+            classroom: true,
+            course: { select: { name: true } },
+          },
+        },
+      },
+    });
+  }
 }
+

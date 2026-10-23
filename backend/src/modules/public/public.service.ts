@@ -427,4 +427,61 @@ export class PublicService {
       distribution,
     };
   }
+
+  static async getFacultyPublicProfile(teacherIdOrUserId: string) {
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: teacherIdOrUserId, role: "TEACHER" },
+          { teacherProfile: { id: teacherIdOrUserId } },
+        ],
+      },
+      include: {
+        branch: { select: { id: true, name: true, code: true, address: true, phone: true } },
+        teacherProfile: {
+          include: {
+            batches: {
+              where: { isPublic: true, deletedAt: null },
+              select: {
+                id: true,
+                name: true,
+                status: true,
+                academicClass: { select: { name: true } },
+                course: { select: { name: true } },
+              },
+            },
+          },
+        },
+        teacherApplication: {
+          select: {
+            educationalQualifications: true,
+            preferredClass: true,
+            preferredSubject: true,
+            bio: true,
+          },
+        },
+      },
+    });
+
+    if (!user) return null;
+
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+      branch: user.branch,
+      specialization:
+        user.teacherProfile?.specialization ||
+        user.teacherApplication?.preferredSubject ||
+        "Faculty Instructor",
+      qualification:
+        user.teacherProfile?.qualification || "Distinguished Faculty",
+      bio: user.teacherProfile?.bio || user.teacherApplication?.bio || "",
+      educationalQualifications:
+        user.teacherApplication?.educationalQualifications || [],
+      batches: user.teacherProfile?.batches || [],
+    };
+  }
 }
+

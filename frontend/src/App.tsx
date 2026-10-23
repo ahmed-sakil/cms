@@ -38,6 +38,9 @@ const AdminLayout = lazy(() =>
 const StudentLayout = lazy(() =>
   import("./layouts/StudentLayout.js").then((m) => ({ default: m.StudentLayout }))
 );
+const TeacherLayout = lazy(() =>
+  import("./layouts/TeacherLayout.js").then((m) => ({ default: m.TeacherLayout }))
+);
 
 // Lazy-loaded Public & Auth Pages
 const LandingPage = lazy(() =>
@@ -52,11 +55,71 @@ const FacultyTipDetailsPage = lazy(() =>
 const ReviewsPage = lazy(() =>
   import("./modules/public/ReviewsPage.js").then((m) => ({ default: m.ReviewsPage }))
 );
+const FacultyProfilePage = lazy(() =>
+  import("./modules/public/FacultyProfilePage.js").then((m) => ({ default: m.FacultyProfilePage }))
+);
 const LoginPage = lazy(() =>
   import("./modules/auth/LoginPage.js").then((m) => ({ default: m.LoginPage }))
 );
 const RegisterPage = lazy(() =>
   import("./modules/auth/RegisterPage.js").then((m) => ({ default: m.RegisterPage }))
+);
+
+// Lazy-loaded Teacher & Applicant Modules
+const TeacherRegistrationPage = lazy(() =>
+  import("./modules/teacher/TeacherRegistrationPage.js").then((m) => ({
+    default: m.TeacherRegistrationPage,
+  }))
+);
+const TeacherApplicationPage = lazy(() =>
+  import("./modules/teacher/TeacherApplicationPage.js").then((m) => ({
+    default: m.TeacherApplicationPage,
+  }))
+);
+const TeacherApplicationStatusPage = lazy(() =>
+  import("./modules/teacher/TeacherApplicationStatusPage.js").then((m) => ({
+    default: m.TeacherApplicationStatusPage,
+  }))
+);
+const TeacherDashboard = lazy(() =>
+  import("./modules/teacher/TeacherDashboard.js").then((m) => ({
+    default: m.TeacherDashboard,
+  }))
+);
+const TeacherBatchesPage = lazy(() =>
+  import("./modules/teacher/TeacherBatchesPage.js").then((m) => ({
+    default: m.TeacherBatchesPage,
+  }))
+);
+const TeacherAttendancePage = lazy(() =>
+  import("./modules/teacher/TeacherAttendancePage.js").then((m) => ({
+    default: m.TeacherAttendancePage,
+  }))
+);
+const TeacherExamsPage = lazy(() =>
+  import("./modules/teacher/TeacherExamsPage.js").then((m) => ({
+    default: m.TeacherExamsPage,
+  }))
+);
+const TeacherMaterialsPage = lazy(() =>
+  import("./modules/teacher/TeacherMaterialsPage.js").then((m) => ({
+    default: m.TeacherMaterialsPage,
+  }))
+);
+const TeacherNoticesPage = lazy(() =>
+  import("./modules/teacher/TeacherNoticesPage.js").then((m) => ({
+    default: m.TeacherNoticesPage,
+  }))
+);
+const TeacherTipsPage = lazy(() =>
+  import("./modules/teacher/TeacherTipsPage.js").then((m) => ({
+    default: m.TeacherTipsPage,
+  }))
+);
+const TeacherProfilePage = lazy(() =>
+  import("./modules/teacher/TeacherProfilePage.js").then((m) => ({
+    default: m.TeacherProfilePage,
+  }))
 );
 
 // Lazy-loaded Admin Modules
@@ -161,6 +224,16 @@ const StudentReferralsPage = lazy(() =>
     default: m.StudentReferralsPage,
   }))
 );
+const StudentNoticesPage = lazy(() =>
+  import("./modules/student/StudentNoticesPage.js").then((m) => ({
+    default: m.StudentNoticesPage,
+  }))
+);
+const StudentAttendancePage = lazy(() =>
+  import("./modules/student/StudentAttendancePage.js").then((m) => ({
+    default: m.StudentAttendancePage,
+  }))
+);
 
 const RouteLoadingFallback: React.FC = () => (
   <div className="flex items-center justify-center min-h-[50vh] p-8">
@@ -194,11 +267,15 @@ export function App() {
             <Route path="/faculty-tips/:id" element={<FacultyTipDetailsPage />} />
             <Route path="/reviews" element={<ReviewsPage />} />
             <Route path="/testimonials" element={<ReviewsPage />} />
+            <Route path="/faculty/:id" element={<FacultyProfilePage />} />
           </Route>
 
           {/* Auth Entry */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/teacher/register" element={<TeacherRegistrationPage />} />
+          <Route path="/teacher/apply" element={<TeacherApplicationPage />} />
+          <Route path="/teacher/application-status" element={<TeacherApplicationStatusPage />} />
 
           {/* Protected Admin Portal */}
           <Route
@@ -247,12 +324,38 @@ export function App() {
             }
           >
             <Route index element={<StudentDashboard />} />
+            <Route path="notices" element={<StudentNoticesPage />} />
             <Route path="materials" element={<StudentMaterialsPage />} />
             <Route path="profile" element={<StudentProfilePage />} />
-            <Route path="attendance" element={<StudentDashboard />} />
+            <Route path="attendance" element={<StudentAttendancePage />} />
             <Route path="exams" element={<StudentExamsPage />} />
             <Route path="fees" element={<StudentFeesPage />} />
             <Route path="referrals" element={<StudentReferralsPage />} />
+          </Route>
+
+          {/* Protected Teacher Portal */}
+          <Route
+            path="/teacher"
+            element={
+              <RoleRouteGuard
+                allowedRoles={[
+                  UserRole.TEACHER,
+                  UserRole.SUPER_ADMIN,
+                  UserRole.BRANCH_ADMIN,
+                ]}
+              >
+                <TeacherLayout />
+              </RoleRouteGuard>
+            }
+          >
+            <Route index element={<TeacherDashboard />} />
+            <Route path="batches" element={<TeacherBatchesPage />} />
+            <Route path="attendance" element={<TeacherAttendancePage />} />
+            <Route path="exams" element={<TeacherExamsPage />} />
+            <Route path="materials" element={<TeacherMaterialsPage />} />
+            <Route path="notices" element={<TeacherNoticesPage />} />
+            <Route path="tips" element={<TeacherTipsPage />} />
+            <Route path="profile" element={<TeacherProfilePage />} />
           </Route>
 
           {/* Fallback */}

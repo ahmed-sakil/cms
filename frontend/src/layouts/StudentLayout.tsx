@@ -5,15 +5,15 @@ import {
   CalendarCheck,
   Receipt,
   LogOut,
-  GraduationCap,
   Moon,
   Sun,
   FileText,
   Share2,
-  ChevronRight,
   Award,
+  Bell,
   Menu,
-  X,
+  ExternalLink,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "../lib/theme.js";
@@ -26,20 +26,25 @@ export const StudentLayout: React.FC = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [currentUser] = useState<{
+    id?: string;
     fullName?: string;
     email?: string;
     rollNumber?: string;
     avatarUrl?: string;
-  }>(() => {
+  } | null>(() => {
     try {
       const stored = localStorage.getItem("cms_user");
-      return stored ? JSON.parse(stored) : {};
+      return stored ? JSON.parse(stored) : null;
     } catch {
-      return {};
+      return null;
     }
   });
 
-  const [institutionName, setInstitutionName] = useState<string>("");
+  const [institution, setInstitution] = useState<{
+    name?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+  } | null>(null);
 
   useEffect(() => {
     fetch("/api/v1/public/landing")
@@ -47,8 +52,12 @@ export const StudentLayout: React.FC = () => {
       .then((json) => {
         if (json.success && json.data?.organization) {
           const org = json.data.organization;
-          setInstitutionName(org.name || "");
-          setDynamicFavicon(org.faviconUrl || org.logoUrl, org.name, org.logoUrl);
+          setInstitution(org);
+          setDynamicFavicon(
+            org.faviconUrl || org.logoUrl,
+            org.name,
+            org.logoUrl
+          );
         }
       })
       .catch(() => {});
@@ -62,16 +71,6 @@ export const StudentLayout: React.FC = () => {
     navigate("/login");
   };
 
-
-  const navLinks = [
-    { label: "Dashboard Overview", path: "/student", icon: LayoutDashboard, hasSubActions: false },
-    { label: "Study Materials", path: "/student/materials", icon: FileText, hasSubActions: true },
-    { label: "Attendance Record", path: "/student/attendance", icon: CalendarCheck, hasSubActions: false },
-    { label: "Exam Scores & Cards", path: "/student/exams", icon: Award, hasSubActions: true },
-    { label: "Fee Invoices & Pay", path: "/student/fees", icon: Receipt, hasSubActions: true },
-    { label: "Referrals & Rewards", path: "/student/referrals", icon: Share2, hasSubActions: true },
-  ];
-
   const getInitials = (name?: string) => {
     if (!name) return "ST";
     const parts = name.trim().split(" ");
@@ -79,169 +78,196 @@ export const StudentLayout: React.FC = () => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
+  const navLinks = [
+    { label: "Dashboard", path: "/student", icon: LayoutDashboard },
+    { label: "Notices", path: "/student/notices", icon: Bell },
+    { label: "Study Materials", path: "/student/materials", icon: FileText },
+    { label: "Attendance", path: "/student/attendance", icon: CalendarCheck },
+    { label: "Exams", path: "/student/exams", icon: Award },
+    { label: "Fees", path: "/student/fees", icon: Receipt },
+    { label: "Referrals", path: "/student/referrals", icon: Share2 },
+    { label: "Profile", path: "/student/profile", icon: User },
+  ];
+
+  const currentNav = navLinks.find(
+    (l) => l.path === location.pathname || (l.path !== "/student" && location.pathname.startsWith(l.path))
+  );
+
   const SidebarContent = (
-    <div className="flex flex-col h-full justify-between bg-surface">
-      {/* Brand & Enrollment Header */}
+    <div className="flex flex-col h-full justify-between bg-surface border-r border-accent">
       <div>
-        <div className="h-16 border-b border-theme px-5 flex items-center justify-between">
-          <Link to="/student" className="flex items-center gap-2.5 font-bold text-sm">
-            <div className="w-8 h-8 bg-brand-primary text-white flex items-center justify-center rounded-sm font-bold shadow-xs">
-              <GraduationCap className="w-4 h-4" />
-            </div>
-            <div className="leading-tight">
-              {institutionName ? (
-                <span className="block text-text-main font-bold truncate max-w-[130px]">
-                  {institutionName}
-                </span>
-              ) : (
-                <span className="block h-4 w-24 bg-accent rounded-xs animate-pulse my-0.5" />
-              )}
-              <span className="block text-[10px] text-text-main/50 font-normal">Student Portal</span>
+        {/* Brand Header */}
+        <div className="h-16 border-b border-accent px-4 flex items-center justify-between">
+          <Link to="/student" className="flex items-center gap-2.5 font-bold text-sm min-w-0">
+            {institution?.logoUrl ? (
+              <img
+                src={institution.logoUrl}
+                alt={institution.name || "Logo"}
+                className="w-8 h-8 rounded-sm object-contain border border-accent bg-white shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-sm bg-brand-primary text-white flex items-center justify-center font-bold text-xs shrink-0">
+                SP
+              </div>
+            )}
+            <div className="truncate">
+              <span className="block text-text-main text-xs font-bold truncate">
+                {institution?.name || "Apex Academy"}
+              </span>
+              <span className="block text-[10px] text-brand-primary font-semibold tracking-wider uppercase">
+                Student Portal
+              </span>
             </div>
           </Link>
-          <span className="text-[9px] font-bold px-1.5 py-0.5 bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300 rounded-xs uppercase tracking-wider">
-            Active
-          </span>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <Link
+              to="/student/notices"
+              className="p-1.5 text-text-muted hover:text-brand-primary rounded-sm transition-colors relative"
+              title="Notices & Circulars"
+            >
+              <Bell className="w-4 h-4" />
+            </Link>
+            <Link
+              to="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 text-text-muted hover:text-brand-primary rounded-sm transition-colors"
+              title="View Public Website"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
 
-        {/* Navigation Options List */}
+        {/* Navigation Items */}
         <div className="p-3 space-y-1">
-          <p className="px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider text-text-main/40">
-            Navigation Menu
-          </p>
-          {navLinks.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+          {navLinks.map((link) => {
+            const Icon = link.icon;
+            const isActive =
+              link.path === "/student"
+                ? location.pathname === "/student"
+                : location.pathname.startsWith(link.path);
+
             return (
               <Link
-                key={item.path}
-                to={item.path}
+                key={link.path}
+                to={link.path}
                 onClick={() => setMobileSidebarOpen(false)}
-                className={`group flex items-center justify-between px-3 py-2.5 rounded-sm text-xs font-semibold transition-all ${
+                className={`flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-sm transition-colors ${
                   isActive
-                    ? "bg-brand-primary text-white shadow-xs"
-                    : "text-text-main/70 hover:bg-bg-app hover:text-text-main"
+                    ? "bg-brand-primary/10 text-brand-primary font-bold border-l-2 border-brand-primary"
+                    : "text-text-muted hover:text-text-main hover:bg-bg-app"
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-brand-primary"}`} />
-                  <span>{item.label}</span>
-                </div>
-                {/* Arrow sign for options with sub-actions or multiple modals */}
-                {item.hasSubActions && (
-                  <ChevronRight
-                    className={`w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 ${
-                      isActive ? "text-white/80" : "text-text-main/30 group-hover:text-text-main/60"
-                    }`}
-                  />
-                )}
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-brand-primary" : "text-text-muted"}`} />
+                <span className="truncate">{link.label}</span>
               </Link>
             );
           })}
         </div>
       </div>
 
-      {/* Bottom Profile Dock */}
-      <div className="p-3 border-t border-theme bg-bg-app/40 space-y-2">
-        {/* Profile Card */}
-        <Link
-          to="/student/profile"
-          onClick={() => setMobileSidebarOpen(false)}
-          className="flex items-center gap-3 p-2 rounded-sm hover:bg-surface border border-transparent hover:border-theme transition-all group"
-        >
-          <div className="w-9 h-9 rounded-full bg-brand-primary/10 text-brand-primary border border-brand-primary/30 flex items-center justify-center text-xs font-black shrink-0">
-            {getInitials(currentUser.fullName)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-text-main truncate group-hover:text-brand-primary transition-colors">
-              {currentUser.fullName || "Student Portal"}
-            </p>
-            <p className="text-[10px] text-text-main/50 truncate font-mono">
-              {currentUser.email || "student@institution"}
-            </p>
-          </div>
-          <ChevronRight className="w-3.5 h-3.5 text-text-main/30 group-hover:text-brand-primary group-hover:translate-x-0.5 transition-all" />
-        </Link>
+      {/* User Dock */}
+      <div className="p-3 border-t border-accent bg-bg-app/50 space-y-2">
+        <div className="flex items-center justify-between gap-2 p-1.5 rounded-sm hover:bg-surface border border-transparent hover:border-accent transition-colors">
+          <Link
+            to="/student/profile"
+            onClick={() => setMobileSidebarOpen(false)}
+            className="flex items-center gap-2.5 min-w-0 flex-1 group cursor-pointer"
+            title="Manage Student Profile"
+          >
+            {currentUser?.avatarUrl ? (
+              <img
+                src={currentUser.avatarUrl}
+                alt={currentUser.fullName || "Student"}
+                className="w-8 h-8 rounded-sm object-cover border border-accent shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-sm bg-brand-primary/20 text-brand-primary font-bold text-xs flex items-center justify-center shrink-0 border border-brand-primary/30">
+                {getInitials(currentUser?.fullName)}
+              </div>
+            )}
+            <div className="truncate">
+              <span className="block text-xs font-bold text-text-main group-hover:text-brand-primary transition-colors truncate">
+                {currentUser?.fullName || "Student Member"}
+              </span>
+              <span className="block text-[10px] text-text-muted truncate">
+                {currentUser?.email || "student@portal.edu"}
+              </span>
+            </div>
+          </Link>
 
-        {/* Action Controls: Theme & Logout */}
-        <div className="pt-2 border-t border-theme flex items-center justify-between px-1">
           <button
             onClick={toggleTheme}
-            className="flex items-center gap-1.5 text-[11px] text-text-main/70 hover:text-text-main p-1 rounded-sm"
-            title="Toggle color theme"
+            className="p-1.5 text-text-muted hover:text-text-main hover:bg-bg-app rounded-sm transition-colors cursor-pointer shrink-0"
+            title="Toggle Theme"
           >
-            {theme === "dark" ? <Sun className="w-3.5 h-3.5 text-amber-500" /> : <Moon className="w-3.5 h-3.5 text-brand-primary" />}
-            <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
-          </button>
-
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1 text-[11px] font-semibold text-red-600 hover:text-red-700 p-1 rounded-sm transition-colors"
-            title="Sign out of student portal"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Sign Out</span>
+            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
           </button>
         </div>
+
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-semibold text-text-muted hover:text-red-500 bg-surface border border-accent rounded-sm transition-colors cursor-pointer"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span>Sign Out</span>
+        </button>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex bg-bg-app text-text-main">
-      {/* Desktop Sidepanel */}
-      <aside className="hidden md:flex w-64 border-r border-theme bg-surface shrink-0 flex-col justify-between fixed top-0 bottom-0 left-0 z-30">
+    <div className="flex h-screen bg-bg-app overflow-hidden">
+      {/* Desktop Fixed Sidebar */}
+      <aside className="hidden lg:block w-64 shrink-0 h-full">
         {SidebarContent}
       </aside>
 
-      {/* Mobile Sidebar Backdrop & Drawer */}
+      {/* Mobile Drawer */}
       {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden bg-black/60 flex">
-          <div className="w-64 bg-surface h-full shadow-2xl relative">
-            <button
-              onClick={() => setMobileSidebarOpen(false)}
-              className="absolute top-4 right-3 p-1.5 text-text-main/60 hover:text-text-main rounded-sm"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+          <div className="fixed inset-y-0 left-0 w-64 z-50">
             {SidebarContent}
           </div>
-          <div className="flex-1" onClick={() => setMobileSidebarOpen(false)} />
         </div>
       )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 md:pl-64">
-        {/* Mobile Header Bar (Only visible on small mobile screens) */}
-        <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-theme bg-surface sticky top-0 z-20">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setMobileSidebarOpen(true)}
-              className="p-1.5 border border-theme rounded-sm hover:bg-bg-app text-text-main"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <span className="text-xs font-bold text-text-main">
-              {navLinks.find((l) => l.path === location.pathname)?.label || "Student Portal"}
-            </span>
-          </div>
+      {/* Main View Area */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* Mobile Top Navigation */}
+        <header className="lg:hidden h-14 border-b border-accent bg-surface px-4 flex items-center justify-between shrink-0">
+          <button
+            onClick={() => setMobileSidebarOpen(true)}
+            className="p-1.5 text-text-muted hover:text-text-main rounded-sm"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
+          <span className="text-xs font-bold text-text-main">
+            {currentNav?.label || "Student Portal"}
+          </span>
 
           <button
             onClick={toggleTheme}
-            className="p-1.5 border border-theme rounded-sm hover:bg-bg-app text-text-main/70"
-            title="Toggle theme"
+            className="p-1.5 text-text-muted hover:text-text-main rounded-sm"
           >
-            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-brand-primary" />}
+            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
           </button>
-        </div>
+        </header>
 
-        {/* Dynamic Page Outlet with smooth page transition */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        {/* Dynamic Page Outlet with smooth scroll */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-bg-app">
           <Suspense
             fallback={
-              <div className="space-y-4 animate-pulse p-4">
-                <div className="h-8 bg-surface border border-theme rounded-sm w-48" />
-                <div className="h-64 bg-surface border border-theme rounded-sm w-full" />
+              <div className="space-y-4 animate-pulse">
+                <div className="h-8 bg-surface border border-accent rounded-sm w-48" />
+                <div className="h-64 bg-surface border border-accent rounded-sm w-full" />
               </div>
             }
           >

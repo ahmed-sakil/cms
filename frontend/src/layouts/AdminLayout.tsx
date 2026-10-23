@@ -16,11 +16,9 @@ import {
   Award,
   Share2,
   Menu,
-  X,
   ChevronRight,
   ChevronDown,
   ExternalLink,
-  Crown,
   Receipt,
   GraduationCap,
   Trophy,
@@ -36,7 +34,7 @@ export const AdminLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [isOrgMenuOpen, setIsOrgMenuOpen] = useState(true);
+  const [isOrgMenuOpen, setIsOrgMenuOpen] = useState(false);
 
   const [currentUser] = useState<{
     id?: string;
@@ -44,6 +42,7 @@ export const AdminLayout: React.FC = () => {
     email?: string;
     role?: string;
     branchId?: string;
+    avatarUrl?: string;
     branch?: { id: string; name: string; code: string };
   } | null>(() => {
     try {
@@ -95,37 +94,37 @@ export const AdminLayout: React.FC = () => {
   const isBranchAdmin = currentUser?.role === "BRANCH_ADMIN";
 
   const navLinks = [
-    { label: "Overview", path: "/admin", icon: LayoutDashboard, hasSubActions: false },
+    { label: "Dashboard", path: "/admin", icon: LayoutDashboard },
     ...(!isBranchAdmin
       ? [
           {
-            label: "Organisation Settings",
+            label: "Settings",
             path: "/admin/settings",
             icon: Settings,
             children: [
-              { label: "Identity & Branding", path: "/admin/settings?tab=branding", tab: "branding" },
-              { label: "Hero Posters & Sliders", path: "/admin/settings?tab=posters", tab: "posters" },
-              { label: "Payment Channels & Sensitive", path: "/admin/settings?tab=payments", tab: "payments" },
-              { label: "Campus / Branches", path: "/admin/settings?tab=branches", tab: "branches" },
+              { label: "Branding & Logo", path: "/admin/settings?tab=branding", tab: "branding" },
+              { label: "Hero Sliders", path: "/admin/settings?tab=posters", tab: "posters" },
+              { label: "Payment Accounts", path: "/admin/settings?tab=payments", tab: "payments" },
+              { label: "Campuses", path: "/admin/settings?tab=branches", tab: "branches" },
             ],
           },
         ]
       : [
-          { label: "Assigned Campus", path: "/admin/branches", icon: Building2, hasSubActions: true },
+          { label: "Assigned Campus", path: "/admin/branches", icon: Building2 },
         ]),
-    { label: "Students Directory", path: "/admin/students", icon: Users, hasSubActions: true },
-    { label: "Faculty & Staff", path: "/admin/teachers", icon: UserCheck, hasSubActions: true },
-    { label: "Batches & Classrooms", path: "/admin/batches", icon: Calendar, hasSubActions: true },
-    { label: "Courses & Curriculums", path: "/admin/courses", icon: GraduationCap, hasSubActions: true },
-    { label: "Study Materials", path: "/admin/materials", icon: FileText, hasSubActions: true },
-    { label: "Exams & Marksheets", path: "/admin/exams", icon: Award, hasSubActions: true },
-    { label: "Notice Board", path: "/admin/notices", icon: Bell, hasSubActions: true },
-    { label: "Hall of Fame & Achievements", path: "/admin/achievements", icon: Trophy, hasSubActions: true },
-    { label: "Faculty Tips & Guides", path: "/admin/faculty-tips", icon: BookOpen, hasSubActions: true },
-    { label: "Reviews & Advice", path: "/admin/reviews", icon: MessageSquare, hasSubActions: true },
-    { label: "Accounts & Fees", path: "/admin/fees", icon: CreditCard, hasSubActions: true },
-    { label: "Campus Expenses", path: "/admin/expenses", icon: Receipt, hasSubActions: true },
-    { label: "Referral Payouts", path: "/admin/referrals", icon: Share2, hasSubActions: true },
+    { label: "Students", path: "/admin/students", icon: Users },
+    { label: "Teachers & Staff", path: "/admin/teachers", icon: UserCheck },
+    { label: "Batches", path: "/admin/batches", icon: Calendar },
+    { label: "Courses", path: "/admin/courses", icon: GraduationCap },
+    { label: "Study Materials", path: "/admin/materials", icon: FileText },
+    { label: "Exams", path: "/admin/exams", icon: Award },
+    { label: "Notices", path: "/admin/notices", icon: Bell },
+    { label: "Achievements", path: "/admin/achievements", icon: Trophy },
+    { label: "Academic Tips", path: "/admin/faculty-tips", icon: BookOpen },
+    { label: "Reviews", path: "/admin/reviews", icon: MessageSquare },
+    { label: "Fees & Accounts", path: "/admin/fees", icon: CreditCard },
+    { label: "Expenses", path: "/admin/expenses", icon: Receipt },
+    { label: "Referrals", path: "/admin/referrals", icon: Share2 },
   ];
 
   const currentNav = navLinks.find(
@@ -138,63 +137,62 @@ export const AdminLayout: React.FC = () => {
     "Assigned Campus";
 
   const SidebarContent = (
-    <div className="flex flex-col h-full justify-between bg-surface">
-      {/* Brand & Enrollment Header */}
+    <div className="flex flex-col h-full justify-between bg-surface border-r border-accent">
       <div>
-        <div className="h-16 border-b border-theme px-4 flex items-center justify-between">
+        {/* Brand Header */}
+        <div className="h-16 border-b border-accent px-4 flex items-center justify-between">
           <Link to="/admin" className="flex items-center gap-2.5 font-bold text-sm min-w-0">
             {institution?.logoUrl ? (
               <img
                 src={institution.logoUrl}
                 alt={institution.name || "Logo"}
-                className="w-8 h-8 rounded-sm object-contain border border-theme bg-white"
+                className="w-8 h-8 rounded-sm object-contain border border-accent bg-white shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 bg-brand-primary text-white flex items-center justify-center rounded-sm font-bold shadow-xs shrink-0">
-                <Building2 className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-sm bg-brand-primary text-white flex items-center justify-center font-bold text-xs shrink-0">
+                AP
               </div>
             )}
-            <div className="leading-tight min-w-0">
-              {institution?.name ? (
-                <span className="block text-text-main font-bold truncate">
-                  {institution.name}
-                </span>
-              ) : (
-                <span className="block h-4 w-28 bg-accent rounded-xs animate-pulse" />
-              )}
-              <span className="block text-[10px] text-text-main/50 font-normal">Admin Console</span>
+            <div className="truncate">
+              <span className="block text-text-main text-xs font-bold truncate">
+                {institution?.name || "Apex Academy"}
+              </span>
+              <span className="block text-[10px] text-brand-primary font-semibold tracking-wider uppercase">
+                Admin Portal
+              </span>
             </div>
           </Link>
-          <span className="text-[9px] font-bold px-1.5 py-0.5 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-xs uppercase tracking-wider shrink-0">
-            {currentUser?.role?.replace("_", " ") || "SUPER"}
-          </span>
-        </div>
 
-        {/* Branch Context Indicator */}
-        <div className="p-3 bg-bg-app/60 border-b border-theme text-xs">
-          <span className="text-text-main/50 block text-[10px] uppercase font-bold tracking-wider">
-            Operational Scope
-          </span>
-          <div className="font-semibold text-text-main flex items-center gap-1.5 mt-0.5 truncate">
-            {currentUser?.role === "SUPER_ADMIN" ? (
-              <>
-                <Building2 className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                <span className="truncate">Universal (All Campuses)</span>
-              </>
-            ) : (
-              <>
-                <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                <span className="truncate">{resolvedBranchName}</span>
-              </>
-            )}
+          <div className="flex items-center gap-1 shrink-0">
+            <Link
+              to="/admin/notices"
+              className="p-1.5 text-text-muted hover:text-brand-primary rounded-sm transition-colors relative"
+              title="Notices & Circulars"
+            >
+              <Bell className="w-4 h-4" />
+            </Link>
+            <Link
+              to="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 text-text-muted hover:text-brand-primary rounded-sm transition-colors"
+              title="View Public Website"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </div>
 
-        {/* Navigation Items List */}
-        <div className="p-3 space-y-1">
-          <p className="px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider text-text-main/40">
-            Administrative Menu
-          </p>
+        {/* Minimal Campus Scope */}
+        <div className="px-4 py-2 bg-bg-app/40 border-b border-accent flex items-center justify-between text-[11px]">
+          <span className="text-text-muted font-medium">Campus</span>
+          <span className="font-semibold text-text-main truncate max-w-[140px]">
+            {currentUser?.role === "SUPER_ADMIN" ? "All Campuses" : resolvedBranchName}
+          </span>
+        </div>
+
+        {/* Navigation Items */}
+        <div className="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-215px)]">
           {navLinks.map((item) => {
             const Icon = item.icon;
 
@@ -209,17 +207,17 @@ export const AdminLayout: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsOrgMenuOpen((prev) => !prev)}
-                    className={`w-full group flex items-center justify-between px-3 py-2 rounded-sm text-xs font-semibold cursor-pointer transition-all ${
+                    className={`w-full group flex items-center justify-between px-3 py-2 rounded-sm text-xs font-semibold cursor-pointer transition-colors ${
                       isGroupActive
-                        ? "bg-bg-app text-brand-primary border border-theme"
-                        : "text-text-main/70 hover:bg-bg-app hover:text-text-main"
+                        ? "bg-brand-primary/10 text-brand-primary font-bold border-l-2 border-brand-primary"
+                        : "text-text-muted hover:bg-bg-app hover:text-text-main"
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1 text-left">
-                      <Icon className="w-4 h-4 shrink-0 text-brand-primary" />
+                      <Icon className={`w-4 h-4 shrink-0 ${isGroupActive ? "text-brand-primary" : "text-text-muted"}`} />
                       <span className="truncate">{item.label}</span>
                     </div>
-                    <div className="p-1 text-text-main/40 group-hover:text-text-main rounded-xs shrink-0">
+                    <div className="p-0.5 text-text-muted group-hover:text-text-main rounded-xs shrink-0">
                       {isOrgMenuOpen ? (
                         <ChevronDown className="w-3.5 h-3.5" />
                       ) : (
@@ -229,7 +227,7 @@ export const AdminLayout: React.FC = () => {
                   </button>
 
                   {isOrgMenuOpen && (
-                    <div className="ml-4 pl-2.5 border-l-2 border-theme space-y-0.5 pt-1 pb-1">
+                    <div className="ml-3 pl-2.5 border-l border-accent space-y-0.5 pt-0.5 pb-0.5">
                       {item.children.map((child: any) => {
                         const isChildActive =
                           (location.pathname === "/admin/settings" && currentTab === child.tab) ||
@@ -240,16 +238,13 @@ export const AdminLayout: React.FC = () => {
                             key={child.path}
                             to={child.path}
                             onClick={() => setMobileSidebarOpen(false)}
-                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-sm text-[11px] font-medium transition-all ${
+                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-sm text-xs transition-colors ${
                               isChildActive
-                                ? "bg-brand-primary text-white font-bold shadow-xs"
-                                : "text-text-main/70 hover:bg-bg-app hover:text-text-main"
+                                ? "bg-brand-primary/10 text-brand-primary font-bold border-l-2 border-brand-primary"
+                                : "text-text-muted hover:bg-bg-app hover:text-text-main"
                             }`}
                           >
                             <span className="truncate">{child.label}</span>
-                            {isChildActive && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0 ml-1" />
-                            )}
                           </Link>
                         );
                       })}
@@ -269,145 +264,124 @@ export const AdminLayout: React.FC = () => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setMobileSidebarOpen(false)}
-                className={`group flex items-center justify-between px-3 py-2 rounded-sm text-xs font-semibold transition-all ${
+                className={`flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-sm transition-colors ${
                   isActive
-                    ? "bg-brand-primary text-white shadow-xs"
-                    : "text-text-main/70 hover:bg-bg-app hover:text-text-main"
+                    ? "bg-brand-primary/10 text-brand-primary font-bold border-l-2 border-brand-primary"
+                    : "text-text-muted hover:text-text-main hover:bg-bg-app"
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-brand-primary"}`} />
-                  <span className="truncate">{item.label}</span>
-                </div>
-                {item.hasSubActions && (
-                  <ChevronRight
-                    className={`w-3.5 h-3.5 shrink-0 transition-transform group-hover:translate-x-0.5 ${
-                      isActive ? "text-white/80" : "text-text-main/30 group-hover:text-text-main/60"
-                    }`}
-                  />
-                )}
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-brand-primary" : "text-text-muted"}`} />
+                <span className="truncate">{item.label}</span>
               </Link>
             );
           })}
         </div>
-
-        {/* Public Portal Link */}
-        <div className="px-3 pt-1">
-          <Link
-            to="/"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center justify-between px-3 py-2 rounded-sm text-xs font-medium text-text-main/70 hover:bg-bg-app hover:text-text-main border border-dashed border-theme"
-          >
-            <span className="flex items-center gap-2">
-              <ExternalLink className="w-3.5 h-3.5 text-brand-primary" />
-              <span>Public Portal</span>
-            </span>
-            <ChevronRight className="w-3 h-3 text-text-main/40" />
-          </Link>
-        </div>
       </div>
 
-      {/* Bottom Profile Dock (matching StudentLayout) */}
-      <div className="p-3 border-t border-theme bg-bg-app/40 space-y-2">
-        <Link
-          to="/admin/settings"
-          onClick={() => setMobileSidebarOpen(false)}
-          className="flex items-center gap-3 p-2 rounded-sm hover:bg-surface border border-transparent hover:border-theme transition-all group"
-        >
-          <div className="w-9 h-9 rounded-full bg-brand-primary/10 text-brand-primary border border-brand-primary/30 flex items-center justify-center text-xs font-black shrink-0">
-            {getInitials(currentUser?.fullName)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-text-main truncate group-hover:text-brand-primary transition-colors">
-              {currentUser?.fullName || "Administrator"}
-            </p>
-            <p className="text-[10px] text-text-main/50 truncate font-mono">
-              {currentUser?.email || "admin@institution"}
-            </p>
-          </div>
-          <ChevronRight className="w-3.5 h-3.5 text-text-main/30 group-hover:text-brand-primary group-hover:translate-x-0.5 transition-all" />
-        </Link>
+      {/* User Dock */}
+      <div className="p-3 border-t border-accent bg-bg-app/50 space-y-2">
+        <div className="flex items-center justify-between gap-2 p-1.5 rounded-sm hover:bg-surface border border-transparent hover:border-accent transition-colors">
+          <Link
+            to="/admin/settings"
+            onClick={() => setMobileSidebarOpen(false)}
+            className="flex items-center gap-2.5 min-w-0 flex-1 group cursor-pointer"
+            title="Settings & Profile"
+          >
+            {currentUser?.avatarUrl ? (
+              <img
+                src={currentUser.avatarUrl}
+                alt={currentUser.fullName || "Administrator"}
+                className="w-8 h-8 rounded-sm object-cover border border-accent shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-sm bg-brand-primary/20 text-brand-primary font-bold text-xs flex items-center justify-center shrink-0 border border-brand-primary/30">
+                {getInitials(currentUser?.fullName)}
+              </div>
+            )}
+            <div className="truncate">
+              <span className="block text-xs font-bold text-text-main group-hover:text-brand-primary transition-colors truncate">
+                {currentUser?.fullName || "Administrator"}
+              </span>
+              <span className="block text-[10px] text-text-muted truncate">
+                {currentUser?.email || "admin@institution.edu"}
+              </span>
+            </div>
+          </Link>
 
-        {/* Action Controls: Theme & Logout */}
-        <div className="pt-2 border-t border-theme flex items-center justify-between px-1">
           <button
             onClick={toggleTheme}
-            className="flex items-center gap-1.5 text-[11px] text-text-main/70 hover:text-text-main p-1 rounded-sm"
-            title="Toggle color theme"
+            className="p-1.5 text-text-muted hover:text-text-main hover:bg-bg-app rounded-sm transition-colors cursor-pointer shrink-0"
+            title="Toggle Theme"
           >
-            {theme === "dark" ? <Sun className="w-3.5 h-3.5 text-amber-500" /> : <Moon className="w-3.5 h-3.5 text-brand-primary" />}
-            <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
-          </button>
-
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1 text-[11px] font-semibold text-red-600 hover:text-red-700 p-1 rounded-sm transition-colors"
-            title="Sign out of administrative console"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Sign Out</span>
+            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
           </button>
         </div>
+
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-semibold text-text-muted hover:text-red-500 bg-surface border border-accent rounded-sm transition-colors cursor-pointer"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span>Sign Out</span>
+        </button>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex bg-bg-app text-text-main">
-      {/* Desktop Sidepanel */}
-      <aside className="hidden md:flex w-64 border-r border-theme bg-surface shrink-0 flex-col justify-between fixed top-0 bottom-0 left-0 z-30">
+    <div className="flex h-screen bg-bg-app overflow-hidden">
+      {/* Desktop Fixed Sidebar */}
+      <aside className="hidden lg:block w-64 shrink-0 h-full">
         {SidebarContent}
       </aside>
 
-      {/* Mobile Sidebar Backdrop & Drawer */}
+      {/* Mobile Drawer */}
       {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden bg-black/60 flex">
-          <div className="w-64 bg-surface h-full shadow-2xl relative">
-            <button
-              onClick={() => setMobileSidebarOpen(false)}
-              className="absolute top-4 right-3 p-1.5 text-text-main/60 hover:text-text-main rounded-sm z-10"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+          <div className="fixed inset-y-0 left-0 w-64 z-50">
             {SidebarContent}
           </div>
-          <div className="flex-1" onClick={() => setMobileSidebarOpen(false)} />
         </div>
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 md:pl-64">
-        {/* Mobile Header Bar */}
-        <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-theme bg-surface sticky top-0 z-20">
-          <div className="flex items-center gap-2">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* Mobile Top Header (Hidden on Desktop where Sidepanel is visible) */}
+        <header className="lg:hidden h-14 border-b border-accent bg-surface px-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileSidebarOpen(true)}
-              className="p-1.5 border border-theme rounded-sm hover:bg-bg-app text-text-main"
+              className="p-2 text-text-muted hover:text-text-main rounded-sm border border-accent"
+              aria-label="Open Sidebar Menu"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4 h-4" />
             </button>
-            <span className="text-xs font-bold text-text-main">
-              {currentNav?.label || "Admin Console"}
-            </span>
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="font-bold text-text-main">{currentNav?.label || "Admin Portal"}</span>
+            </div>
           </div>
 
-          <button
-            onClick={toggleTheme}
-            className="p-1.5 border border-theme rounded-sm hover:bg-bg-app text-text-main/70"
-            title="Toggle theme"
-          >
-            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-brand-primary" />}
-          </button>
-        </div>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/admin/notices"
+              className="p-1.5 text-text-muted hover:text-brand-primary rounded-sm transition-colors"
+              title="Notices"
+            >
+              <Bell className="w-4 h-4" />
+            </Link>
+          </div>
+        </header>
 
-        {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        {/* Scrollable Page Body */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-bg-app">
           <Suspense
             fallback={
-              <div className="space-y-4 animate-pulse p-4">
-                <div className="h-8 bg-surface border border-theme rounded-sm w-48" />
-                <div className="h-64 bg-surface border border-theme rounded-sm w-full" />
+              <div className="flex items-center justify-center h-48">
+                <span className="text-xs text-text-muted">Loading module...</span>
               </div>
             }
           >

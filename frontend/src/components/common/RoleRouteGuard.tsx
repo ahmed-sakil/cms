@@ -35,10 +35,15 @@ export const RoleRouteGuard: React.FC<RoleRouteGuardProps> = ({ allowedRoles, ch
     if (userRole === UserRole.STUDENT) {
       return <Navigate to="/student" replace />;
     }
+    if (userRole === UserRole.TEACHER) {
+      return <Navigate to="/teacher" replace />;
+    }
+    if (userRole === UserRole.APPLICANT) {
+      return <Navigate to="/teacher/application-status" replace />;
+    }
     if (
       userRole === UserRole.SUPER_ADMIN ||
       userRole === UserRole.BRANCH_ADMIN ||
-      userRole === UserRole.TEACHER ||
       userRole === UserRole.STAFF
     ) {
       return <Navigate to="/admin" replace />;
