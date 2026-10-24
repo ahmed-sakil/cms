@@ -161,6 +161,17 @@ export class BatchService {
               phone: b.teacher.user.phone,
               avatarUrl: b.teacher.user.avatarUrl,
             }
+          : (Array.isArray(b.subjectTeachers) && b.subjectTeachers.find((st: any) => st?.teacherName))
+          ? {
+              id:
+                (b.subjectTeachers.find((st: any) => st?.teacherName) as any).teacherUserId ||
+                (b.subjectTeachers.find((st: any) => st?.teacherName) as any).teacherId ||
+                "",
+              fullName: (b.subjectTeachers.find((st: any) => st?.teacherName) as any).teacherName,
+              email: "",
+              phone: "",
+              avatarUrl: null,
+            }
           : null,
         examsCount: b._count.exams,
         materialsCount: b._count.studyMaterials,
@@ -259,6 +270,17 @@ export class BatchService {
             email: b.teacher.user.email,
             phone: b.teacher.user.phone,
             avatarUrl: b.teacher.user.avatarUrl,
+          }
+        : (Array.isArray(b.subjectTeachers) && b.subjectTeachers.find((st: any) => st?.teacherName))
+        ? {
+            id:
+              (b.subjectTeachers.find((st: any) => st?.teacherName) as any).teacherUserId ||
+              (b.subjectTeachers.find((st: any) => st?.teacherName) as any).teacherId ||
+              "",
+            fullName: (b.subjectTeachers.find((st: any) => st?.teacherName) as any).teacherName,
+            email: "",
+            phone: "",
+            avatarUrl: null,
           }
         : null,
       examsCount: b._count.exams,
@@ -372,6 +394,11 @@ export class BatchService {
         academicClass: { select: { id: true, name: true, code: true } },
         course: { select: { id: true, name: true } },
         branch: { select: { id: true, name: true, code: true } },
+        teacher: {
+          include: {
+            user: { select: { id: true, fullName: true, email: true, phone: true, avatarUrl: true } },
+          },
+        },
       },
     });
   }
@@ -436,6 +463,11 @@ export class BatchService {
         academicClass: { select: { id: true, name: true, code: true } },
         course: { select: { id: true, name: true } },
         branch: { select: { id: true, name: true, code: true } },
+        teacher: {
+          include: {
+            user: { select: { id: true, fullName: true, email: true, phone: true, avatarUrl: true } },
+          },
+        },
       },
     });
   }
@@ -455,14 +487,38 @@ export class BatchService {
       }
     }
 
-    // 1. Resolve subject teachers to actual TeacherProfile.id or User.id
+    // 1. Resolve subject teachers to actual TeacherProfile.id and User.id
     const resolvedSubjectTeachers = await Promise.all(
       (input.subjectTeachers || []).map(async (st) => {
-        const resolvedId = await this.resolveTeacherProfileId(st.teacherId);
+        const resolvedProfileId = await this.resolveTeacherProfileId(st.teacherId);
+        let teacherName = st.teacherName;
+        let teacherUserId: string | null = null;
+
+        if (resolvedProfileId) {
+          const tp = await prisma.teacherProfile.findUnique({
+            where: { id: resolvedProfileId },
+            include: { user: { select: { id: true, fullName: true } } },
+          });
+          if (tp) {
+            teacherUserId = tp.user.id;
+            teacherName = teacherName || tp.user.fullName;
+          }
+        } else if (st.teacherId) {
+          const userRecord = await prisma.user.findUnique({
+            where: { id: st.teacherId },
+            select: { id: true, fullName: true },
+          });
+          if (userRecord) {
+            teacherUserId = userRecord.id;
+            teacherName = teacherName || userRecord.fullName;
+          }
+        }
+
         return {
           subject: st.subject,
-          teacherId: resolvedId || st.teacherId || null,
-          teacherName: st.teacherName || undefined,
+          teacherId: resolvedProfileId || st.teacherId || null,
+          teacherUserId: teacherUserId || null,
+          teacherName: teacherName || undefined,
         };
       })
     );
@@ -470,7 +526,30 @@ export class BatchService {
     // 2. Resolve class module teachers
     const resolvedClassModules = await Promise.all(
       (input.classModules || []).map(async (cm, idx) => {
-        const resolvedId = await this.resolveTeacherProfileId(cm.teacherId);
+        const resolvedProfileId = await this.resolveTeacherProfileId(cm.teacherId);
+        let teacherName = cm.teacherName;
+        let teacherUserId: string | null = null;
+
+        if (resolvedProfileId) {
+          const tp = await prisma.teacherProfile.findUnique({
+            where: { id: resolvedProfileId },
+            include: { user: { select: { id: true, fullName: true } } },
+          });
+          if (tp) {
+            teacherUserId = tp.user.id;
+            teacherName = teacherName || tp.user.fullName;
+          }
+        } else if (cm.teacherId) {
+          const userRecord = await prisma.user.findUnique({
+            where: { id: cm.teacherId },
+            select: { id: true, fullName: true },
+          });
+          if (userRecord) {
+            teacherUserId = userRecord.id;
+            teacherName = teacherName || userRecord.fullName;
+          }
+        }
+
         return {
           classNumber: cm.classNumber || idx + 1,
           weekOrClass: cm.weekOrClass || `Lecture ${String(idx + 1).padStart(2, "0")}`,
@@ -478,8 +557,9 @@ export class BatchService {
           subject: cm.subject || null,
           date: cm.date || null,
           time: cm.time || null,
-          teacherId: resolvedId || cm.teacherId || null,
-          teacherName: cm.teacherName || undefined,
+          teacherId: resolvedProfileId || cm.teacherId || null,
+          teacherUserId: teacherUserId || null,
+          teacherName: teacherName || undefined,
           room: cm.room || null,
           topics: cm.topics || [],
         };
@@ -489,6 +569,10 @@ export class BatchService {
     // 3. Update Batch columns and synchronize Exam table in transaction
     const totalClassesCount = resolvedClassModules.length > 0 ? resolvedClassModules.length : existing.totalClasses;
     const totalExamsCount = input.exams && input.exams.length > 0 ? input.exams.length : existing.totalExams;
+
+    // Automatically sync batch.teacherId if unassigned and subject teachers exist
+    const firstAssignedProfileId = resolvedSubjectTeachers.find((st) => st.teacherId)?.teacherId;
+    const shouldSyncLeadTeacher = (!existing.teacherId || existing.teacherId === "") && !!firstAssignedProfileId;
 
     const updatedBatch = await prisma.$transaction(async (tx) => {
       const b = await tx.batch.update({
@@ -501,6 +585,7 @@ export class BatchService {
           ...(input.daysOfWeek && { daysOfWeek: input.daysOfWeek }),
           ...(input.classTime && { classTime: input.classTime, scheduleTime: input.classTime }),
           ...(input.classroom && { classroom: input.classroom }),
+          ...(shouldSyncLeadTeacher && { teacherId: firstAssignedProfileId }),
           totalClasses: totalClassesCount,
           totalExams: totalExamsCount,
         },

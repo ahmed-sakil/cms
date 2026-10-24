@@ -62,13 +62,26 @@ export const BatchFormModal: React.FC<BatchFormModalProps> = ({
 
   useEffect(() => {
     if (editingBatch) {
+      const rawTeacherId =
+        editingBatch.teacher?.id ||
+        editingBatch.subjectTeachers?.find((st) => st.teacherUserId || st.teacherId)?.teacherUserId ||
+        editingBatch.subjectTeachers?.find((st) => st.teacherId)?.teacherId ||
+        "";
+      const matchedTeacher = teachers.find(
+        (t) =>
+          t.id === rawTeacherId ||
+          (t.teacherProfileId && t.teacherProfileId === rawTeacherId) ||
+          (editingBatch.teacher?.fullName &&
+            t.fullName.trim().toLowerCase() === editingBatch.teacher.fullName.trim().toLowerCase())
+      );
+
       setBatchForm({
         name: editingBatch.name || "",
         title: editingBatch.title || editingBatch.name || "",
         academicClassId: editingBatch.academicClass?.id || "",
         courseId: editingBatch.course?.id || "",
         branchId: editingBatch.branch?.id || (isBranchAdmin && userBranchId ? userBranchId : branches[0]?.id || ""),
-        teacherId: editingBatch.teacher?.id || "",
+        teacherId: matchedTeacher ? matchedTeacher.id : rawTeacherId,
         classroom: editingBatch.classroom || "",
         classTime: editingBatch.classTime || editingBatch.scheduleTime || "04:30 PM - 06:00 PM",
         scheduleTime: editingBatch.scheduleTime || editingBatch.classTime || "04:30 PM - 06:00 PM",

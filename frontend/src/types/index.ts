@@ -244,6 +244,7 @@ export interface BranchRecord {
 
 export interface TeacherRecord {
   id: string;
+  teacherProfileId?: string | null;
   fullName: string;
   email: string;
   phone: string;

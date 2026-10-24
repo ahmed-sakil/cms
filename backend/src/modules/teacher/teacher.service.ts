@@ -225,6 +225,49 @@ export class TeacherService {
     };
   }
 
+  private static isBatchAssignedToTeacher(b: any, teacher: any): boolean {
+    const profileId = teacher.teacherProfile?.id;
+    const teacherUserId = teacher.id;
+    const teacherNameLower = (teacher.fullName || "").trim().toLowerCase();
+
+    if (b.teacherId === profileId || b.teacherId === teacherUserId) return true;
+    if (teacher.branchId && b.branchId === teacher.branchId) return true;
+
+    if (Array.isArray(b.subjectTeachers)) {
+      const match = (b.subjectTeachers as any[]).some(
+        (st) =>
+          st?.teacherId === profileId ||
+          st?.teacherId === teacherUserId ||
+          st?.teacherUserId === teacherUserId ||
+          (st?.teacherName && st.teacherName.trim().toLowerCase() === teacherNameLower)
+      );
+      if (match) return true;
+    }
+
+    if (Array.isArray(b.classModules)) {
+      const match = (b.classModules as any[]).some(
+        (cm) =>
+          cm?.teacherId === profileId ||
+          cm?.teacherId === teacherUserId ||
+          cm?.teacherUserId === teacherUserId ||
+          (cm?.teacherName && cm.teacherName.trim().toLowerCase() === teacherNameLower)
+      );
+      if (match) return true;
+    }
+
+    if (Array.isArray(b.routine)) {
+      const match = (b.routine as any[]).some(
+        (r) =>
+          r?.teacherId === profileId ||
+          r?.teacherId === teacherUserId ||
+          (r?.teacherName && r.teacherName.trim().toLowerCase() === teacherNameLower)
+      );
+      if (match) return true;
+    }
+
+    return false;
+  }
+
   static async assertBatchAccess(userId: string, batchId: string) {
     const teacher = await this.getTeacherProfile(userId);
     const batch = await prisma.batch.findUnique({
@@ -236,21 +279,8 @@ export class TeacherService {
       throw new NotFoundError("Batch not found or has been archived");
     }
 
-    const isPrimaryTeacher = batch.teacherId === teacher.teacherProfile.id;
-    let isSubjectTeacher = false;
-    if (Array.isArray(batch.subjectTeachers)) {
-      isSubjectTeacher = batch.subjectTeachers.some((st: any) => {
-        return (
-          st?.teacherId === teacher.teacherProfile.id ||
-          st?.teacherId === teacher.id ||
-          st?.teacherName === teacher.fullName
-        );
-      });
-    }
-
-    const isSameBranch = teacher.branchId && batch.branchId === teacher.branchId;
-
-    if (!isPrimaryTeacher && !isSubjectTeacher && !isSameBranch) {
+    const hasAccess = this.isBatchAssignedToTeacher(batch, teacher);
+    if (!hasAccess) {
       throw new ForbiddenError("You are not assigned to manage this batch");
     }
 
@@ -262,15 +292,10 @@ export class TeacherService {
   // ========================================================
   static async getDashboard(userId: string) {
     const teacher = await this.getTeacherProfile(userId);
-    const profileId = teacher.teacherProfile.id;
 
-    const batches = await prisma.batch.findMany({
+    const candidateBatches = await prisma.batch.findMany({
       where: {
         deletedAt: null,
-        OR: [
-          { teacherId: profileId },
-          { branchId: teacher.branchId || undefined },
-        ],
       },
       include: {
         course: { select: { id: true, name: true, code: true } },
@@ -286,6 +311,8 @@ export class TeacherService {
       },
       orderBy: { startDate: "desc" },
     });
+
+    const batches = candidateBatches.filter((b) => this.isBatchAssignedToTeacher(b, teacher));
 
     const totalStudents = batches.reduce((acc, b) => acc + b._count.enrollments, 0);
 
@@ -391,15 +418,10 @@ export class TeacherService {
   // ========================================================
   static async getAssignedBatches(userId: string) {
     const teacher = await this.getTeacherProfile(userId);
-    const profileId = teacher.teacherProfile.id;
 
-    return prisma.batch.findMany({
+    const candidateBatches = await prisma.batch.findMany({
       where: {
         deletedAt: null,
-        OR: [
-          { teacherId: profileId },
-          { branchId: teacher.branchId || undefined },
-        ],
       },
       include: {
         course: { select: { id: true, name: true, code: true, durationWeeks: true } },
@@ -415,6 +437,8 @@ export class TeacherService {
       },
       orderBy: { startDate: "desc" },
     });
+
+    return candidateBatches.filter((b) => this.isBatchAssignedToTeacher(b, teacher));
   }
 
   static async getBatchDetails(userId: string, batchId: string) {

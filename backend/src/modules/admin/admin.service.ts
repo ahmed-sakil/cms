@@ -823,6 +823,7 @@ export class AdminService {
 
     return teachers.map((t) => ({
       id: t.id,
+      teacherProfileId: t.teacherProfile?.id || null,
       fullName: t.fullName,
       email: t.email,
       phone: t.phone,

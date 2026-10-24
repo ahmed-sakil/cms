@@ -148,8 +148,10 @@ export const BatchCurriculumPlanner: React.FC = () => {
 
       const b = dataBatch.data;
       setBatchData(b);
-      if (dataTeachers.success && Array.isArray(dataTeachers.data)) {
-        setTeachers(dataTeachers.data);
+      const teacherList: TeacherRecord[] =
+        dataTeachers.success && Array.isArray(dataTeachers.data) ? dataTeachers.data : [];
+      if (teacherList.length > 0) {
+        setTeachers(teacherList);
       }
 
       // Populate Planner State
@@ -158,14 +160,21 @@ export const BatchCurriculumPlanner: React.FC = () => {
         : ["Physics", "Chemistry", "Higher Mathematics"];
       setSubjects(currentSubjects);
 
-      // Populate subject-teacher map
+      // Populate subject-teacher map with resolved teacher user ID
       const teacherMap: Record<string, { teacherId: string; teacherName: string }> = {};
       if (Array.isArray(b.subjectTeachers)) {
         b.subjectTeachers.forEach((st: any) => {
           if (st.subject) {
+            const matchedTeacher = teacherList.find(
+              (t) =>
+                t.id === st.teacherId ||
+                t.id === st.teacherUserId ||
+                (t.teacherProfileId && t.teacherProfileId === st.teacherId) ||
+                (st.teacherName && t.fullName.trim().toLowerCase() === st.teacherName.trim().toLowerCase())
+            );
             teacherMap[st.subject] = {
-              teacherId: st.teacherId || "",
-              teacherName: st.teacherName || "",
+              teacherId: matchedTeacher ? matchedTeacher.id : st.teacherUserId || st.teacherId || "",
+              teacherName: matchedTeacher ? matchedTeacher.fullName : st.teacherName || "",
             };
           }
         });
@@ -178,21 +187,30 @@ export const BatchCurriculumPlanner: React.FC = () => {
       setTotalClassesTarget(b.totalClasses || 36);
       setTotalExamsTarget(b.totalExams || 12);
 
-      // Existing Class Modules
+      // Existing Class Modules with resolved teacher user ID
       if (Array.isArray(b.classModules) && b.classModules.length > 0) {
         setClassModules(
-          b.classModules.map((cm: any, idx: number) => ({
-            classNumber: cm.classNumber || idx + 1,
-            weekOrClass: cm.weekOrClass || `Lecture ${String(idx + 1).padStart(2, "0")}`,
-            title: cm.title || `Lecture ${idx + 1}`,
-            subject: cm.subject || currentSubjects[0] || "General",
-            date: cm.date || "",
-            time: cm.time || b.classTime || "04:30 PM - 06:00 PM",
-            teacherId: cm.teacherId || "",
-            teacherName: cm.teacherName || "",
-            room: cm.room || b.classroom || "Room 101",
-            topics: cm.topics || [],
-          }))
+          b.classModules.map((cm: any, idx: number) => {
+            const matchedTeacher = teacherList.find(
+              (t) =>
+                t.id === cm.teacherId ||
+                t.id === cm.teacherUserId ||
+                (t.teacherProfileId && t.teacherProfileId === cm.teacherId) ||
+                (cm.teacherName && t.fullName.trim().toLowerCase() === cm.teacherName.trim().toLowerCase())
+            );
+            return {
+              classNumber: cm.classNumber || idx + 1,
+              weekOrClass: cm.weekOrClass || `Lecture ${String(idx + 1).padStart(2, "0")}`,
+              title: cm.title || `Lecture ${idx + 1}`,
+              subject: cm.subject || currentSubjects[0] || "General",
+              date: cm.date || "",
+              time: cm.time || b.classTime || "04:30 PM - 06:00 PM",
+              teacherId: matchedTeacher ? matchedTeacher.id : cm.teacherUserId || cm.teacherId || "",
+              teacherName: matchedTeacher ? matchedTeacher.fullName : cm.teacherName || "",
+              room: cm.room || b.classroom || "Room 101",
+              topics: cm.topics || [],
+            };
+          })
         );
       }
 

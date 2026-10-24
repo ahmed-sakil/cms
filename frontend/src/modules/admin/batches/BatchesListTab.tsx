@@ -45,6 +45,7 @@ export interface BatchRecordItem {
   academicClass?: { id: string; name: string; code: string; category?: string } | null;
   branch: { id: string; name: string; code: string };
   teacher?: { id: string; fullName: string; email: string; phone?: string; avatarUrl?: string | null } | null;
+  subjectTeachers?: Array<{ subject: string; teacherId?: string | null; teacherUserId?: string | null; teacherName?: string }>;
   examsCount?: number;
   materialsCount?: number;
 }
@@ -310,7 +311,11 @@ export const BatchesListTab: React.FC<BatchesListTabProps> = ({
                       <div className="flex items-center gap-2">
                         <UserCheck className="w-3.5 h-3.5 text-brand-primary shrink-0" />
                         <span className="font-medium text-text-main">
-                          Mentor: {batch.teacher ? batch.teacher.fullName : "Campus Panel"}
+                          Mentor:{" "}
+                          {batch.teacher?.fullName ||
+                            (batch.subjectTeachers &&
+                              batch.subjectTeachers.find((st) => st.teacherName)?.teacherName) ||
+                            "Campus Panel"}
                         </span>
                       </div>
                     </div>
