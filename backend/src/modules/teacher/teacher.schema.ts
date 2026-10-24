@@ -92,7 +92,7 @@ export const createTeacherNoticeSchema = z.object({
   courseId: z.string().uuid().nullable().optional(),
   title: z.string().min(2, "Notice title is required"),
   content: z.string().min(5, "Notice content is required"),
-  priority: z.enum(["NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
+  priority: z.string().optional().default("NORMAL"),
   attachmentUrl: z.string().nullable().optional(),
 });
 

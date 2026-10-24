@@ -21,10 +21,14 @@ interface NoticeItem {
   id: string;
   title: string;
   content: string;
-  priority: "NORMAL" | "HIGH" | "URGENT";
+  priority?: string;
   pinned: boolean;
   publishedAt: string;
   attachmentUrl?: string | null;
+  branch?: { id: string; name: string } | null;
+  batch?: { id: string; name: string } | null;
+  course?: { id: string; name: string } | null;
+  author?: { fullName: string } | null;
 }
 
 interface BatchInfo {
@@ -112,10 +116,6 @@ export const StudentDashboard: React.FC = () => {
     fetchDashboardData();
   }, []);
 
-  const urgentNotice = notices.find(
-    (n) => n.priority === "URGENT" || n.priority === "HIGH"
-  );
-
   if (loading && !studentProfile) {
     return (
       <div className="space-y-4 animate-pulse">
@@ -148,34 +148,6 @@ export const StudentDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Urgent Notice Alert Banner */}
-      {urgentNotice && (
-        <div className="bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-900 rounded-sm p-3.5 flex items-start justify-between gap-3">
-          <div className="flex items-start gap-2.5">
-            <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.2 bg-red-600 text-white rounded-xs">
-                  {urgentNotice.priority} Notice
-                </span>
-                <span className="text-xs font-bold text-red-900 dark:text-red-200">
-                  {urgentNotice.title}
-                </span>
-              </div>
-              <p className="text-xs text-red-700 dark:text-red-300 mt-0.5 line-clamp-1">
-                {urgentNotice.content}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setSelectedNotice(urgentNotice)}
-            className="text-xs font-semibold text-red-700 dark:text-red-300 underline hover:text-red-900 shrink-0 cursor-pointer"
-          >
-            Read Notice
-          </button>
-        </div>
-      )}
-
       {/* Quick Action Bar (Mobile-friendly 1-tap shortcuts) */}
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
         <Link
@@ -373,6 +345,47 @@ export const StudentDashboard: React.FC = () => {
         )}
       </div>
 
+      {/* Campus & Batch Circulars */}
+      <div className="bg-surface border border-accent rounded-sm p-5 space-y-3 shadow-xs">
+        <div className="flex items-center justify-between border-b border-accent pb-2">
+          <h2 className="text-xs font-bold text-text-main uppercase tracking-wider flex items-center gap-1.5">
+            <Bell className="w-3.5 h-3.5 text-brand-primary" /> Campus & Batch Circulars
+          </h2>
+          <Link to="/student/notices" className="text-[11px] text-brand-primary hover:underline font-semibold">
+            View All ({notices.length})
+          </Link>
+        </div>
+
+        {notices.length === 0 ? (
+          <p className="text-xs text-text-muted text-center py-4">No active circulars.</p>
+        ) : (
+          <div className="space-y-2.5">
+            {notices.slice(0, 3).map((n) => (
+              <div
+                key={n.id}
+                onClick={() => setSelectedNotice(n)}
+                className="text-xs space-y-1 border-b border-accent/50 pb-2.5 last:border-none last:pb-0 cursor-pointer hover:bg-bg-app/40 p-1.5 rounded-xs transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    {n.pinned && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.2 bg-brand-primary/10 text-brand-primary rounded-xs">
+                        Pinned
+                      </span>
+                    )}
+                    <span className="font-semibold text-text-main line-clamp-1">{n.title}</span>
+                  </div>
+                  <span className="text-[10px] text-text-muted shrink-0 font-mono">
+                    {new Date(n.publishedAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">{n.content}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Official ID Card Modal */}
       {showIdCard && (
         <StudentIdCardModal
@@ -406,14 +419,13 @@ export const StudentDashboard: React.FC = () => {
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded-xs uppercase tracking-wider ${
-                      selectedNotice.priority === "URGENT"
-                        ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
-                        : "bg-bg-app text-text-muted border border-accent"
-                    }`}
-                  >
-                    {selectedNotice.priority}
+                  {selectedNotice.pinned && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xs uppercase tracking-wider bg-brand-primary/10 text-brand-primary">
+                      Pinned
+                    </span>
+                  )}
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted">
+                    {selectedNotice.batch?.name || selectedNotice.course?.name || selectedNotice.branch?.name || "Campus Notice"}
                   </span>
                   <span className="text-[11px] text-text-muted font-mono">
                     {new Date(selectedNotice.publishedAt).toLocaleDateString()}

@@ -12,7 +12,7 @@ export const createNoticeSchema = z.object({
   content: z.string().min(5, "Notice content is required"),
   isPublic: z.boolean().default(true),
   pinned: z.boolean().default(false),
-  priority: z.enum(["NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
+  priority: z.string().optional().default("NORMAL"),
   attachmentUrl: z.preprocess(emptyToNull, z.string().optional().nullable()),
   expiresAt: z.preprocess(emptyToNull, z.string().optional().nullable()),
 });

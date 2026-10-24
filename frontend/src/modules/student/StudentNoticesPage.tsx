@@ -14,7 +14,7 @@ interface NoticeRecord {
   id: string;
   title: string;
   content: string;
-  priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+  priority?: string;
   pinned: boolean;
   publishedAt: string;
   attachmentUrl?: string | null;
@@ -28,7 +28,7 @@ export const StudentNoticesPage: React.FC = () => {
   const [notices, setNotices] = useState<NoticeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPriority, setSelectedPriority] = useState("ALL");
+  const [scopeFilter, setScopeFilter] = useState<"ALL" | "BATCH" | "CAMPUS">("ALL");
   const [selectedNotice, setSelectedNotice] = useState<NoticeRecord | null>(null);
 
   useEffect(() => {
@@ -58,19 +58,6 @@ export const StudentNoticesPage: React.FC = () => {
     fetchNotices();
   }, []);
 
-  const getPriorityBadge = (p: string) => {
-    switch (p) {
-      case "URGENT":
-        return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30";
-      case "HIGH":
-        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30";
-      case "LOW":
-        return "bg-slate-500/10 text-text-muted border border-accent";
-      default:
-        return "bg-brand-primary/10 text-brand-primary border border-brand-primary/30";
-    }
-  };
-
   const filtered = notices.filter((n) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
@@ -79,10 +66,11 @@ export const StudentNoticesPage: React.FC = () => {
       (n.batch?.name && n.batch.name.toLowerCase().includes(q)) ||
       (n.course?.name && n.course.name.toLowerCase().includes(q));
 
-    const matchesPriority =
-      selectedPriority === "ALL" || n.priority === selectedPriority;
+    let matchesScope = true;
+    if (scopeFilter === "BATCH") matchesScope = !!n.batch;
+    if (scopeFilter === "CAMPUS") matchesScope = !n.batch;
 
-    return matchesSearch && matchesPriority;
+    return matchesSearch && matchesScope;
   });
 
   return (
@@ -113,20 +101,24 @@ export const StudentNoticesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Priority Filters */}
+      {/* Scope Filters */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <span className="text-xs font-bold text-text-muted shrink-0">Priority:</span>
-        {["ALL", "URGENT", "HIGH", "NORMAL", "LOW"].map((p) => (
+        <span className="text-xs font-bold text-text-muted shrink-0">Filter:</span>
+        {[
+          { id: "ALL", label: "All Circulars" },
+          { id: "BATCH", label: "My Batch Circulars" },
+          { id: "CAMPUS", label: "Campus & General" },
+        ].map((tab) => (
           <button
-            key={p}
-            onClick={() => setSelectedPriority(p)}
+            key={tab.id}
+            onClick={() => setScopeFilter(tab.id as "ALL" | "BATCH" | "CAMPUS")}
             className={`px-3 py-1 text-xs font-bold rounded-sm border whitespace-nowrap transition-colors ${
-              selectedPriority === p
+              scopeFilter === tab.id
                 ? "bg-brand-primary text-white border-brand-primary shadow-xs"
                 : "bg-surface text-text-muted border-accent hover:text-text-main"
             }`}
           >
-            {p === "ALL" ? "All Circulars" : p}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -158,19 +150,15 @@ export const StudentNoticesPage: React.FC = () => {
             >
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider ${getPriorityBadge(
-                        item.priority
-                      )}`}
-                    >
-                      {item.priority}
-                    </span>
+                  <div className="flex items-center gap-1.5">
                     {item.pinned && (
-                      <span className="text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-xs flex items-center gap-1">
+                      <span className="text-[10px] font-bold bg-brand-primary/10 text-brand-primary px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
                         <Bookmark className="w-3 h-3 fill-current" /> Pinned
                       </span>
                     )}
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted">
+                      {item.batch ? item.batch.name : item.course ? item.course.name : item.branch ? item.branch.name : "General"}
+                    </span>
                   </div>
                   <span className="text-xs text-text-muted flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
@@ -211,19 +199,15 @@ export const StudentNoticesPage: React.FC = () => {
           <div className="bg-surface border border-accent rounded-sm shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="p-4 sm:p-5 border-b border-accent flex items-start justify-between bg-bg-app">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider ${getPriorityBadge(
-                      selectedNotice.priority
-                    )}`}
-                  >
-                    {selectedNotice.priority}
-                  </span>
+                <div className="flex items-center gap-1.5">
                   {selectedNotice.pinned && (
-                    <span className="text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-xs">
-                      PINNED
+                    <span className="text-[10px] font-bold bg-brand-primary/10 text-brand-primary px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                      <Bookmark className="w-3 h-3 fill-current" /> Pinned
                     </span>
                   )}
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted">
+                    {selectedNotice.batch ? selectedNotice.batch.name : selectedNotice.course ? selectedNotice.course.name : selectedNotice.branch ? selectedNotice.branch.name : "General Announcement"}
+                  </span>
                 </div>
                 <h2 className="text-base font-bold text-text-main mt-1 leading-snug">
                   {selectedNotice.title}

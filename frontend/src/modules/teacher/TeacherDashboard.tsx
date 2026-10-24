@@ -291,13 +291,11 @@ export const TeacherDashboard: React.FC = () => {
               <div className="space-y-2.5">
                 {recentNotices.map((n: any) => (
                   <div key={n.id} className="text-xs space-y-0.5 border-b border-accent/50 pb-2 last:border-none last:pb-0">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold text-text-main line-clamp-1">{n.title}</span>
-                      {n.priority === "URGENT" && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 bg-red-500/10 text-red-600 rounded-xs">
-                          URGENT
-                        </span>
-                      )}
+                      <span className="text-[10px] text-text-muted shrink-0 font-mono">
+                        {new Date(n.publishedAt).toLocaleDateString()}
+                      </span>
                     </div>
                     <p className="text-[11px] text-text-muted line-clamp-2">{n.content}</p>
                   </div>

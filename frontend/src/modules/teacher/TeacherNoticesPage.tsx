@@ -14,13 +14,11 @@ import { toast } from "sonner";
 import { apiClient } from "../../lib/apiClient.js";
 import { FileUpload } from "../../components/common/FileUpload.js";
 
-type NoticePriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
-
 interface NoticeItem {
   id: string;
   title: string;
   content: string;
-  priority: NoticePriority;
+  priority?: string;
   pinned: boolean;
   publishedAt: string;
   attachmentUrl?: string | null;
@@ -34,7 +32,7 @@ export const TeacherNoticesPage: React.FC = () => {
   const [batches, setBatches] = useState<Array<{ id: string; name: string; code: string; courseId?: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState<string>("ALL");
+  const [batchFilter, setBatchFilter] = useState<string>("ALL");
 
   // Create Modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -43,7 +41,6 @@ export const TeacherNoticesPage: React.FC = () => {
     batchId: "",
     title: "",
     content: "",
-    priority: "NORMAL" as NoticePriority,
     attachmentUrl: "",
   });
 
@@ -97,7 +94,7 @@ export const TeacherNoticesPage: React.FC = () => {
         courseId: targetBatch?.courseId || undefined,
         title: form.title,
         content: form.content,
-        priority: form.priority,
+        priority: "NORMAL",
         attachmentUrl: form.attachmentUrl || undefined,
       });
 
@@ -108,7 +105,6 @@ export const TeacherNoticesPage: React.FC = () => {
           batchId: batches[0]?.id || "",
           title: "",
           content: "",
-          priority: "NORMAL",
           attachmentUrl: "",
         });
         fetchNotices();
@@ -127,23 +123,11 @@ export const TeacherNoticesPage: React.FC = () => {
       n.content.toLowerCase().includes(q) ||
       (n.batch?.name && n.batch.name.toLowerCase().includes(q));
 
-    const matchesPriority = priorityFilter === "ALL" || n.priority === priorityFilter;
+    const matchesBatch =
+      batchFilter === "ALL" || (n.batch && n.batch.id === batchFilter);
 
-    return matchesSearch && matchesPriority;
+    return matchesSearch && matchesBatch;
   });
-
-  const getPriorityBadge = (p: NoticePriority) => {
-    switch (p) {
-      case "URGENT":
-        return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30";
-      case "HIGH":
-        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30";
-      case "LOW":
-        return "bg-slate-500/10 text-text-muted border border-accent";
-      default:
-        return "bg-brand-primary/10 text-brand-primary border border-brand-primary/30";
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -183,20 +167,19 @@ export const TeacherNoticesPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span className="text-xs text-text-muted font-bold">Priority:</span>
-          {["ALL", "URGENT", "HIGH", "NORMAL", "LOW"].map((p) => (
-            <button
-              key={p}
-              onClick={() => setPriorityFilter(p)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-sm border transition-colors ${
-                priorityFilter === p
-                  ? "bg-brand-primary text-white border-brand-primary shadow-xs"
-                  : "bg-surface text-text-muted border-accent hover:text-text-main"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
+          <span className="text-xs text-text-muted font-bold">Target Batch:</span>
+          <select
+            value={batchFilter}
+            onChange={(e) => setBatchFilter(e.target.value)}
+            className="px-2.5 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary"
+          >
+            <option value="ALL">All Batches</option>
+            {batches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -225,9 +208,16 @@ export const TeacherNoticesPage: React.FC = () => {
             >
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider ${getPriorityBadge(n.priority)}`}>
-                    {n.priority}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {n.pinned && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-brand-primary/10 text-brand-primary">
+                        Pinned
+                      </span>
+                    )}
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted">
+                      {n.batch?.name || n.course?.name || "All Assigned"}
+                    </span>
+                  </div>
                   <span className="text-xs text-text-muted flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
                     {new Date(n.publishedAt).toLocaleDateString()}
@@ -280,35 +270,20 @@ export const TeacherNoticesPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreateNotice} className="p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-text-main block mb-1">Target Batch</label>
-                  <select
-                    value={form.batchId}
-                    onChange={(e) => setForm({ ...form, batchId: e.target.value })}
-                    className="w-full p-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main font-semibold"
-                  >
-                    <option value="">All My Assigned Batches</option>
-                    {batches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name} ({b.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-text-main block mb-1">Priority</label>
-                  <select
-                    value={form.priority}
-                    onChange={(e) => setForm({ ...form, priority: e.target.value as NoticePriority })}
-                    className="w-full p-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main font-semibold"
-                  >
-                    <option value="NORMAL">Normal</option>
-                    <option value="HIGH">High Alert</option>
-                    <option value="URGENT">Urgent Announcement</option>
-                    <option value="LOW">Low</option>
-                  </select>
-                </div>
+              <div>
+                <label className="text-xs font-bold text-text-main block mb-1">Target Batch</label>
+                <select
+                  value={form.batchId}
+                  onChange={(e) => setForm({ ...form, batchId: e.target.value })}
+                  className="w-full p-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main font-semibold"
+                >
+                  <option value="">All My Assigned Batches</option>
+                  {batches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.code})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -378,12 +353,20 @@ export const TeacherNoticesPage: React.FC = () => {
           <div className="bg-surface border border-accent rounded-sm shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="p-4 sm:p-5 border-b border-accent flex items-start justify-between bg-bg-app">
               <div className="space-y-1">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider ${getPriorityBadge(selectedNotice.priority)}`}>
-                  {selectedNotice.priority}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {selectedNotice.pinned && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-brand-primary/10 text-brand-primary">
+                      Pinned
+                    </span>
+                  )}
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted">
+                    {selectedNotice.batch?.name || selectedNotice.course?.name || "All Assigned Students"}
+                  </span>
+                </div>
                 <h2 className="text-base font-bold text-text-main mt-1">{selectedNotice.title}</h2>
                 <p className="text-[11px] text-text-muted">
-                  Published: {new Date(selectedNotice.publishedAt).toLocaleString()} • Target: {selectedNotice.batch?.name || "All Batch Students"}
+                  Published: {new Date(selectedNotice.publishedAt).toLocaleDateString()}
+                  {selectedNotice.author && ` • By: ${selectedNotice.author.fullName}`}
                 </p>
               </div>
               <button

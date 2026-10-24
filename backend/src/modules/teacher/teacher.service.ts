@@ -342,13 +342,21 @@ export class TeacherService {
       orderBy: { examDate: "desc" },
     });
 
+    const courseIds = batches.map((b) => b.courseId).filter(Boolean) as string[];
     const recentNotices = await prisma.publicNotice.findMany({
       where: {
         OR: [
+          { authorId: teacher.id },
           { isPublic: true },
           ...(teacher.branchId ? [{ branchId: teacher.branchId }] : []),
           ...(batchIds.length > 0 ? [{ batchId: { in: batchIds } }] : []),
+          ...(courseIds.length > 0 ? [{ courseId: { in: courseIds } }] : []),
         ],
+      },
+      include: {
+        batch: { select: { id: true, name: true } },
+        course: { select: { id: true, name: true } },
+        author: { select: { fullName: true } },
       },
       orderBy: [{ pinned: "desc" }, { publishedAt: "desc" }],
       take: 5,
@@ -839,7 +847,7 @@ export class TeacherService {
         authorId: teacher.id,
         title: input.title,
         content: input.content,
-        priority: input.priority,
+        priority: input.priority || "NORMAL",
         attachmentUrl: input.attachmentUrl || null,
         isPublic: !input.batchId && !input.courseId, // private if targeted to batch or course
       },

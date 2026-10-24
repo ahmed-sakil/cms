@@ -501,9 +501,16 @@ export const LandingPage: React.FC = () => {
                         <Calendar className="w-3 h-3 text-brand-primary" />
                         {new Date(notice.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                       </span>
-                      <span className="px-1.5 py-0.2 bg-brand-primary/10 text-brand-primary font-semibold rounded-xs text-[10px]">
-                        {notice.category || "Notice"}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        {notice.pinned && (
+                          <span className="px-1.5 py-0.2 bg-brand-primary/10 text-brand-primary font-bold rounded-xs text-[9px] uppercase tracking-wider">
+                            Pinned
+                          </span>
+                        )}
+                        <span className="px-1.5 py-0.2 bg-accent-subtle text-text-muted font-semibold rounded-xs text-[10px]">
+                          {notice.branch?.name || "Official"}
+                        </span>
+                      </div>
                     </div>
                     <h4 className="font-bold text-xs sm:text-sm text-text-main group-hover:text-brand-primary transition-colors line-clamp-1">
                       {notice.title}
@@ -1507,6 +1514,11 @@ export const LandingPage: React.FC = () => {
               <div className="flex justify-between items-start border-b border-theme pb-4">
                 <div className="space-y-1.5 pr-4">
                   <div className="flex items-center gap-2 flex-wrap">
+                    {selectedNotice.pinned && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded-xs uppercase tracking-wide">
+                        Pinned
+                      </span>
+                    )}
                     <span className="text-[10px] font-bold px-2.5 py-0.5 bg-brand-primary text-white rounded-xs uppercase tracking-wide">
                       {selectedNotice.branch?.name || "Official Notice"}
                     </span>

@@ -44,6 +44,7 @@ export class StudentService {
     }
 
     const batchIds = student.enrollments.map((e) => e.batchId);
+    const courseIds = student.enrollments.map((e) => e.batch.courseId).filter(Boolean) as string[];
     const branchId = student.user.branchId;
 
     const notices = await prisma.publicNotice.findMany({
@@ -52,10 +53,17 @@ export class StudentService {
           { isPublic: true },
           ...(branchId ? [{ branchId }] : []),
           ...(batchIds.length > 0 ? [{ batchId: { in: batchIds } }] : []),
+          ...(courseIds.length > 0 ? [{ courseId: { in: courseIds } }] : []),
         ],
         AND: [
           { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
         ],
+      },
+      include: {
+        branch: { select: { id: true, name: true, code: true } },
+        batch: { select: { id: true, name: true } },
+        course: { select: { id: true, name: true } },
+        author: { select: { fullName: true } },
       },
       orderBy: [{ pinned: "desc" }, { publishedAt: "desc" }],
       take: 5,

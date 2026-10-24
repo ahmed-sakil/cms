@@ -33,6 +33,8 @@ export class AcademicOpsService {
       include: {
         branch: { select: { id: true, name: true, code: true } },
         batch: { select: { id: true, name: true } },
+        course: { select: { id: true, name: true } },
+        author: { select: { id: true, fullName: true, role: true } },
       },
       orderBy: [{ pinned: "desc" }, { publishedAt: "desc" }],
     });
@@ -74,13 +76,15 @@ export class AcademicOpsService {
         batchId: input.batchId || null,
         isPublic: input.isPublic,
         pinned: input.pinned,
-        priority: input.priority,
+        priority: input.priority || "NORMAL",
         attachmentUrl: input.attachmentUrl || null,
         expiresAt: parsedExpiresAt,
       },
       include: {
         branch: { select: { id: true, name: true, code: true } },
         batch: { select: { id: true, name: true } },
+        course: { select: { id: true, name: true } },
+        author: { select: { id: true, fullName: true, role: true } },
       },
     });
 
@@ -101,7 +105,7 @@ export class AcademicOpsService {
         ...(input.batchId !== undefined ? { batchId: input.batchId || null } : {}),
         ...(input.isPublic !== undefined ? { isPublic: input.isPublic } : {}),
         ...(input.pinned !== undefined ? { pinned: input.pinned } : {}),
-        ...(input.priority !== undefined ? { priority: input.priority } : {}),
+        ...(input.priority !== undefined ? { priority: input.priority || "NORMAL" } : {}),
         ...(input.attachmentUrl !== undefined ? { attachmentUrl: input.attachmentUrl || null } : {}),
         ...(input.expiresAt !== undefined
           ? { expiresAt: input.expiresAt ? new Date(input.expiresAt) : null }

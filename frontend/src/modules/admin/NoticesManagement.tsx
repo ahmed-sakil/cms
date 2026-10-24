@@ -8,7 +8,6 @@ import {
   Globe,
   Lock,
   Paperclip,
-  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "../../components/common/FileUpload.js";
@@ -19,12 +18,14 @@ interface NoticeItem {
   content: string;
   isPublic: boolean;
   pinned: boolean;
-  priority: "NORMAL" | "HIGH" | "URGENT";
+  priority?: string;
   attachmentUrl?: string | null;
   publishedAt: string;
   expiresAt?: string | null;
   branch?: { id: string; name: string } | null;
   batch?: { id: string; name: string } | null;
+  course?: { id: string; name: string } | null;
+  author?: { id: string; fullName: string; role?: string } | null;
 }
 
 export const NoticesManagement: React.FC = () => {
@@ -47,7 +48,6 @@ export const NoticesManagement: React.FC = () => {
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [scopeFilter, setScopeFilter] = useState("ALL");
 
   // Modal State
@@ -60,7 +60,6 @@ export const NoticesManagement: React.FC = () => {
     content: "",
     isPublic: true,
     pinned: false,
-    priority: "NORMAL" as "NORMAL" | "HIGH" | "URGENT",
     branchId: isBranchAdmin ? userBranchId : "",
     batchId: "",
     attachmentUrl: "",
@@ -120,7 +119,7 @@ export const NoticesManagement: React.FC = () => {
         content: formData.content.trim(),
         isPublic: formData.isPublic,
         pinned: formData.pinned,
-        priority: formData.priority,
+        priority: "NORMAL",
       };
 
       if (activeBranchId && activeBranchId.trim()) {
@@ -157,7 +156,6 @@ export const NoticesManagement: React.FC = () => {
         content: "",
         isPublic: true,
         pinned: false,
-        priority: "NORMAL",
         branchId: isBranchAdmin ? userBranchId : "",
         batchId: "",
         attachmentUrl: "",
@@ -219,13 +217,12 @@ export const NoticesManagement: React.FC = () => {
       n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       n.content.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesPriority = priorityFilter === "ALL" || n.priority === priorityFilter;
-
     let matchesScope = true;
     if (scopeFilter === "PUBLIC") matchesScope = n.isPublic;
     if (scopeFilter === "INTERNAL") matchesScope = !n.isPublic;
+    if (scopeFilter === "PINNED") matchesScope = n.pinned;
 
-    return matchesSearch && matchesPriority && matchesScope;
+    return matchesSearch && matchesScope;
   });
 
   return (
@@ -262,7 +259,7 @@ export const NoticesManagement: React.FC = () => {
 
         <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
           <div className="flex justify-between items-center text-text-muted">
-            <span className="text-xs font-semibold text-green-700">Public Website Notices</span>
+            <span className="text-xs font-semibold text-green-700">Public Website</span>
             <Globe className="w-4 h-4 text-green-600" />
           </div>
           <p className="text-2xl font-black text-green-700">
@@ -273,24 +270,24 @@ export const NoticesManagement: React.FC = () => {
 
         <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
           <div className="flex justify-between items-center text-text-muted">
+            <span className="text-xs font-semibold text-blue-600">Batch Circulars</span>
+            <Lock className="w-4 h-4 text-blue-600" />
+          </div>
+          <p className="text-2xl font-black text-blue-600">
+            {notices.filter((n) => !n.isPublic).length}
+          </p>
+          <p className="text-[10px] text-text-muted">Enrolled students only</p>
+        </div>
+
+        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
+          <div className="flex justify-between items-center text-text-muted">
             <span className="text-xs font-semibold text-brand-primary">Pinned to Top</span>
             <Pin className="w-4 h-4 text-brand-primary" />
           </div>
           <p className="text-2xl font-black text-brand-primary">
             {notices.filter((n) => n.pinned).length}
           </p>
-          <p className="text-[10px] text-text-muted">High priority spotlights</p>
-        </div>
-
-        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
-          <div className="flex justify-between items-center text-text-muted">
-            <span className="text-xs font-semibold text-red-600">Urgent Alerts</span>
-            <CheckCircle2 className="w-4 h-4 text-red-600" />
-          </div>
-          <p className="text-2xl font-black text-red-600">
-            {notices.filter((n) => n.priority === "URGENT").length}
-          </p>
-          <p className="text-[10px] text-red-600 font-medium">Immediate student attention</p>
+          <p className="text-[10px] text-text-muted">Spotlighted circulars</p>
         </div>
       </div>
 
@@ -316,17 +313,7 @@ export const NoticesManagement: React.FC = () => {
             <option value="ALL">All Audiences</option>
             <option value="PUBLIC">Public Only</option>
             <option value="INTERNAL">Internal Student Batches</option>
-          </select>
-
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="px-2.5 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary"
-          >
-            <option value="ALL">All Priorities</option>
-            <option value="URGENT">Urgent Alerts</option>
-            <option value="HIGH">High Priority</option>
-            <option value="NORMAL">Normal Announcements</option>
+            <option value="PINNED">Pinned Notices Only</option>
           </select>
         </div>
       </div>
@@ -358,17 +345,11 @@ export const NoticesManagement: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider ${
-                        n.priority === "URGENT"
-                          ? "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300"
-                          : n.priority === "HIGH"
-                          ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-                          : "bg-accent-subtle text-text-muted"
-                      }`}
-                    >
-                      {n.priority}
-                    </span>
+                    {n.pinned && (
+                      <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-brand-primary/10 text-brand-primary font-bold rounded-xs uppercase tracking-wider">
+                        <Pin className="w-3 h-3 fill-current" /> Pinned
+                      </span>
+                    )}
 
                     {n.isPublic ? (
                       <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300 rounded-xs font-semibold">
@@ -377,6 +358,12 @@ export const NoticesManagement: React.FC = () => {
                     ) : (
                       <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-accent-subtle text-text-muted rounded-xs font-semibold">
                         <Lock className="w-3 h-3" /> Batch Only
+                      </span>
+                    )}
+
+                    {n.author && (
+                      <span className="text-[10px] text-text-muted">
+                        by {n.author.fullName}
                       </span>
                     )}
                   </div>
@@ -490,25 +477,7 @@ export const NoticesManagement: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-text-main mb-1">Priority Level</label>
-                  <select
-                    value={formData.priority}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        priority: e.target.value as "NORMAL" | "HIGH" | "URGENT",
-                      })
-                    }
-                    className="w-full px-3 py-2 bg-bg-app border border-accent rounded-sm text-text-main font-semibold"
-                  >
-                    <option value="NORMAL">Normal Notice</option>
-                    <option value="HIGH">High Priority</option>
-                    <option value="URGENT">Urgent Alert</option>
-                  </select>
-                </div>
-
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-text-main mb-1">Scope Campus</label>
                   {isBranchAdmin ? (
@@ -533,26 +502,26 @@ export const NoticesManagement: React.FC = () => {
                     </select>
                   )}
                 </div>
-              </div>
 
-              <div>
-                <label className="block font-semibold text-text-main mb-1">
-                  Target Specific Batch (Optional)
-                </label>
-                <select
-                  value={formData.batchId}
-                  onChange={(e) => setFormData({ ...formData, batchId: e.target.value })}
-                  className="w-full px-3 py-2 bg-bg-app border border-accent rounded-sm text-text-main"
-                >
-                  <option value="">All Batches {isBranchAdmin ? "(In My Campus)" : ""}</option>
-                  {batches
-                    .filter((b) => !isBranchAdmin || !b.branchId || b.branchId === userBranchId || b.branch?.id === userBranchId)
-                    .map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                </select>
+                <div>
+                  <label className="block font-semibold text-text-main mb-1">
+                    Target Specific Batch (Optional)
+                  </label>
+                  <select
+                    value={formData.batchId}
+                    onChange={(e) => setFormData({ ...formData, batchId: e.target.value })}
+                    className="w-full px-3 py-2 bg-bg-app border border-accent rounded-sm text-text-main"
+                  >
+                    <option value="">All Batches {isBranchAdmin ? "(In My Campus)" : ""}</option>
+                    {batches
+                      .filter((b) => !isBranchAdmin || !b.branchId || b.branchId === userBranchId || b.branch?.id === userBranchId)
+                      .map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
               </div>
 
               <div>
