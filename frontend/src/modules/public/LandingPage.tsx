@@ -547,7 +547,7 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
           <span className="text-xs font-semibold text-brand-primary bg-brand-primary/10 border border-brand-primary/20 px-2.5 py-1 rounded-sm self-start sm:self-auto shadow-2xs">
-            {loading ? "..." : availableBatches.length} Active
+            {loading ? "..." : availableBatches.length} Available
           </span>
         </div>
 
