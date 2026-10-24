@@ -12,7 +12,6 @@ import {
   Menu,
   X,
   Calendar,
-  Clock,
   BellRing,
   Trophy,
   BookOpen,
@@ -177,7 +176,6 @@ export const PublicLayout: React.FC = () => {
       "faculty",
       "achievements",
       "results",
-      "upcoming",
       "batches",
       "notices",
     ];
@@ -211,7 +209,6 @@ export const PublicLayout: React.FC = () => {
     { label: "Home", href: "/", icon: GraduationCap },
     { label: "Notice Board", href: "/#notices", icon: BellRing },
     { label: "Available Batches", href: "/#batches", icon: Calendar },
-    { label: "Upcoming Batches", href: "/#upcoming", icon: Clock },
     { label: "Teacher Panel", href: "/#faculty", icon: Users },
     { label: "Exam Standings", href: "/#results", icon: Trophy },
     { label: "Hall of Fame", href: "/#achievements", icon: Award },

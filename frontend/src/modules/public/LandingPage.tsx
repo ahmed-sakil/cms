@@ -4,18 +4,14 @@ import { Link, useOutletContext } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Calendar,
-  Clock,
   MapPin,
   Send,
   BellRing,
   ArrowRight,
   Award,
-  CreditCard,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  ChevronUp,
   X,
   Users,
   Star,
@@ -27,7 +23,6 @@ import {
   Building2,
   Search,
   Download,
-  DoorOpen,
   Briefcase,
 } from "lucide-react";
 import type { PosterSlide, PaymentChannel } from "../../types/index.js";
@@ -124,11 +119,9 @@ export const LandingPage: React.FC = () => {
   const [selectedTip, setSelectedTip] = useState<StudyTipItem | null>(null);
   const [selectedExamModal, setSelectedExamModal] = useState<EvaluatedExam | null>(null);
   const [examSearchFilter, setExamSearchFilter] = useState<string>("");
-  const [expandedExamIds, setExpandedExamIds] = useState<Record<string, boolean>>({});
 
-  // Exam Results Filter (Two-tier: Batch & Exam)
+  // Exam Results Filter (by Batch)
   const [selectedExamBatch, setSelectedExamBatch] = useState<string>("ALL");
-  const [selectedExamId, setSelectedExamId] = useState<string>("ALL");
 
   // Organization info
   const [organization, setOrganization] = useState<{
@@ -146,7 +139,6 @@ export const LandingPage: React.FC = () => {
 
   // Core Data Lists
   const [availableBatches, setAvailableBatches] = useState<any[]>([]);
-  const [upcomingBatches, setUpcomingBatches] = useState<any[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [evaluatedExams, setEvaluatedExams] = useState<EvaluatedExam[]>([]);
@@ -200,7 +192,6 @@ export const LandingPage: React.FC = () => {
   const applyLandingPayload = (d: any) => {
     if (d.organization) setOrganization(d.organization);
     if (d.availableBatches) setAvailableBatches(d.availableBatches);
-    if (d.upcomingBatches) setUpcomingBatches(d.upcomingBatches);
     if (d.notices) setNotices(d.notices);
     if (d.branches) setBranches(d.branches);
     if (d.evaluatedExams) setEvaluatedExams(d.evaluatedExams);
@@ -244,20 +235,13 @@ export const LandingPage: React.FC = () => {
     };
   }, [outletContext.landingData]);
 
-  // Filter exam results by selected batch and specific exam
-  const availableExamsForSelectedBatch = evaluatedExams.filter((e) => {
-    return selectedExamBatch === "ALL" || e.batchId === selectedExamBatch;
-  });
-
+  // Filter exam results by selected batch
   const filteredExams = evaluatedExams.filter((e) => {
-    const matchesBatch = selectedExamBatch === "ALL" || e.batchId === selectedExamBatch;
-    const matchesExam = selectedExamId === "ALL" || e.id === selectedExamId;
-    return matchesBatch && matchesExam;
+    return selectedExamBatch === "ALL" || e.batchId === selectedExamBatch;
   });
 
   const handleExamBatchChange = (batchId: string) => {
     setSelectedExamBatch(batchId);
-    setSelectedExamId("ALL");
   };
 
   const handleInquirySubmit = async (e: React.FormEvent) => {
@@ -326,265 +310,219 @@ export const LandingPage: React.FC = () => {
   return (
     <div className="space-y-16 pb-12 bg-bg-app text-text-main">
       {/* ========================================================================= */}
-      {/* 1. HERO SECTION (DYNAMIC REAL POSTERS OR INSTITUTIONAL HERO - NO DEMO PHOTOS) */}
       {/* ========================================================================= */}
-      <section className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 pt-4">
-        {loading ? (
-          <div className="relative w-full rounded-sm overflow-hidden border border-theme bg-surface shadow-xs h-[240px] xs:h-[300px] sm:h-[400px] md:h-[440px] p-6 sm:p-12 flex flex-col justify-end space-y-3 animate-pulse">
-            <div className="h-4 w-28 bg-accent rounded-xs" />
-            <div className="h-8 w-3/4 max-w-lg bg-accent rounded-xs" />
-            <div className="h-4 w-1/2 max-w-md bg-accent/60 rounded-xs" />
-            <div className="flex gap-2.5 pt-2">
-              <div className="h-9 w-32 bg-accent rounded-sm" />
-              <div className="h-9 w-32 bg-accent/50 rounded-sm" />
-            </div>
-          </div>
-        ) : activeSlides.length > 0 && slide ? (
-          <div
-            className="relative w-full rounded-sm overflow-hidden border border-theme bg-slate-950 shadow-md group h-[220px] xs:h-[280px] sm:h-[400px] md:h-[480px] lg:h-[520px]"
-            onMouseEnter={() => setIsPlaying(false)}
-            onMouseLeave={() => setIsPlaying(true)}
-          >
-            {/* Real Uploaded Poster Image */}
-            <img
-              key={slide.imageUrl}
-              src={slide.imageUrl}
-              alt={slide.title}
-              className="w-full h-full object-cover transition-opacity duration-700 ease-in-out"
-            />
+      {/* 1. HERO POSTER & LATEST NOTICES (2:1 RATIO ON WIDE SCREENS) */}
+      {/* ========================================================================= */}
+      <div className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 pt-4">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
+          {/* Hero Poster / Banner (2 Columns on Wide Screens) */}
+          <div className="xl:col-span-2 flex flex-col justify-between">
+            {loading ? (
+              <div className="relative w-full rounded-sm overflow-hidden border border-theme bg-surface shadow-xs h-[240px] xs:h-[300px] sm:h-[400px] md:h-[440px] xl:h-[480px] p-6 sm:p-12 flex flex-col justify-end space-y-3 animate-pulse">
+                <div className="h-4 w-28 bg-accent rounded-xs" />
+                <div className="h-8 w-3/4 max-w-lg bg-accent rounded-xs" />
+                <div className="h-4 w-1/2 max-w-md bg-accent/60 rounded-xs" />
+                <div className="flex gap-2.5 pt-2">
+                  <div className="h-9 w-32 bg-accent rounded-sm" />
+                  <div className="h-9 w-32 bg-accent/50 rounded-sm" />
+                </div>
+              </div>
+            ) : activeSlides.length > 0 && slide ? (
+              <div
+                className="relative w-full rounded-sm overflow-hidden border border-theme bg-slate-950 shadow-md group h-[220px] xs:h-[280px] sm:h-[380px] md:h-[440px] xl:h-[480px]"
+                onMouseEnter={() => setIsPlaying(false)}
+                onMouseLeave={() => setIsPlaying(true)}
+              >
+                {/* Real Uploaded Poster Image */}
+                <img
+                  key={slide.imageUrl}
+                  src={slide.imageUrl}
+                  alt={slide.title}
+                  className="w-full h-full object-cover transition-opacity duration-700 ease-in-out"
+                />
 
-            {/* Sleek bottom gradient overlay only where caption text sits */}
-            {(slide.title || slide.subtitle) && (
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-10 sm:pt-16 pb-4 sm:pb-6 px-4 sm:px-8 flex flex-col justify-end">
-                <div className="max-w-3xl space-y-1.5 sm:space-y-2">
-                  <h1 className="text-base sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md line-clamp-2">
-                    {slide.title}
-                  </h1>
-                  {slide.subtitle && (
-                    <p className="text-[11px] sm:text-xs md:text-sm text-slate-200 line-clamp-1 sm:line-clamp-2 max-w-2xl drop-shadow-sm font-normal">
-                      {slide.subtitle}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap gap-2 pt-1 sm:pt-2">
-                    <a
-                      href={slide.actionUrl || "#batches"}
-                      className="px-3 py-1.5 sm:px-4 sm:py-2 bg-brand-primary text-white font-semibold text-xs rounded-sm hover:opacity-90 shadow-sm flex items-center gap-1.5"
+                {/* Sleek bottom gradient overlay only where caption text sits */}
+                {(slide.title || slide.subtitle) && (
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-10 sm:pt-16 pb-4 sm:pb-6 px-4 sm:px-8 flex flex-col justify-end">
+                    <div className="max-w-3xl space-y-1.5 sm:space-y-2">
+                      <h1 className="text-base sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md line-clamp-2">
+                        {slide.title}
+                      </h1>
+                      {slide.subtitle && (
+                        <p className="text-[11px] sm:text-xs md:text-sm text-slate-200 line-clamp-1 sm:line-clamp-2 max-w-2xl drop-shadow-sm font-normal">
+                          {slide.subtitle}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-2 pt-1 sm:pt-2">
+                        <a
+                          href={slide.actionUrl || "#batches"}
+                          className="px-3 py-1.5 sm:px-4 sm:py-2 bg-brand-primary text-white font-semibold text-xs rounded-sm hover:opacity-90 shadow-sm flex items-center gap-1.5"
+                        >
+                          {slide.actionText || "Explore Batches"} <ArrowRight className="w-3.5 h-3.5" />
+                        </a>
+                        <a
+                          href="#inquiry"
+                          className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white/20 text-white border border-white/30 backdrop-blur-xs font-semibold text-xs rounded-sm hover:bg-white/30"
+                        >
+                          Admission Inquiry
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Navigation Arrows */}
+                {activeSlides.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handlePrevSlide}
+                      aria-label="Previous Slide"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-sm bg-black/40 hover:bg-black/70 border border-white/20 text-white backdrop-blur-xs transition-colors"
                     >
-                      {slide.actionText || "Explore Batches"} <ArrowRight className="w-3.5 h-3.5" />
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleNextSlide}
+                      aria-label="Next Slide"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-sm bg-black/40 hover:bg-black/70 border border-white/20 text-white backdrop-blur-xs transition-colors"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+
+                {/* Slide Indicators */}
+                {activeSlides.length > 1 && (
+                  <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-2.5 py-1 bg-black/50 border border-white/20 rounded-sm backdrop-blur-xs">
+                    {activeSlides.map((s, idx) => (
+                      <button
+                        key={s.id || idx}
+                        onClick={() => setCurrentSlide(idx)}
+                        className={`transition-all rounded-xs ${
+                          currentSlide === idx ? "w-5 h-1.5 bg-brand-primary" : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
+                        }`}
+                        title={s.title}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Institutional Branded Hero (Clean, Professional, Zero Fake Photos) */
+              <div className="relative w-full rounded-sm overflow-hidden border border-theme bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white shadow-md p-6 sm:p-10 md:p-12 xl:h-[480px] flex flex-col justify-center">
+                <div className="max-w-2xl space-y-3.5">
+                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-xs bg-brand-primary/20 border border-brand-primary/40 text-brand-primary text-xs font-bold tracking-wide">
+                    <Award className="w-3.5 h-3.5" />
+                    <span>{organization.name ? `${organization.name} Official Portal` : "Academic Excellence"}</span>
+                    {organization.establishedYear && <span>• Est. {organization.establishedYear}</span>}
+                  </div>
+
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                    {organization.name ? `Welcome to ${organization.name}` : "Comprehensive Coaching & Academic Programs"}
+                  </h1>
+
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    {organization.tagline ||
+                      "Providing disciplined classroom coaching, model test series, and dedicated faculty mentorship to prepare students for academic excellence."}
+                  </p>
+
+                  <div className="flex flex-wrap gap-2.5 pt-2">
+                    <a
+                      href="#batches"
+                      className="px-4 py-2 bg-brand-primary text-white font-semibold text-xs sm:text-sm rounded-sm hover:opacity-90 shadow-sm flex items-center gap-1.5 transition-opacity"
+                    >
+                      <span>Explore Available Batches</span>
+                      <ArrowRight className="w-4 h-4" />
                     </a>
                     <a
                       href="#inquiry"
-                      className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white/20 text-white border border-white/30 backdrop-blur-xs font-semibold text-xs rounded-sm hover:bg-white/30"
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold text-xs sm:text-sm rounded-sm backdrop-blur-xs transition-colors flex items-center gap-1.5"
                     >
-                      Admission Inquiry
+                      <span>Admission Inquiry Desk</span>
                     </a>
                   </div>
                 </div>
               </div>
             )}
-
-            {/* Navigation Arrows */}
-            {activeSlides.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={handlePrevSlide}
-                  aria-label="Previous Slide"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-sm bg-black/40 hover:bg-black/70 border border-white/20 text-white backdrop-blur-xs transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNextSlide}
-                  aria-label="Next Slide"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-sm bg-black/40 hover:bg-black/70 border border-white/20 text-white backdrop-blur-xs transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </>
-            )}
-
-            {/* Slide Indicators */}
-            {activeSlides.length > 1 && (
-              <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-2.5 py-1 bg-black/50 border border-white/20 rounded-sm backdrop-blur-xs">
-                {activeSlides.map((s, idx) => (
-                  <button
-                    key={s.id || idx}
-                    onClick={() => setCurrentSlide(idx)}
-                    className={`transition-all rounded-xs ${
-                      currentSlide === idx ? "w-5 h-1.5 bg-brand-primary" : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
-                    }`}
-                    title={s.title}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Institutional Branded Hero (Clean, Professional, Zero Fake Photos) */
-          <div className="relative w-full rounded-sm overflow-hidden border border-theme bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white shadow-md p-6 sm:p-12 md:p-16 flex flex-col justify-center">
-            <div className="max-w-3xl space-y-4">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-xs bg-brand-primary/20 border border-brand-primary/40 text-brand-primary text-xs font-bold tracking-wide">
-                <Award className="w-3.5 h-3.5" />
-                <span>{organization.name ? `${organization.name} Official Portal` : "Academic Excellence"}</span>
-                {organization.establishedYear && <span>• Est. {organization.establishedYear}</span>}
-              </div>
-
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-                {organization.name ? `Welcome to ${organization.name}` : "Comprehensive Coaching & Academic Programs"}
-              </h1>
-
-              <p className="text-xs sm:text-sm md:text-base text-slate-300 max-w-2xl leading-relaxed">
-                {organization.tagline ||
-                  "Providing disciplined classroom coaching, model test series, and dedicated faculty mentorship to prepare students for academic excellence."}
-              </p>
-
-              <div className="flex flex-wrap gap-2.5 pt-2">
-                <a
-                  href="#batches"
-                  className="px-4 py-2 bg-brand-primary text-white font-semibold text-xs sm:text-sm rounded-sm hover:opacity-90 shadow-sm flex items-center gap-1.5 transition-opacity"
-                >
-                  <span>Explore Available Batches</span>
-                  <ArrowRight className="w-4 h-4" />
-                </a>
-                <a
-                  href="#inquiry"
-                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 font-semibold text-xs sm:text-sm rounded-sm backdrop-blur-xs transition-colors flex items-center gap-1.5"
-                >
-                  <span>Admission Inquiry Desk</span>
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 2. NOTICE BOARD (IMMEDIATELY AFTER POSTERS - MAX 3 WITH VIEW MORE BUTTON) */}
-      {/* ========================================================================= */}
-      <section id="notices" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
-          <div className="flex items-start sm:items-center gap-3">
-            <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
-              <BellRing className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
-                Notice Board & Official Announcements
-              </h2>
-              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
-                Stay updated with official schedules, exam dates, and academic notifications.
-              </p>
-            </div>
           </div>
 
-          <button
-            onClick={() => setIsAllNoticesOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface border border-theme rounded-sm hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/5 transition-all text-text-main self-start sm:self-auto shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+          {/* Latest Notices Section (1 Column on Wide Screens) */}
+          <section
+            id="notices"
+            className="xl:col-span-1 bg-surface border border-theme rounded-sm p-4 sm:p-5 flex flex-col justify-between space-y-4 scroll-mt-20 shadow-xs h-full"
           >
-            <span>View All Notices ({loading ? "..." : notices.length})</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* Max 3 Notices Column View */}
-        <div className="flex flex-col gap-3.5">
-          {loading ? (
-            [1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className="bg-surface border border-theme rounded-sm p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-pulse shadow-xs"
-              >
-                <div className="flex items-start gap-4 flex-1">
-                  <div className="hidden sm:block w-[70px] h-[64px] bg-bg-app border border-theme rounded-sm shrink-0" />
-                  <div className="space-y-2 flex-1">
-                    <div className="h-3 w-32 bg-accent rounded-xs" />
-                    <div className="h-4 w-3/4 max-w-md bg-accent rounded-xs" />
-                    <div className="h-3 w-1/2 max-w-sm bg-accent/60 rounded-xs" />
-                  </div>
+            <div className="flex items-center justify-between gap-3 border-b border-theme pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
+                  <BellRing className="w-4 h-4" />
                 </div>
-                <div className="h-8 w-24 bg-surface border border-theme rounded-sm shrink-0" />
+                <h2 className="text-base sm:text-lg font-bold tracking-tight text-text-main">
+                  Latest Notices
+                </h2>
               </div>
-            ))
-          ) : (
-            <>
-              {notices.slice(0, 3).map((notice) => (
-                <div
-                  key={notice.id}
-                  onClick={() => setSelectedNotice(notice)}
-                  className="bg-surface border border-theme rounded-sm p-4 sm:p-5 cursor-pointer hover:border-brand-primary/60 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group hover:shadow-xs shadow-2xs"
-                >
-                  <div className="flex items-start gap-4 flex-1 min-w-0">
-                    {/* Calendar Date Block (Desktop & Tablet) */}
-                    <div className="hidden sm:flex flex-col items-center justify-center min-w-[70px] px-3 py-2 bg-bg-app border border-theme rounded-sm text-center shrink-0">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-brand-primary">
-                        {new Date(notice.publishedAt).toLocaleDateString("en-US", { month: "short" })}
-                      </span>
-                      <span className="text-xl font-black text-text-main leading-tight">
-                        {new Date(notice.publishedAt).getDate()}
-                      </span>
-                      <span className="text-[9px] text-text-muted">
-                        {new Date(notice.publishedAt).getFullYear()}
-                      </span>
-                    </div>
 
-                    <div className="space-y-1.5 flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                        <span className="sm:hidden font-mono font-semibold text-brand-primary flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(notice.publishedAt).toLocaleDateString()}
-                        </span>
-                        <span className="px-2 py-0.5 bg-brand-primary/10 text-brand-primary font-semibold rounded-xs text-[10px]">
-                          {notice.category || "Official Notice"}
-                        </span>
-                        <span className="px-2 py-0.5 bg-bg-app border border-theme rounded-xs text-[10px] text-text-muted">
-                          {notice.branch?.name || "All Campuses"}
-                        </span>
-                        {notice.priority && notice.priority !== "NORMAL" && (
-                          <span className="px-2 py-0.5 bg-amber-500/10 text-amber-600 font-semibold rounded-xs text-[10px]">
-                            {notice.priority}
-                          </span>
-                        )}
-                      </div>
-                      <h4 className="font-bold text-sm sm:text-base text-text-main group-hover:text-brand-primary transition-colors line-clamp-1">
-                        {notice.title}
-                      </h4>
-                      {notice.content && (
-                        <p className="text-xs text-text-muted line-clamp-2 leading-relaxed">
-                          {notice.content}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+              <button
+                onClick={() => setIsAllNoticesOpen(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-bg-app border border-theme rounded-sm hover:border-brand-primary hover:text-brand-primary transition-all text-text-main shadow-2xs"
+              >
+                <span>All ({loading ? "..." : notices.length})</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
 
-                  <div className="flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-theme/40 shrink-0">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedNotice(notice);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-brand-primary bg-bg-app border border-theme rounded-sm hover:border-brand-primary hover:bg-brand-primary hover:text-white transition-all shadow-2xs"
-                    >
-                      <span>Read Notice</span>
-                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                    </button>
+            {/* List of 3 Latest Notices */}
+            <div className="space-y-3 flex-1 flex flex-col justify-start">
+              {loading ? (
+                [1, 2, 3].map((n) => (
+                  <div
+                    key={n}
+                    className="p-3 bg-bg-app border border-theme rounded-sm space-y-2 animate-pulse"
+                  >
+                    <div className="h-3 w-20 bg-accent rounded-xs" />
+                    <div className="h-4 w-3/4 bg-accent rounded-xs" />
+                    <div className="h-3 w-1/2 bg-accent/60 rounded-xs" />
                   </div>
-                </div>
-              ))}
-              {notices.length === 0 && (
-                <div className="p-8 text-center text-xs text-text-muted bg-surface border border-theme rounded-sm">
+                ))
+              ) : notices.length === 0 ? (
+                <div className="p-6 text-center text-xs text-text-muted bg-bg-app border border-theme rounded-sm my-auto">
                   No active announcements currently posted.
                 </div>
+              ) : (
+                notices.slice(0, 3).map((notice) => (
+                  <div
+                    key={notice.id}
+                    onClick={() => setSelectedNotice(notice)}
+                    className="p-3 bg-bg-app hover:bg-surface border border-theme hover:border-brand-primary/60 rounded-sm cursor-pointer transition-all space-y-1.5 group shadow-2xs"
+                  >
+                    <div className="flex items-center justify-between text-[11px] gap-2">
+                      <span className="font-mono text-text-muted flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-brand-primary" />
+                        {new Date(notice.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </span>
+                      <span className="px-1.5 py-0.2 bg-brand-primary/10 text-brand-primary font-semibold rounded-xs text-[10px]">
+                        {notice.category || "Notice"}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-xs sm:text-sm text-text-main group-hover:text-brand-primary transition-colors line-clamp-1">
+                      {notice.title}
+                    </h4>
+                    {notice.content && (
+                      <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
+                        {notice.content}
+                      </p>
+                    )}
+                  </div>
+                ))
               )}
-            </>
-          )}
+            </div>
+          </section>
         </div>
-      </section>
+      </div>
 
       {/* ========================================================================= */}
-      {/* 3. AVAILABLE BATCHES & COURSES (CURRENTLY ENROLLING / ACTIVE) */}
+      {/* 2. AVAILABLE BATCHES */}
       {/* ========================================================================= */}
       <section id="batches" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
@@ -594,15 +532,12 @@ export const LandingPage: React.FC = () => {
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
-                Available Batches & Physical Classrooms
+                Available Batches
               </h2>
-              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
-                Physical classroom programs currently in session or open for student admissions across campuses.
-              </p>
             </div>
           </div>
           <span className="text-xs font-semibold text-brand-primary bg-brand-primary/10 border border-brand-primary/20 px-2.5 py-1 rounded-sm self-start sm:self-auto shadow-2xs">
-            {loading ? "..." : availableBatches.length} Batches Active
+            {loading ? "..." : availableBatches.length} Active
           </span>
         </div>
 
@@ -621,7 +556,6 @@ export const LandingPage: React.FC = () => {
                     <div className="space-y-2 pt-2">
                       <div className="h-3 w-32 bg-accent/60 rounded-xs" />
                       <div className="h-3 w-40 bg-accent/60 rounded-xs" />
-                      <div className="h-3 w-28 bg-accent/60 rounded-xs" />
                     </div>
                   </div>
                   <div className="pt-3 border-t border-theme flex items-center justify-between">
@@ -635,479 +569,235 @@ export const LandingPage: React.FC = () => {
             <>
               {availableBatches.length === 0 && (
                 <div className="col-span-full text-center py-12 bg-surface border border-theme rounded-sm text-xs text-text-muted">
-                  No active batches listed at this moment. Please check upcoming batches below!
+                  No active batches listed at this moment.
                 </div>
               )}
-              {availableBatches.map((batch) => {
-                const seatLimit = batch.seatLimit || batch.maxCapacity || 40;
-                const confirmed = batch.enrolledCount || 0;
-                const remaining = batch.availableSeats !== undefined ? batch.availableSeats : Math.max(0, seatLimit - confirmed);
-                const isFull = batch.isHouseFull || remaining <= 0;
-
-                return (
-                  <div
-                    key={batch.id}
-                    className="bg-surface border border-theme rounded-sm overflow-hidden flex flex-col justify-between hover:border-brand-primary/50 transition-all shadow-xs group"
-                  >
-                    {batch.coverImage ? (
-                      <div className="h-40 w-full bg-slate-900 overflow-hidden relative">
-                        <img
-                          src={batch.coverImage}
-                          alt={batch.title || batch.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                        />
-                        <div className="absolute top-2 left-2 flex flex-wrap gap-1">
-                          {batch.academicClass && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-xs uppercase shadow-xs">
-                              {batch.academicClass.name}
-                            </span>
-                          )}
-                          {batch.classroom && (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 bg-surface/90 text-text-main border border-accent rounded-xs shadow-xs backdrop-blur-xs flex items-center gap-1">
-                              <DoorOpen className="w-3 h-3 text-brand-primary" /> {batch.classroom}
-                            </span>
-                          )}
-                        </div>
-                        <div className="absolute top-2 right-2">
-                          <span
-                            className={`text-[10px] px-2 py-0.5 font-bold rounded-xs shadow-xs ${
-                              isFull ? "bg-rose-500 text-white" : "bg-emerald-500 text-white"
-                            }`}
-                          >
-                            {isFull ? "Housefull" : `${remaining} Seats Left`}
+              {availableBatches.map((batch) => (
+                <div
+                  key={batch.id}
+                  className="bg-surface border border-theme rounded-sm overflow-hidden flex flex-col justify-between hover:border-brand-primary/50 transition-all shadow-xs group"
+                >
+                  {batch.coverImage ? (
+                    <div className="h-40 w-full bg-slate-900 overflow-hidden relative">
+                      <img
+                        src={batch.coverImage}
+                        alt={batch.title || batch.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                      />
+                      {batch.academicClass && (
+                        <div className="absolute top-2.5 left-2.5">
+                          <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-xs uppercase shadow-xs">
+                            {batch.academicClass.name}
                           </span>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="p-4 pb-0 flex justify-between items-start">
-                        <div className="flex flex-wrap gap-1">
-                          <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider block bg-brand-primary/10 px-2 py-0.5 rounded-xs">
-                            {batch.academicClass?.name || batch.course?.name || "Offline Program"}
-                          </span>
-                          {batch.classroom && (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 bg-bg-app text-text-main border border-accent rounded-xs flex items-center gap-1">
-                              <DoorOpen className="w-3 h-3 text-brand-primary" /> {batch.classroom}
-                            </span>
-                          )}
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-4 pb-0 flex justify-start items-start">
+                      <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider block bg-brand-primary/10 px-2 py-0.5 rounded-xs">
+                        {batch.academicClass?.name || batch.course?.name || "Academic Program"}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="p-5 space-y-3.5 flex-1 flex flex-col justify-between">
+                    <div className="space-y-2.5">
+                      <h4 className="font-bold text-base text-text-main group-hover:text-brand-primary transition-colors line-clamp-1">
+                        {batch.title || batch.name}
+                      </h4>
+
+                      <div className="space-y-2 text-xs text-text-muted pt-1">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                          <span>Starts: <strong className="text-text-main">{new Date(batch.startDate).toLocaleDateString()}</strong></span>
                         </div>
-                        <span
-                          className={`text-[10px] px-2 py-0.5 font-bold rounded-xs border ${
-                            isFull
-                              ? "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border-rose-300"
-                              : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300"
-                          }`}
-                        >
-                          {isFull ? "Housefull" : `${remaining} Seats Left`}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <h4 className="font-bold text-sm text-text-main group-hover:text-brand-primary transition-colors">
-                          {batch.title || batch.name}
-                        </h4>
-
-                        <div className="space-y-1.5 text-xs text-text-main/70 pt-1">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                            <span>Starts: <strong className="text-text-main">{new Date(batch.startDate).toLocaleDateString()}</strong></span>
-                          </div>
-                          {(batch.classTime || batch.scheduleTime) && (
-                            <div className="flex items-center gap-2">
-                              <Clock className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                              <span>{batch.classTime || batch.scheduleTime}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                            <span>{batch.branch?.name || "Main Campus"}</span>
-                          </div>
-                          {((batch.totalClasses ?? 0) > 0 || (batch.totalExams ?? 0) > 0) && (
-                            <div className="flex items-center gap-2">
-                              <BookOpen className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                              <span>{batch.totalClasses || 0} Lectures • {batch.totalExams || 0} Model Tests</span>
-                            </div>
-                          )}
-                          {batch.feeAmount && (
-                            <div className="flex items-center gap-2 font-semibold text-text-main pt-1 border-t border-accent">
-                              <CreditCard className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                              <span>৳{Number(batch.feeAmount).toLocaleString()}</span>
-                              {batch.feeType && (
-                                <span className="text-[10px] text-text-muted font-normal">
-                                  ({batch.feeType.replace("_", " ")})
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          {Array.isArray(batch.subjects) && batch.subjects.length > 0 && (
-                            <div className="flex flex-wrap gap-1 pt-1">
-                              {batch.subjects.slice(0, 4).map((sub: string, sIdx: number) => (
-                                <span
-                                  key={sIdx}
-                                  className="text-[10px] px-1.5 py-0.5 bg-accent/60 rounded-xs text-text-muted"
-                                >
-                                  {sub}
-                                </span>
-                              ))}
-                              {batch.subjects.length > 4 && (
-                                <span className="text-[10px] px-1 py-0.5 text-text-muted">
-                                  +{batch.subjects.length - 4} more
-                                </span>
-                              )}
-                            </div>
-                          )}
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                          <span>Campus: <strong className="text-text-main">{batch.branch?.name || "Main Campus"}</strong></span>
                         </div>
-                      </div>
-
-                      <div className="pt-3 border-t border-theme flex items-center justify-between gap-2">
-                        <span className="text-[11px] text-text-muted flex items-center gap-1">
-                          <Users className="w-3 h-3 text-brand-primary" />
-                          {confirmed}/{seatLimit} seats
-                        </span>
-
-                        <Link
-                          to={`/batches/${batch.id}`}
-                          className="py-1.5 px-3 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors flex items-center gap-1 shadow-xs"
-                        >
-                          <span>Details & Routine</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </Link>
+                        {((batch.totalClasses ?? 0) > 0 || (batch.totalExams ?? 0) > 0) && (
+                          <div className="flex items-center gap-2">
+                            <BookOpen className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                            <span>{batch.totalClasses || 0} Lectures • {batch.totalExams || 0} Model Exams</span>
+                          </div>
+                        )}
                       </div>
                     </div>
+
+                    <div className="pt-3.5 border-t border-theme flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Fee</div>
+                        <div className="text-base font-bold text-text-main">
+                          ৳{Number(batch.feeAmount || 0).toLocaleString()}
+                          {batch.feeType && (
+                            <span className="text-[10px] text-text-muted font-normal ml-1">
+                              ({batch.feeType.replace("_", " ")})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <Link
+                        to={`/batches/${batch.id}`}
+                        className="py-1.5 px-3.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors flex items-center gap-1 shadow-xs"
+                      >
+                        <span>Details & Routine</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </>
           )}
         </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* 4. UPCOMING BATCHES & ADMISSION SESSIONS */}
-      {/* ========================================================================= */}
-      {upcomingBatches.length > 0 && (
-        <section id="upcoming" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
-            <div className="flex items-start sm:items-center gap-3">
-              <div className="p-2.5 bg-amber-500/10 text-amber-600 rounded-sm shrink-0">
-                <Clock className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
-                  Upcoming Batches & Next Academic Sessions
-                </h2>
-                <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
-                  Pre-book your seat in advance to secure early enrollment before class caps fill.
-                </p>
-              </div>
-            </div>
-            <span className="text-xs font-semibold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-sm self-start sm:self-auto shadow-2xs">
-              Starting Soon
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {upcomingBatches.map((batch) => {
-              const seatLimit = batch.seatLimit || batch.maxCapacity || 40;
-              const confirmed = batch.enrolledCount || 0;
-              const remaining = batch.availableSeats !== undefined ? batch.availableSeats : Math.max(0, seatLimit - confirmed);
-
-              return (
-                <div
-                  key={batch.id}
-                  className="bg-surface border border-theme rounded-sm p-5 space-y-4 flex flex-col justify-between hover:border-brand-primary/50 transition-colors shadow-xs"
-                >
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-start gap-1">
-                      <div className="flex flex-wrap gap-1">
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-xs uppercase">
-                          {batch.academicClass?.name || "Upcoming Program"}
-                        </span>
-                        {batch.classroom && (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 bg-bg-app text-text-main border border-accent rounded-xs flex items-center gap-1">
-                            <DoorOpen className="w-3 h-3 text-brand-primary" /> {batch.classroom}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[11px] font-mono text-text-muted font-bold whitespace-nowrap">
-                        {remaining} Seats Left
-                      </span>
-                    </div>
-
-                    <h4 className="font-bold text-sm text-text-main">{batch.title || batch.name}</h4>
-
-                    <div className="space-y-1.5 text-xs text-text-muted">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-brand-primary" />
-                        <span>Orientation: <strong>{new Date(batch.startDate).toLocaleDateString()}</strong></span>
-                      </div>
-                      {(batch.classTime || batch.scheduleTime) && (
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-3.5 h-3.5 text-brand-primary" />
-                          <span>{batch.classTime || batch.scheduleTime}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-brand-primary" />
-                        <span>{batch.branch?.name || "Campus Desk"}</span>
-                      </div>
-                      {((batch.totalClasses ?? 0) > 0 || (batch.totalExams ?? 0) > 0) && (
-                        <div className="flex items-center gap-2">
-                          <BookOpen className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                          <span>{batch.totalClasses || 0} Lectures • {batch.totalExams || 0} Tests</span>
-                        </div>
-                      )}
-                      {Array.isArray(batch.subjects) && batch.subjects.length > 0 && (
-                        <div className="flex flex-wrap gap-1 pt-1">
-                          {batch.subjects.slice(0, 3).map((sub: string, sIdx: number) => (
-                            <span
-                              key={sIdx}
-                              className="text-[10px] px-1.5 py-0.5 bg-accent/60 rounded-xs text-text-muted"
-                            >
-                              {sub}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-theme flex justify-between items-center">
-                    <span className="text-xs font-bold text-text-main">
-                      ৳{Number(batch.feeAmount || 0).toLocaleString()}
-                    </span>
-                    <Link
-                      to={`/batches/${batch.id}`}
-                      className="px-3 py-1.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover shadow-xs flex items-center gap-1"
-                    >
-                      Pre-Register <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 5. TAKEN EXAMS & PUBLIC RESULTS LEADERBOARD (NAME, MARKS, STANDING ONLY) */}
+      {/* 3. EXAM STANDINGS (CLEAN SNAPSHOT WITH FULL SCORES MODAL) */}
       {/* ========================================================================= */}
       <section id="results" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-theme pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
           <div className="flex items-start sm:items-center gap-3">
             <div className="p-2.5 bg-amber-500/10 text-amber-600 rounded-sm shrink-0">
               <Trophy className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
-                Evaluated Exams & Hall of Standings
+                Exam Standings
               </h2>
               <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
-                Recent physical model test evaluations. Standings and scores published transparently for batches.
+                Top performers and published scores from recent batch examinations.
               </p>
             </div>
           </div>
 
-          {/* Connected Selectors: Select Batch and Select Exam */}
-          <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto self-start lg:self-auto">
-            <div className="flex items-center gap-1.5 w-full sm:w-auto">
-              <span className="text-xs font-semibold text-text-muted whitespace-nowrap">Batch:</span>
-              <select
-                value={selectedExamBatch}
-                onChange={(e) => handleExamBatchChange(e.target.value)}
-                className="w-full sm:w-auto px-3 py-1.5 text-xs bg-surface border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-medium shadow-2xs cursor-pointer"
-              >
-                <option value="ALL">All Batches</option>
-                {batchesListUnique(evaluatedExams).map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.title || b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center gap-1.5 w-full sm:w-auto">
-              <span className="text-xs font-semibold text-text-muted whitespace-nowrap">Exam:</span>
-              <select
-                value={selectedExamId}
-                onChange={(e) => setSelectedExamId(e.target.value)}
-                className="w-full sm:w-auto px-3 py-1.5 text-xs bg-surface border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-medium shadow-2xs cursor-pointer"
-              >
-                <option value="ALL">All Evaluated Exams ({availableExamsForSelectedBatch.length})</option>
-                {availableExamsForSelectedBatch.map((ex) => (
-                  <option key={ex.id} value={ex.id}>
-                    {ex.title} ({ex.academicClass} - {ex.subject})
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* Clean Batch Filter */}
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="text-xs font-semibold text-text-muted whitespace-nowrap">Filter Batch:</span>
+            <select
+              value={selectedExamBatch}
+              onChange={(e) => handleExamBatchChange(e.target.value)}
+              className="px-3 py-1.5 text-xs bg-surface border border-theme rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-medium shadow-2xs cursor-pointer"
+            >
+              <option value="ALL">All Batches</option>
+              {batchesListUnique(evaluatedExams).map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.title || b.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Exam Leaderboards Grid */}
-        <div className="space-y-6">
+        {/* Exam Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {loading ? (
-            <div className="bg-surface border border-theme rounded-sm p-5 space-y-4 animate-pulse shadow-xs">
-              <div className="h-4 w-32 bg-accent rounded-xs" />
-              <div className="h-5 w-52 bg-accent rounded-xs" />
-              <div className="h-32 bg-bg-app border border-theme rounded-sm mt-3" />
-            </div>
+            [1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className="bg-surface border border-theme rounded-sm p-5 space-y-4 shadow-xs animate-pulse"
+              >
+                <div className="h-4 w-28 bg-accent rounded-xs" />
+                <div className="h-5 w-44 bg-accent rounded-xs" />
+                <div className="space-y-2 pt-2">
+                  <div className="h-3 w-full bg-accent/60 rounded-xs" />
+                  <div className="h-3 w-full bg-accent/60 rounded-xs" />
+                </div>
+              </div>
+            ))
           ) : filteredExams.length === 0 ? (
-            <div className="py-12 text-center text-xs text-text-muted space-y-2 bg-surface border border-theme rounded-sm">
+            <div className="col-span-full py-12 text-center text-xs text-text-muted space-y-2 bg-surface border border-theme rounded-sm">
               <Award className="w-8 h-8 mx-auto opacity-40 text-brand-primary" />
-              <p>No evaluated exams recorded for this batch yet. Results are posted after teacher grading.</p>
+              <p>No evaluated exams recorded for this batch yet.</p>
             </div>
           ) : (
             filteredExams.map((exam) => (
               <div
                 key={exam.id}
-                className="bg-surface border border-theme rounded-sm overflow-hidden space-y-4 p-4 sm:p-5 shadow-xs hover:border-brand-primary/50 transition-colors"
+                className="bg-surface border border-theme hover:border-brand-primary/60 rounded-sm p-5 shadow-xs flex flex-col justify-between transition-all group"
               >
-                {/* Exam Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-3.5">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-xs uppercase tracking-wider">
-                        {exam.academicClass} • {exam.subject}
-                      </span>
-                      <span className="text-[11px] font-mono text-text-muted">
-                        Exam Date: {new Date(exam.examDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <h3 className="font-bold text-base text-text-main mt-1">{exam.title}</h3>
-                    <div className="text-xs text-text-muted flex items-center gap-2 mt-0.5">
-                      <span>Batch: <strong className="text-text-main">{exam.batchTitle}</strong></span>
-                      <span>•</span>
-                      <span>Campus: {exam.branchName}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 self-start sm:self-auto">
-                    <div className="text-right">
-                      <div className="text-[11px] text-text-muted">Total Test Marks</div>
-                      <div className="text-sm font-mono font-bold text-text-main">
-                        {exam.totalMarks} Marks
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setExamSearchFilter("");
-                        setSelectedExamModal(exam);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-brand-primary text-white hover:bg-brand-hover rounded-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-                      title="View complete leaderboard for this exam"
-                    >
-                      <Trophy className="w-3.5 h-3.5" />
-                      <span>Full Results</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Leaderboard Standings Table (Top 3 Shown Initially) */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-bg-app text-text-muted border-b border-theme text-[10px] uppercase font-bold tracking-wider">
-                      <tr>
-                        <th className="py-2.5 px-3 w-16">Standing</th>
-                        <th className="py-2.5 px-3">Student Name</th>
-                        <th className="py-2.5 px-3 text-center">Marks Obtained</th>
-                        <th className="py-2.5 px-3 text-center">Percentage</th>
-                        <th className="py-2.5 px-3 text-right">Grade</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-theme">
-                      {(expandedExamIds[exam.id] ? exam.standings : exam.standings.slice(0, 3)).map((st) => (
-                        <tr key={st.standing} className="hover:bg-bg-app/40 transition-colors">
-                          {/* Standing / Rank Badge */}
-                          <td className="py-2.5 px-3">
-                            <span
-                              className={`inline-flex items-center justify-center w-6 h-6 rounded-xs font-bold text-xs ${
-                                st.standing === 1
-                                  ? "bg-amber-400 text-slate-900 shadow-xs"
-                                  : st.standing === 2
-                                  ? "bg-slate-300 text-slate-900"
-                                  : st.standing === 3
-                                  ? "bg-amber-600/30 text-amber-800 dark:text-amber-300"
-                                  : "bg-surface border border-theme text-text-muted"
-                              }`}
-                            >
-                              {st.standing}
-                            </span>
-                          </td>
-
-                          {/* Student Name */}
-                          <td className="py-2.5 px-3 font-semibold text-text-main flex items-center gap-2">
-                            {st.avatarUrl ? (
-                              <img
-                                src={st.avatarUrl}
-                                alt={st.studentName}
-                                className="w-6 h-6 rounded-full object-cover border border-theme"
-                              />
-                            ) : (
-                              <div className="w-6 h-6 rounded-full bg-brand-primary/10 text-brand-primary font-bold text-[10px] flex items-center justify-center">
-                                {st.studentName.charAt(0)}
-                              </div>
-                            )}
-                            <span>{st.studentName}</span>
-                          </td>
-
-                          {/* Marks Obtained */}
-                          <td className="py-2.5 px-3 text-center font-mono font-bold text-text-main">
-                            {st.marksObtained} / {st.totalMarks}
-                          </td>
-
-                          {/* Percentage Bar */}
-                          <td className="py-2.5 px-3 text-center font-mono text-[11px] text-text-muted">
-                            {st.percentage}%
-                          </td>
-
-                          {/* Grade */}
-                          <td className="py-2.5 px-3 text-right">
-                            <span
-                              className={`px-2 py-0.5 text-[10px] font-bold rounded-xs ${
-                                st.grade === "A+"
-                                  ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
-                                  : "bg-brand-primary/10 text-brand-primary"
-                              }`}
-                            >
-                              {st.grade}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Bottom Toggle */}
-                {exam.standings.length > 3 && (
-                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-theme/60 text-xs text-text-muted">
-                    <span>
-                      Showing {expandedExamIds[exam.id] ? exam.standings.length : 3} of {exam.standings.length} evaluated students
+                <div className="space-y-3">
+                  {/* Subject Badge & Exam Date */}
+                  <div className="flex items-center justify-between text-[11px] gap-2">
+                    <span className="font-bold px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded-xs uppercase tracking-wider text-[10px]">
+                      {exam.academicClass} • {exam.subject}
                     </span>
-                    <button
-                      onClick={() =>
-                        setExpandedExamIds((prev) => ({
-                          ...prev,
-                          [exam.id]: !prev[exam.id],
-                        }))
-                      }
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-bg-app border border-theme rounded-sm hover:border-brand-primary hover:text-brand-primary text-text-main transition-colors"
-                    >
-                      {expandedExamIds[exam.id] ? (
-                        <>
-                          <ChevronUp className="w-3.5 h-3.5" /> Show Top 3 Only
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="w-3.5 h-3.5" /> Expand All ({exam.standings.length})
-                        </>
-                      )}
-                    </button>
+                    <span className="text-text-muted font-mono flex items-center gap-1 text-[11px]">
+                      <Calendar className="w-3 h-3 text-brand-primary" />
+                      {new Date(exam.examDate).toLocaleDateString()}
+                    </span>
                   </div>
-                )}
+
+                  {/* Title & Batch Info */}
+                  <div>
+                    <h3 className="font-bold text-sm text-text-main group-hover:text-brand-primary transition-colors line-clamp-1">
+                      {exam.title}
+                    </h3>
+                    <p className="text-xs text-text-muted mt-0.5 line-clamp-1">
+                      {exam.batchTitle} • {exam.branchName}
+                    </p>
+                  </div>
+
+                  {/* Test Specs Bar */}
+                  <div className="flex items-center justify-between text-xs py-2 px-2.5 bg-bg-app border border-theme rounded-sm text-text-muted">
+                    <span>Total: <strong className="text-text-main font-mono">{exam.totalMarks} Marks</strong></span>
+                    <span><strong className="text-brand-primary font-mono">{exam.standings.length}</strong> Evaluated</span>
+                  </div>
+
+                  {/* Top Performers Snapshot */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                      Top Standings
+                    </div>
+                    {exam.standings.slice(0, 3).map((st) => (
+                      <div
+                        key={st.standing}
+                        className="flex items-center justify-between py-1.5 px-2 bg-bg-app/70 hover:bg-bg-app rounded-xs text-xs border border-theme/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className={`inline-flex items-center justify-center w-5 h-5 rounded-xs font-bold text-[10px] shrink-0 ${
+                              st.standing === 1
+                                ? "bg-amber-400 text-slate-900 shadow-2xs"
+                                : st.standing === 2
+                                ? "bg-slate-300 text-slate-900"
+                                : "bg-amber-600/30 text-amber-800 dark:text-amber-300"
+                            }`}
+                          >
+                            #{st.standing}
+                          </span>
+                          <span className="font-semibold text-text-main truncate text-xs">
+                            {st.studentName}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 font-mono text-[11px] shrink-0">
+                          <span className="font-bold text-text-main">{st.marksObtained}/{exam.totalMarks}</span>
+                          <span className="px-1 py-0.2 rounded-xs bg-emerald-500/10 text-emerald-600 font-bold text-[10px]">
+                            {st.grade}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {exam.standings.length === 0 && (
+                      <div className="text-xs text-text-muted py-2 text-center">Standings awaiting grading.</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bottom Action */}
+                <div className="pt-4 mt-2 border-t border-theme/60">
+                  <button
+                    onClick={() => {
+                      setExamSearchFilter("");
+                      setSelectedExamModal(exam);
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-surface border border-accent hover:border-brand-primary text-text-main rounded-sm text-xs font-semibold hover:bg-brand-primary hover:text-white transition-all shadow-2xs"
+                  >
+                    <Trophy className="w-3.5 h-3.5" />
+                    <span>View Full Results ({exam.standings.length})</span>
+                  </button>
+                </div>
               </div>
             ))
           )}
