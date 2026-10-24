@@ -181,7 +181,7 @@ export class TeacherController {
     try {
       if (!req.user) throw new UnauthorizedError();
       const notice = await TeacherService.createTeacherNotice(req.user.userId, req.body);
-      ResponseUtil.success(res, notice, "Course circular published successfully", 201);
+      ResponseUtil.success(res, notice, "Course notice published successfully", 201);
     } catch (error) {
       next(error);
     }

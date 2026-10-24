@@ -124,7 +124,7 @@ export const StudentLayout: React.FC = () => {
             <Link
               to="/student/notices"
               className="p-1.5 text-text-muted hover:text-brand-primary rounded-sm transition-colors relative"
-              title="Notices & Circulars"
+              title="Notices"
             >
               <Bell className="w-4 h-4" />
             </Link>

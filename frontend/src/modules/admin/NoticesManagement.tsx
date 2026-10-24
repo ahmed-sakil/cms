@@ -311,10 +311,10 @@ export const NoticesManagement: React.FC = () => {
       <div className="bg-surface border border-accent rounded-sm p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1">
-            <Bell className="w-3.5 h-3.5" /> Notice Board & Circulars
+            <Bell className="w-3.5 h-3.5" /> Notice Board
           </span>
           <h1 className="text-xl sm:text-2xl font-bold text-text-main tracking-tight mt-0.5">
-            Notice Board & Circulars
+            Notice Board
           </h1>
           <p className="text-xs text-text-muted mt-1">
             Broadcast and manage announcements across campuses, batches, and public website.
@@ -381,7 +381,7 @@ export const NoticesManagement: React.FC = () => {
       {loading ? (
         <div className="flex items-center justify-center h-48 bg-surface border border-accent rounded-sm">
           <div className="flex items-center gap-2 text-xs font-semibold text-text-muted">
-            <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Loading circulars & notices...
+            <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Loading notices...
           </div>
         </div>
       ) : filteredNotices.length === 0 ? (

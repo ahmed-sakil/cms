@@ -822,6 +822,7 @@ export class TeacherService {
         ],
       },
       include: {
+        branch: { select: { id: true, name: true, code: true } },
         batch: { select: { id: true, name: true } },
         course: { select: { id: true, name: true } },
         author: { select: { id: true, fullName: true } },
@@ -865,7 +866,7 @@ export class TeacherService {
     });
     if (!existing) throw new NotFoundError("Notice not found");
     if (existing.authorId !== teacher.id) {
-      throw new ForbiddenError("You can only delete circulars authored by you");
+      throw new ForbiddenError("You can only delete notices authored by you");
     }
     return prisma.publicNotice.delete({
       where: { id: noticeId },

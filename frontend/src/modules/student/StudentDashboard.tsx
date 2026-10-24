@@ -262,7 +262,7 @@ export const StudentDashboard: React.FC = () => {
           <p className="text-[10px] text-text-muted">Published scorecards</p>
         </div>
 
-        {/* Circulars */}
+        {/* Notices */}
         <div className="bg-surface border border-accent rounded-sm p-4 space-y-1">
           <div className="flex items-center justify-between text-text-muted">
             <span className="text-[10px] font-bold uppercase tracking-wider">Notices</span>
@@ -345,11 +345,11 @@ export const StudentDashboard: React.FC = () => {
         )}
       </div>
 
-      {/* Campus & Batch Circulars */}
+      {/* Campus & Batch Notices */}
       <div className="bg-surface border border-accent rounded-sm p-5 space-y-3 shadow-xs">
         <div className="flex items-center justify-between border-b border-accent pb-2">
           <h2 className="text-xs font-bold text-text-main uppercase tracking-wider flex items-center gap-1.5">
-            <Bell className="w-3.5 h-3.5 text-brand-primary" /> Campus & Batch Circulars
+            <Bell className="w-3.5 h-3.5 text-brand-primary" /> Campus & Batch Notices
           </h2>
           <Link to="/student/notices" className="text-[11px] text-brand-primary hover:underline font-semibold">
             View All ({notices.length})
@@ -357,7 +357,7 @@ export const StudentDashboard: React.FC = () => {
         </div>
 
         {notices.length === 0 ? (
-          <p className="text-xs text-text-muted text-center py-4">No active circulars.</p>
+          <p className="text-xs text-text-muted text-center py-4">No active notices.</p>
         ) : (
           <div className="space-y-2.5">
             {notices.slice(0, 3).map((n) => (

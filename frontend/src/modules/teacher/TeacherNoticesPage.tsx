@@ -28,6 +28,7 @@ interface NoticeItem {
   publishedAt: string;
   attachmentUrl?: string | null;
   authorId?: string | null;
+  branch?: { id: string; name: string; code?: string } | null;
   batch?: { id: string; name: string } | null;
   course?: { id: string; name: string } | null;
   author?: { id?: string; fullName: string } | null;
@@ -38,6 +39,7 @@ export const TeacherNoticesPage: React.FC = () => {
   const [batches, setBatches] = useState<Array<{ id: string; name: string; code: string; courseId?: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [scopeFilter, setScopeFilter] = useState<"ALL" | "BATCH" | "CAMPUS">("ALL");
   const [batchFilter, setBatchFilter] = useState<string>("ALL");
 
   const currentUser = (() => {
@@ -70,7 +72,7 @@ export const TeacherNoticesPage: React.FC = () => {
         setNotices(res.data);
       }
     } catch {
-      toast.error("Failed to load course notices");
+      toast.error("Failed to load notices");
     } finally {
       setLoading(false);
     }
@@ -114,7 +116,7 @@ export const TeacherNoticesPage: React.FC = () => {
       });
 
       if (res.success) {
-        toast.success("Course circular broadcasted to assigned batch!");
+        toast.success("Notice broadcasted to assigned batch!");
         setIsCreateModalOpen(false);
         setForm({
           batchId: batches[0]?.id || "",
@@ -132,19 +134,19 @@ export const TeacherNoticesPage: React.FC = () => {
   };
 
   const handleDeleteNotice = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete circular "${title}"?`)) return;
+    if (!confirm(`Are you sure you want to delete notice "${title}"?`)) return;
 
     try {
       const res = await apiClient.delete<any>(`/teacher/notices/${id}`);
       if (res.success) {
-        toast.success("Circular deleted successfully");
+        toast.success("Notice deleted successfully");
         setNotices((prev) => prev.filter((n) => n.id !== id));
         if (selectedNotice && selectedNotice.id === id) {
           setSelectedNotice(null);
         }
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete circular");
+      toast.error(err.message || "Failed to delete notice");
     }
   };
 
@@ -162,12 +164,19 @@ export const TeacherNoticesPage: React.FC = () => {
       n.title.toLowerCase().includes(q) ||
       n.content.toLowerCase().includes(q) ||
       (n.batch?.name && n.batch.name.toLowerCase().includes(q)) ||
-      (n.course?.name && n.course.name.toLowerCase().includes(q));
+      (n.course?.name && n.course.name.toLowerCase().includes(q)) ||
+      (n.branch?.name && n.branch.name.toLowerCase().includes(q));
 
-    const matchesBatch =
-      batchFilter === "ALL" || (n.batch && n.batch.id === batchFilter);
+    let matchesScope = true;
+    if (scopeFilter === "BATCH") matchesScope = !!n.batch;
+    if (scopeFilter === "CAMPUS") matchesScope = !n.batch;
 
-    return matchesSearch && matchesBatch;
+    let matchesBatch = true;
+    if (scopeFilter !== "CAMPUS" && batchFilter !== "ALL") {
+      matchesBatch = n.batch?.id === batchFilter;
+    }
+
+    return matchesSearch && matchesScope && matchesBatch;
   });
 
   return (
@@ -176,13 +185,13 @@ export const TeacherNoticesPage: React.FC = () => {
       <div className="bg-surface border border-accent rounded-sm p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1">
-            <Bell className="w-3.5 h-3.5" /> Notice Board & Circulars
+            <Bell className="w-3.5 h-3.5" /> Notice Board
           </span>
           <h1 className="text-xl sm:text-2xl font-bold text-text-main tracking-tight mt-0.5">
-            Notice Board & Circulars
+            Notice Board
           </h1>
           <p className="text-xs text-text-muted mt-1">
-            Broadcast and manage circulars for your assigned student batches.
+            Broadcast and manage notices for your assigned student batches and view campus announcements.
           </p>
         </div>
 
@@ -190,7 +199,7 @@ export const TeacherNoticesPage: React.FC = () => {
           onClick={() => setIsCreateModalOpen(true)}
           className="px-4 py-2 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:opacity-90 flex items-center gap-1.5 shadow-xs shrink-0 transition-opacity"
         >
-          <Plus className="w-4 h-4" /> Post Circular
+          <Plus className="w-4 h-4" /> Post Notice
         </button>
       </div>
 
@@ -207,20 +216,39 @@ export const TeacherNoticesPage: React.FC = () => {
           />
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span className="text-xs text-text-muted font-bold">Target Batch:</span>
-          <select
-            value={batchFilter}
-            onChange={(e) => setBatchFilter(e.target.value)}
-            className="px-2.5 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary font-medium"
-          >
-            <option value="ALL">All Assigned Batches</option>
-            {batches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name} ({b.code})
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+          {/* Audience Filter: All, Batch, Campus & General */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-text-muted font-bold">Audience:</span>
+            <select
+              value={scopeFilter}
+              onChange={(e) => setScopeFilter(e.target.value as "ALL" | "BATCH" | "CAMPUS")}
+              className="px-2.5 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary font-medium"
+            >
+              <option value="ALL">All Notices</option>
+              <option value="BATCH">My Batch Notices</option>
+              <option value="CAMPUS">Campus & General Notices</option>
+            </select>
+          </div>
+
+          {/* Target Batch Filter */}
+          {scopeFilter !== "CAMPUS" && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-text-muted font-bold">Batch:</span>
+              <select
+                value={batchFilter}
+                onChange={(e) => setBatchFilter(e.target.value)}
+                className="px-2.5 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary font-medium"
+              >
+                <option value="ALL">All Assigned Batches</option>
+                {batches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -228,15 +256,15 @@ export const TeacherNoticesPage: React.FC = () => {
       {loading ? (
         <div className="flex items-center justify-center h-48 bg-surface border border-accent rounded-sm">
           <div className="flex items-center gap-2 text-xs font-semibold text-text-muted">
-            <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Loading circulars & notices...
+            <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Loading notices...
           </div>
         </div>
       ) : filteredNotices.length === 0 ? (
         <div className="bg-surface border border-dashed border-accent rounded-sm p-12 text-center">
           <Bell className="w-10 h-10 text-text-muted mx-auto mb-3 opacity-40" />
-          <p className="text-sm font-bold text-text-main">No circulars published</p>
+          <p className="text-sm font-bold text-text-main">No notices posted</p>
           <p className="text-xs text-text-muted mt-1">
-            Click "Post Circular" to announce schedule shifts, exam guidelines, or materials to your batch.
+            Click "Post Notice" to announce schedule shifts, exam guidelines, or materials to your batch.
           </p>
         </div>
       ) : (
@@ -269,7 +297,7 @@ export const TeacherNoticesPage: React.FC = () => {
                         </span>
                       )}
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted truncate max-w-[120px]">
-                        {n.batch?.name || n.course?.name || "All Assigned"}
+                        {n.batch?.name || n.course?.name || n.branch?.name || "Campus & General"}
                       </span>
                     </div>
 
@@ -285,7 +313,7 @@ export const TeacherNoticesPage: React.FC = () => {
                     </h3>
                     <p className="text-xs text-text-muted mt-1 flex items-center gap-1.5 truncate">
                       <Users className="w-3 h-3 text-brand-primary shrink-0" />
-                      Target: {n.batch ? `Batch: ${n.batch.name}` : n.course ? `Course: ${n.course.name}` : "All Assigned Students"}
+                      Target: {n.batch ? `Batch: ${n.batch.name}` : n.course ? `Course: ${n.course.name}` : n.branch ? `Campus: ${n.branch.name}` : "Campus & General Announcement"}
                     </p>
                   </div>
 
@@ -312,7 +340,7 @@ export const TeacherNoticesPage: React.FC = () => {
                           e.stopPropagation();
                           handleDeleteNotice(n.id, n.title);
                         }}
-                        title="Delete your circular"
+                        title="Delete your notice"
                         className="p-1.5 rounded-sm border border-accent text-red-500 hover:bg-red-500/10 hover:border-red-500/30 transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -348,7 +376,7 @@ export const TeacherNoticesPage: React.FC = () => {
                     </span>
                   )}
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted">
-                    {selectedNotice.batch ? selectedNotice.batch.name : selectedNotice.course ? selectedNotice.course.name : "All Assigned Students"}
+                    {selectedNotice.batch ? selectedNotice.batch.name : selectedNotice.course ? selectedNotice.course.name : selectedNotice.branch ? selectedNotice.branch.name : "Campus & General Announcement"}
                   </span>
                 </div>
                 <h2 className="text-base sm:text-lg font-bold text-text-main mt-1 leading-snug">
@@ -393,7 +421,7 @@ export const TeacherNoticesPage: React.FC = () => {
                     onClick={() => handleDeleteNotice(selectedNotice.id, selectedNotice.title)}
                     className="px-3 py-1.5 bg-surface border border-red-500/30 text-red-500 text-xs font-semibold rounded-sm hover:bg-red-500/10 flex items-center gap-1.5"
                   >
-                    <Trash2 className="w-3.5 h-3.5" /> Delete Circular
+                    <Trash2 className="w-3.5 h-3.5" /> Delete Notice
                   </button>
                 )}
               </div>
@@ -409,14 +437,14 @@ export const TeacherNoticesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Post Circular Modal */}
+      {/* Post Notice Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto backdrop-blur-xs">
           <div className="bg-surface border border-accent rounded-sm shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="p-4 sm:p-5 border-b border-accent flex items-center justify-between bg-surface">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-brand-primary" />
-                <h2 className="text-sm sm:text-base font-bold text-text-main">Broadcast Course Circular</h2>
+                <h2 className="text-sm sm:text-base font-bold text-text-main">Post Course Notice</h2>
               </div>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
@@ -444,7 +472,7 @@ export const TeacherNoticesPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-text-main block mb-1">Circular Title *</label>
+                <label className="text-xs font-bold text-text-main block mb-1">Notice Title *</label>
                 <input
                   type="text"
                   value={form.title}
@@ -492,7 +520,7 @@ export const TeacherNoticesPage: React.FC = () => {
                   className="px-4 py-1.5 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:opacity-90 flex items-center gap-1.5 shadow-xs disabled:opacity-50"
                 >
                   {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  Broadcast Notice
+                  Post Notice
                 </button>
               </div>
             </form>

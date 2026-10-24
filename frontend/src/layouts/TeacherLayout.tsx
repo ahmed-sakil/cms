@@ -80,7 +80,7 @@ export const TeacherLayout: React.FC = () => {
     { label: "Class Attendance", path: "/teacher/attendance", icon: UserCheck },
     { label: "Exams & Marksheets", path: "/teacher/exams", icon: Award },
     { label: "Study Materials", path: "/teacher/materials", icon: FileText },
-    { label: "Course Circulars", path: "/teacher/notices", icon: Bell },
+    { label: "Notices", path: "/teacher/notices", icon: Bell },
     { label: "Academic Tips", path: "/teacher/tips", icon: BookOpen },
     { label: "Faculty Profile", path: "/teacher/profile", icon: User },
   ];
@@ -120,7 +120,7 @@ export const TeacherLayout: React.FC = () => {
             <Link
               to="/teacher/notices"
               className="p-1.5 text-text-muted hover:text-brand-primary rounded-sm transition-colors relative"
-              title="Notices & Circulars"
+              title="Notices"
             >
               <Bell className="w-4 h-4" />
             </Link>

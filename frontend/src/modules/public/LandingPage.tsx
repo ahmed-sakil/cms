@@ -1556,7 +1556,7 @@ export const LandingPage: React.FC = () => {
                       className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-sm text-xs font-bold hover:bg-brand-hover shadow-xs transition-colors"
                     >
                       <Download className="w-4 h-4" />
-                      <span>Download Official Attachment / Circular Document</span>
+                      <span>Download Official Attachment / Document</span>
                     </a>
                   </div>
                 )}
@@ -1589,7 +1589,7 @@ export const LandingPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-bold text-base text-text-main">All Official Notices & Bulletins</h3>
-                    <p className="text-xs text-text-muted">Archives of circulars and administrative updates</p>
+                    <p className="text-xs text-text-muted">Archives of notices and administrative updates</p>
                   </div>
                 </div>
                 <button

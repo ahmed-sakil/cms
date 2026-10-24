@@ -84,13 +84,13 @@ export const StudentNoticesPage: React.FC = () => {
       <div className="bg-surface border border-accent rounded-sm p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1">
-            <Bell className="w-3.5 h-3.5" /> Notice Board & Circulars
+            <Bell className="w-3.5 h-3.5" /> Notice Board
           </span>
           <h1 className="text-xl sm:text-2xl font-bold text-text-main tracking-tight mt-0.5">
-            Notice Board & Circulars
+            Notice Board
           </h1>
           <p className="text-xs text-text-muted mt-1">
-            Official announcements, exam schedules, and circulars for your batch and campus.
+            Official announcements, exam schedules, and notices for your batch and campus.
           </p>
         </div>
       </div>
@@ -115,9 +115,9 @@ export const StudentNoticesPage: React.FC = () => {
             onChange={(e) => setScopeFilter(e.target.value as "ALL" | "BATCH" | "CAMPUS")}
             className="px-2.5 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary font-medium"
           >
-            <option value="ALL">All Circulars</option>
-            <option value="BATCH">My Batch Circulars</option>
-            <option value="CAMPUS">Campus & General Announcements</option>
+            <option value="ALL">All Notices</option>
+            <option value="BATCH">My Batch Notices</option>
+            <option value="CAMPUS">Campus & General Notices</option>
           </select>
         </div>
       </div>
@@ -126,13 +126,13 @@ export const StudentNoticesPage: React.FC = () => {
       {loading ? (
         <div className="flex items-center justify-center h-48 bg-surface border border-accent rounded-sm">
           <div className="flex items-center gap-2 text-xs font-semibold text-text-muted">
-            <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Loading circulars & notices...
+            <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Loading notices...
           </div>
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-surface border border-dashed border-accent rounded-sm p-12 text-center">
           <Bell className="w-10 h-10 text-text-muted mx-auto mb-3 opacity-40" />
-          <p className="text-sm font-bold text-text-main">No circulars posted</p>
+          <p className="text-sm font-bold text-text-main">No notices posted</p>
           <p className="text-xs text-text-muted mt-1">
             You are fully up to date! Any upcoming notices or routine alterations will show here.
           </p>
