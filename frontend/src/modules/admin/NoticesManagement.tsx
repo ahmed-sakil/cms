@@ -8,6 +8,11 @@ import {
   Globe,
   Lock,
   Paperclip,
+  Calendar,
+  Users,
+  Pencil,
+  X,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "../../components/common/FileUpload.js";
@@ -49,9 +54,14 @@ export const NoticesManagement: React.FC = () => {
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState("");
   const [scopeFilter, setScopeFilter] = useState("ALL");
+  const [batchFilter, setBatchFilter] = useState("ALL");
 
-  // Modal State
+  // Selected Notice for Detail Modal
+  const [selectedNotice, setSelectedNotice] = useState<NoticeItem | null>(null);
+
+  // Create / Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Form State
@@ -98,7 +108,37 @@ export const NoticesManagement: React.FC = () => {
     fetchNotices();
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleOpenCreate = () => {
+    setEditingId(null);
+    setFormData({
+      title: "",
+      content: "",
+      isPublic: true,
+      pinned: false,
+      branchId: isBranchAdmin ? userBranchId : "",
+      batchId: "",
+      attachmentUrl: "",
+      expiresAt: "",
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (notice: NoticeItem) => {
+    setEditingId(notice.id);
+    setFormData({
+      title: notice.title,
+      content: notice.content,
+      isPublic: notice.isPublic,
+      pinned: notice.pinned,
+      branchId: notice.branch?.id || (isBranchAdmin ? userBranchId : ""),
+      batchId: notice.batch?.id || "",
+      attachmentUrl: notice.attachmentUrl || "",
+      expiresAt: notice.expiresAt ? notice.expiresAt.slice(0, 10) : "",
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSaveNotice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim()) {
       toast.error("Notice title is required");
@@ -120,23 +160,17 @@ export const NoticesManagement: React.FC = () => {
         isPublic: formData.isPublic,
         pinned: formData.pinned,
         priority: "NORMAL",
+        branchId: activeBranchId && activeBranchId.trim() ? activeBranchId.trim() : null,
+        batchId: formData.batchId && formData.batchId.trim() ? formData.batchId.trim() : null,
+        attachmentUrl: formData.attachmentUrl && formData.attachmentUrl.trim() ? formData.attachmentUrl.trim() : null,
+        expiresAt: formData.expiresAt && formData.expiresAt.trim() ? formData.expiresAt.trim() : null,
       };
 
-      if (activeBranchId && activeBranchId.trim()) {
-        payload.branchId = activeBranchId.trim();
-      }
-      if (formData.batchId && formData.batchId.trim()) {
-        payload.batchId = formData.batchId.trim();
-      }
-      if (formData.attachmentUrl && formData.attachmentUrl.trim()) {
-        payload.attachmentUrl = formData.attachmentUrl.trim();
-      }
-      if (formData.expiresAt && formData.expiresAt.trim()) {
-        payload.expiresAt = formData.expiresAt.trim();
-      }
+      const url = editingId ? `/api/v1/ops/notices/${editingId}` : "/api/v1/ops/notices";
+      const method = editingId ? "PUT" : "POST";
 
-      const res = await fetch("/api/v1/ops/notices", {
-        method: "POST",
+      const res = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -146,24 +180,22 @@ export const NoticesManagement: React.FC = () => {
 
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.message || "Failed to publish notice");
+        throw new Error(json.message || `Failed to ${editingId ? "update" : "publish"} notice`);
       }
 
-      toast.success("Notice published successfully!");
+      toast.success(editingId ? "Notice updated successfully" : "Notice published successfully");
       setIsModalOpen(false);
-      setFormData({
-        title: "",
-        content: "",
-        isPublic: true,
-        pinned: false,
-        branchId: isBranchAdmin ? userBranchId : "",
-        batchId: "",
-        attachmentUrl: "",
-        expiresAt: "",
-      });
+      setEditingId(null);
       fetchNotices();
+
+      if (selectedNotice && selectedNotice.id === editingId) {
+        setSelectedNotice({
+          ...selectedNotice,
+          ...payload,
+        });
+      }
     } catch (err: any) {
-      toast.error(err.message || "Error publishing notice");
+      toast.error(err.message || "Error saving notice");
     } finally {
       setSubmitting(false);
     }
@@ -178,13 +210,50 @@ export const NoticesManagement: React.FC = () => {
       });
       const json = await res.json();
       if (json.success) {
-        toast.success(json.data.pinned ? "Notice pinned to top" : "Notice unpinned");
+        const newPinned = json.data.pinned;
+        toast.success(newPinned ? "Notice pinned to top" : "Notice unpinned");
         setNotices((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, pinned: json.data.pinned } : n))
+          prev.map((n) => (n.id === id ? { ...n, pinned: newPinned } : n))
         );
+        if (selectedNotice && selectedNotice.id === id) {
+          setSelectedNotice((prev) => (prev ? { ...prev, pinned: newPinned } : null));
+        }
       }
     } catch {
       toast.error("Failed to update notice pin status");
+    }
+  };
+
+  const handleTogglePublic = async (notice: NoticeItem) => {
+    try {
+      const token = localStorage.getItem("cms_token");
+      const nextPublicState = !notice.isPublic;
+      const res = await fetch(`/api/v1/ops/notices/${notice.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ isPublic: nextPublicState }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success(
+          nextPublicState
+            ? "Notice is now visible on public landing page"
+            : "Notice hidden from public page (internal only)"
+        );
+        setNotices((prev) =>
+          prev.map((n) => (n.id === notice.id ? { ...n, isPublic: nextPublicState } : n))
+        );
+        if (selectedNotice && selectedNotice.id === notice.id) {
+          setSelectedNotice((prev) => (prev ? { ...prev, isPublic: nextPublicState } : null));
+        }
+      } else {
+        throw new Error(json.message);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update notice visibility");
     }
   };
 
@@ -201,134 +270,126 @@ export const NoticesManagement: React.FC = () => {
       if (json.success) {
         toast.success("Notice deleted");
         setNotices((prev) => prev.filter((n) => n.id !== id));
+        if (selectedNotice && selectedNotice.id === id) {
+          setSelectedNotice(null);
+        }
       }
     } catch {
       toast.error("Failed to delete notice");
     }
   };
 
-  // Filtered
+  // Filtered Notices
   const filteredNotices = notices.filter((n) => {
     if (isBranchAdmin && n.branch && n.branch.id !== userBranchId) {
       return false;
     }
 
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      n.content.toLowerCase().includes(searchQuery.toLowerCase());
+      n.title.toLowerCase().includes(q) ||
+      n.content.toLowerCase().includes(q) ||
+      (n.batch?.name && n.batch.name.toLowerCase().includes(q)) ||
+      (n.branch?.name && n.branch.name.toLowerCase().includes(q));
 
     let matchesScope = true;
     if (scopeFilter === "PUBLIC") matchesScope = n.isPublic;
     if (scopeFilter === "INTERNAL") matchesScope = !n.isPublic;
     if (scopeFilter === "PINNED") matchesScope = n.pinned;
 
-    return matchesSearch && matchesScope;
+    let matchesBatch = true;
+    if (batchFilter !== "ALL") {
+      matchesBatch = n.batch?.id === batchFilter;
+    }
+
+    return matchesSearch && matchesScope && matchesBatch;
   });
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Unified Header Banner */}
+      <div className="bg-surface border border-accent rounded-sm p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
-            <Bell className="w-5 h-5 text-brand-primary" /> Notice Board & Announcements
+          <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1">
+            <Bell className="w-3.5 h-3.5" /> Notice Board & Circulars
+          </span>
+          <h1 className="text-xl sm:text-2xl font-bold text-text-main tracking-tight mt-0.5">
+            Notice Board & Circulars
           </h1>
-          <p className="text-xs text-text-muted mt-0.5">
-            Broadcast emergency updates, admission notices, holiday alerts, and exam routines.
+          <p className="text-xs text-text-muted mt-1">
+            Broadcast and manage announcements across campuses, batches, and public website.
           </p>
         </div>
 
         <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:bg-brand-hover shadow-xs transition-colors"
+          onClick={handleOpenCreate}
+          className="px-4 py-2 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:opacity-90 flex items-center gap-1.5 shadow-xs shrink-0 transition-opacity"
         >
-          <Plus className="w-4 h-4" /> Publish New Notice
+          <Plus className="w-4 h-4" /> Publish Notice
         </button>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
-          <div className="flex justify-between items-center text-text-muted">
-            <span className="text-xs font-semibold">Total Notices</span>
-            <Bell className="w-4 h-4 text-brand-primary" />
-          </div>
-          <p className="text-2xl font-black text-text-main">{notices.length}</p>
-          <p className="text-[10px] text-text-muted">Active broadcasts</p>
-        </div>
-
-        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
-          <div className="flex justify-between items-center text-text-muted">
-            <span className="text-xs font-semibold text-green-700">Public Website</span>
-            <Globe className="w-4 h-4 text-green-600" />
-          </div>
-          <p className="text-2xl font-black text-green-700">
-            {notices.filter((n) => n.isPublic).length}
-          </p>
-          <p className="text-[10px] text-green-600 font-medium">Visible on landing page</p>
-        </div>
-
-        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
-          <div className="flex justify-between items-center text-text-muted">
-            <span className="text-xs font-semibold text-blue-600">Batch Circulars</span>
-            <Lock className="w-4 h-4 text-blue-600" />
-          </div>
-          <p className="text-2xl font-black text-blue-600">
-            {notices.filter((n) => !n.isPublic).length}
-          </p>
-          <p className="text-[10px] text-text-muted">Enrolled students only</p>
-        </div>
-
-        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
-          <div className="flex justify-between items-center text-text-muted">
-            <span className="text-xs font-semibold text-brand-primary">Pinned to Top</span>
-            <Pin className="w-4 h-4 text-brand-primary" />
-          </div>
-          <p className="text-2xl font-black text-brand-primary">
-            {notices.filter((n) => n.pinned).length}
-          </p>
-          <p className="text-[10px] text-text-muted">Spotlighted circulars</p>
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="bg-surface border border-accent rounded-sm p-3 flex flex-col md:flex-row gap-3 items-center justify-between shadow-xs">
-        <div className="relative w-full md:w-80">
-          <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-2.5" />
+      {/* Unified Search & Filter Bar */}
+      <div className="bg-surface border border-accent rounded-sm p-3.5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             type="text"
-            placeholder="Search notice title or announcements..."
+            placeholder="Search notice title, details, or target..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main placeholder:text-text-muted focus:outline-none focus:border-brand-primary"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <select
-            value={scopeFilter}
-            onChange={(e) => setScopeFilter(e.target.value)}
-            className="px-2.5 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary"
-          >
-            <option value="ALL">All Audiences</option>
-            <option value="PUBLIC">Public Only</option>
-            <option value="INTERNAL">Internal Student Batches</option>
-            <option value="PINNED">Pinned Notices Only</option>
-          </select>
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-text-muted font-bold">Audience:</span>
+            <select
+              value={scopeFilter}
+              onChange={(e) => setScopeFilter(e.target.value)}
+              className="px-2.5 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary font-medium"
+            >
+              <option value="ALL">All Audiences</option>
+              <option value="PUBLIC">Public Landing Page</option>
+              <option value="INTERNAL">Internal Batches & Campuses</option>
+              <option value="PINNED">Pinned Notices Only</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-text-muted font-bold">Batch:</span>
+            <select
+              value={batchFilter}
+              onChange={(e) => setBatchFilter(e.target.value)}
+              className="px-2.5 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary font-medium"
+            >
+              <option value="ALL">All Batches</option>
+              {batches
+                .filter((b) => !isBranchAdmin || !b.branchId || b.branchId === userBranchId || b.branch?.id === userBranchId)
+                .map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Notices Grid */}
+      {/* Unified Notices Grid */}
       {loading ? (
-        <div className="p-12 text-center text-xs text-text-muted bg-surface border border-accent rounded-sm">
-          Loading notices...
+        <div className="flex items-center justify-center h-48 bg-surface border border-accent rounded-sm">
+          <div className="flex items-center gap-2 text-xs font-semibold text-text-muted">
+            <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Loading circulars & notices...
+          </div>
         </div>
       ) : filteredNotices.length === 0 ? (
-        <div className="p-12 text-center bg-surface border border-accent rounded-sm space-y-2">
-          <Bell className="w-10 h-10 text-text-muted mx-auto stroke-1" />
-          <p className="text-sm font-semibold text-text-main">No announcements found</p>
-          <p className="text-xs text-text-muted">
-            Publish a notice to notify students about exams, classes, or holidays.
+        <div className="bg-surface border border-dashed border-accent rounded-sm p-12 text-center">
+          <Bell className="w-10 h-10 text-text-muted mx-auto mb-3 opacity-40" />
+          <p className="text-sm font-bold text-text-main">No notices found</p>
+          <p className="text-xs text-text-muted mt-1">
+            Publish a notice to notify students about exams, classes, or public updates.
           </p>
         </div>
       ) : (
@@ -336,121 +397,269 @@ export const NoticesManagement: React.FC = () => {
           {filteredNotices.map((n) => (
             <div
               key={n.id}
-              className={`bg-surface border rounded-sm p-5 flex flex-col justify-between shadow-xs transition-colors ${
-                n.pinned
-                  ? "border-brand-primary/80 ring-1 ring-brand-primary/30"
-                  : "border-accent hover:border-brand-primary/40"
+              onClick={() => setSelectedNotice(n)}
+              className={`bg-surface border rounded-sm p-5 shadow-xs flex flex-col justify-between hover:border-brand-primary/40 cursor-pointer transition-colors ${
+                n.pinned ? "border-brand-primary/50 bg-brand-primary/[0.015]" : "border-accent"
               }`}
             >
-              <div className="space-y-3">
-                <div className="flex items-start justify-between gap-2">
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
                     {n.pinned && (
-                      <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-brand-primary/10 text-brand-primary font-bold rounded-xs uppercase tracking-wider">
+                      <span className="text-[10px] font-bold bg-brand-primary/10 text-brand-primary px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
                         <Pin className="w-3 h-3 fill-current" /> Pinned
                       </span>
                     )}
-
                     {n.isPublic ? (
-                      <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300 rounded-xs font-semibold">
+                      <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
                         <Globe className="w-3 h-3" /> Public
                       </span>
                     ) : (
-                      <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-accent-subtle text-text-muted rounded-xs font-semibold">
-                        <Lock className="w-3 h-3" /> Batch Only
+                      <span className="text-[10px] font-bold bg-accent-subtle text-text-muted px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                        <Lock className="w-3 h-3" /> Internal
                       </span>
                     )}
-
-                    {n.author && (
-                      <span className="text-[10px] text-text-muted">
-                        by {n.author.fullName}
-                      </span>
-                    )}
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted truncate max-w-[120px]">
+                      {n.batch?.name || n.course?.name || n.branch?.name || "General"}
+                    </span>
                   </div>
 
-                  <button
-                    onClick={() => handleTogglePin(n.id)}
-                    className={`p-1 rounded-sm border transition-colors ${
-                      n.pinned
-                        ? "bg-brand-primary text-white border-brand-primary"
-                        : "border-accent text-text-muted hover:text-text-main"
-                    }`}
-                    title={n.pinned ? "Unpin notice" : "Pin notice to top"}
-                  >
-                    <Pin className="w-3.5 h-3.5" />
-                  </button>
+                  <span className="text-xs text-text-muted flex items-center gap-1 shrink-0 font-mono">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(n.publishedAt).toLocaleDateString()}
+                  </span>
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-sm text-text-main line-clamp-2 leading-snug">
+                  <h3 className="text-base font-bold text-text-main leading-snug line-clamp-2 mt-2">
                     {n.title}
                   </h3>
-                  <p className="text-xs text-text-muted line-clamp-3 mt-1.5 leading-relaxed">
-                    {n.content}
+                  <p className="text-xs text-text-muted mt-1 flex items-center gap-1.5 truncate">
+                    <Users className="w-3 h-3 text-brand-primary shrink-0" />
+                    Target: {n.batch ? `Batch: ${n.batch.name}` : n.course ? `Course: ${n.course.name}` : n.branch ? `Campus: ${n.branch.name}` : n.isPublic ? "Public Website & All Students" : "All Enrolled Students"}
                   </p>
                 </div>
 
-                <div className="pt-2 border-t border-accent space-y-1 text-xs text-text-muted">
-                  {n.branch && (
-                    <div className="text-[11px]">
-                      Campus: <span className="font-semibold text-text-main">{n.branch.name}</span>
-                    </div>
-                  )}
-                  {n.batch && (
-                    <div className="text-[11px]">
-                      Batch: <span className="font-semibold text-text-main">{n.batch.name}</span>
-                    </div>
-                  )}
-                  {n.attachmentUrl && (
-                    <a
-                      href={n.attachmentUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-brand-primary font-semibold underline pt-1"
-                    >
-                      <Paperclip className="w-3 h-3" /> Attached PDF / File
-                    </a>
-                  )}
-                </div>
+                <p className="text-xs text-text-muted line-clamp-3 leading-relaxed mt-2">
+                  {n.content}
+                </p>
               </div>
 
-              <div className="pt-3 mt-3 border-t border-accent flex items-center justify-between text-[11px] text-text-muted">
-                <span className="font-mono">{new Date(n.publishedAt).toLocaleDateString()}</span>
-                <button
-                  onClick={() => handleDelete(n.id, n.title)}
-                  className="p-1 text-red-500 hover:bg-red-500/10 rounded-sm transition-colors"
-                  title="Delete notice"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+              <div className="pt-3 mt-3 border-t border-accent flex items-center justify-between text-xs">
+                <span className="text-[11px] text-text-muted truncate max-w-[120px]">
+                  By {n.author?.fullName || "Faculty Administration"}
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  {n.attachmentUrl && (
+                    <span className="flex items-center gap-1 text-[11px] font-semibold text-brand-primary mr-1">
+                      <Paperclip className="w-3 h-3" />
+                    </span>
+                  )}
+
+                  {/* Quick Toggle Public Visibility */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTogglePublic(n);
+                    }}
+                    title={n.isPublic ? "Public on website (Click to make internal only)" : "Internal only (Click to show on public website)"}
+                    className={`p-1.5 rounded-sm border transition-colors ${
+                      n.isPublic
+                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20"
+                        : "bg-surface text-text-muted border-accent hover:text-text-main hover:bg-bg-app"
+                    }`}
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Quick Toggle Pin */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTogglePin(n.id);
+                    }}
+                    title={n.pinned ? "Unpin notice" : "Pin notice to top"}
+                    className={`p-1.5 rounded-sm border transition-colors ${
+                      n.pinned
+                        ? "bg-brand-primary text-white border-brand-primary"
+                        : "bg-surface text-text-muted border-accent hover:text-text-main hover:bg-bg-app"
+                    }`}
+                  >
+                    <Pin className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Edit */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenEdit(n);
+                    }}
+                    title="Edit notice details"
+                    className="p-1.5 rounded-sm border border-accent text-text-muted hover:text-brand-primary hover:bg-bg-app transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Delete */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(n.id, n.title);
+                    }}
+                    title="Delete notice"
+                    className="p-1.5 rounded-sm border border-accent text-red-500 hover:bg-red-500/10 hover:border-red-500/30 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Publish Notice Modal */}
+      {/* Unified Detail Modal */}
+      {selectedNotice && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto backdrop-blur-xs">
+          <div className="bg-surface border border-accent rounded-sm shadow-xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-4 sm:p-5 border-b border-accent flex items-start justify-between bg-bg-app">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {selectedNotice.pinned && (
+                    <span className="text-[10px] font-bold bg-brand-primary/10 text-brand-primary px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                      <Pin className="w-3 h-3 fill-current" /> Pinned
+                    </span>
+                  )}
+                  {selectedNotice.isPublic ? (
+                    <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                      <Globe className="w-3 h-3" /> Public Landing Page
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold bg-accent-subtle text-text-muted px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                      <Lock className="w-3 h-3" /> Internal Students Only
+                    </span>
+                  )}
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted">
+                    {selectedNotice.batch ? selectedNotice.batch.name : selectedNotice.course ? selectedNotice.course.name : selectedNotice.branch ? selectedNotice.branch.name : "Universal"}
+                  </span>
+                </div>
+                <h2 className="text-base sm:text-lg font-bold text-text-main mt-1 leading-snug">
+                  {selectedNotice.title}
+                </h2>
+                <p className="text-[11px] text-text-muted">
+                  Published: {new Date(selectedNotice.publishedAt).toLocaleString()}
+                  {selectedNotice.author && ` • By: ${selectedNotice.author.fullName}`}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedNotice(null)}
+                className="p-1 rounded-sm text-text-muted hover:text-text-main"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="bg-bg-app rounded-sm p-4 border border-accent/60 text-xs text-text-main leading-relaxed whitespace-pre-wrap font-sans">
+                {selectedNotice.content}
+              </div>
+
+              {selectedNotice.attachmentUrl && (
+                <div className="pt-2">
+                  <a
+                    href={selectedNotice.attachmentUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 py-1.5 px-3 bg-brand-primary text-white text-xs font-semibold rounded-sm shadow-xs hover:opacity-90"
+                  >
+                    <Paperclip className="w-3.5 h-3.5" /> Download / View Attachment
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-accent bg-bg-app flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* 1-Click Toggle Public Button */}
+                <button
+                  onClick={() => handleTogglePublic(selectedNotice)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-sm border flex items-center gap-1.5 transition-colors ${
+                    selectedNotice.isPublic
+                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20"
+                      : "bg-surface text-text-main border-accent hover:bg-bg-app"
+                  }`}
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  {selectedNotice.isPublic ? "Public (Click to Hide)" : "Internal (Click to Make Public)"}
+                </button>
+
+                {/* 1-Click Toggle Pin Button */}
+                <button
+                  onClick={() => handleTogglePin(selectedNotice.id)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-sm border flex items-center gap-1.5 transition-colors ${
+                    selectedNotice.pinned
+                      ? "bg-brand-primary text-white border-brand-primary"
+                      : "bg-surface text-text-main border-accent hover:bg-bg-app"
+                  }`}
+                >
+                  <Pin className="w-3.5 h-3.5" />
+                  {selectedNotice.pinned ? "Pinned to Top" : "Pin Notice"}
+                </button>
+
+                {/* Edit Button */}
+                <button
+                  onClick={() => {
+                    handleOpenEdit(selectedNotice);
+                  }}
+                  className="px-3 py-1.5 bg-surface border border-accent text-text-main text-xs font-semibold rounded-sm hover:bg-bg-app flex items-center gap-1.5"
+                >
+                  <Pencil className="w-3.5 h-3.5" /> Edit
+                </button>
+
+                {/* Delete Button */}
+                <button
+                  onClick={() => handleDelete(selectedNotice.id, selectedNotice.title)}
+                  className="px-3 py-1.5 bg-surface border border-red-500/30 text-red-500 text-xs font-semibold rounded-sm hover:bg-red-500/10 flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Delete
+                </button>
+              </div>
+
+              <button
+                onClick={() => setSelectedNotice(null)}
+                className="px-4 py-1.5 bg-surface border border-accent text-text-main text-xs font-semibold rounded-sm hover:bg-bg-app"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Publish / Edit Notice Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="bg-surface border border-accent rounded-sm max-w-lg w-full p-5 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="border-b border-accent pb-3 flex justify-between items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-surface border border-accent rounded-sm max-w-lg w-full p-5 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+            <div className="border-b border-accent pb-3 flex justify-between items-center bg-surface">
               <div>
                 <h3 className="font-bold text-sm text-text-main flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-brand-primary" /> Publish Announcement Notice
+                  <Bell className="w-4 h-4 text-brand-primary" />
+                  {editingId ? "Edit Notice Announcement" : "Publish Notice Announcement"}
                 </h3>
-                <p className="text-xs text-text-muted">
-                  Broadcast updates across the coaching website or specific student batches.
+                <p className="text-xs text-text-muted mt-0.5">
+                  {editingId ? "Update announcement content, target audience, or public visibility." : "Broadcast updates across the coaching website or specific student batches."}
                 </p>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-text-muted hover:text-text-main"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="space-y-3.5 text-xs">
+            <form onSubmit={handleSaveNotice} className="space-y-3.5 text-xs">
               <div>
                 <label className="block font-semibold text-text-main mb-1">Notice Headline *</label>
                 <input
@@ -573,9 +782,17 @@ export const NoticesManagement: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-1.5 bg-brand-primary text-white rounded-sm font-semibold hover:bg-brand-hover shadow-xs disabled:opacity-50"
+                  className="px-4 py-1.5 bg-brand-primary text-white rounded-sm font-semibold hover:opacity-90 shadow-xs disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  {submitting ? "Publishing..." : "Publish Notice"}
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving...
+                    </>
+                  ) : editingId ? (
+                    "Update Notice"
+                  ) : (
+                    "Publish Notice"
+                  )}
                 </button>
               </div>
             </form>

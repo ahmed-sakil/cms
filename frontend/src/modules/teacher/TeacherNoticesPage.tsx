@@ -9,6 +9,10 @@ import {
   Send,
   Loader2,
   Users,
+  Pin,
+  Globe,
+  Lock,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "../../lib/apiClient.js";
@@ -20,11 +24,13 @@ interface NoticeItem {
   content: string;
   priority?: string;
   pinned: boolean;
+  isPublic?: boolean;
   publishedAt: string;
   attachmentUrl?: string | null;
+  authorId?: string | null;
   batch?: { id: string; name: string } | null;
   course?: { id: string; name: string } | null;
-  author?: { fullName: string } | null;
+  author?: { id?: string; fullName: string } | null;
 }
 
 export const TeacherNoticesPage: React.FC = () => {
@@ -33,6 +39,15 @@ export const TeacherNoticesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [batchFilter, setBatchFilter] = useState<string>("ALL");
+
+  const currentUser = (() => {
+    try {
+      const stored = localStorage.getItem("cms_user");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  })();
 
   // Create Modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -92,14 +107,14 @@ export const TeacherNoticesPage: React.FC = () => {
       const res = await apiClient.post<any>("/teacher/notices", {
         batchId: form.batchId || undefined,
         courseId: targetBatch?.courseId || undefined,
-        title: form.title,
-        content: form.content,
+        title: form.title.trim(),
+        content: form.content.trim(),
         priority: "NORMAL",
         attachmentUrl: form.attachmentUrl || undefined,
       });
 
       if (res.success) {
-        toast.success("Course circular broadcasted to enrolled students!");
+        toast.success("Course circular broadcasted to assigned batch!");
         setIsCreateModalOpen(false);
         setForm({
           batchId: batches[0]?.id || "",
@@ -116,12 +131,38 @@ export const TeacherNoticesPage: React.FC = () => {
     }
   };
 
+  const handleDeleteNotice = async (id: string, title: string) => {
+    if (!confirm(`Are you sure you want to delete circular "${title}"?`)) return;
+
+    try {
+      const res = await apiClient.delete<any>(`/teacher/notices/${id}`);
+      if (res.success) {
+        toast.success("Circular deleted successfully");
+        setNotices((prev) => prev.filter((n) => n.id !== id));
+        if (selectedNotice && selectedNotice.id === id) {
+          setSelectedNotice(null);
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete circular");
+    }
+  };
+
+  const isAuthor = (item: NoticeItem) => {
+    if (!currentUser) return false;
+    if (item.authorId && item.authorId === currentUser.id) return true;
+    if (item.author?.id && item.author.id === currentUser.id) return true;
+    if (item.author?.fullName && item.author.fullName === currentUser.fullName) return true;
+    return false;
+  };
+
   const filteredNotices = notices.filter((n) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
       n.title.toLowerCase().includes(q) ||
       n.content.toLowerCase().includes(q) ||
-      (n.batch?.name && n.batch.name.toLowerCase().includes(q));
+      (n.batch?.name && n.batch.name.toLowerCase().includes(q)) ||
+      (n.course?.name && n.course.name.toLowerCase().includes(q));
 
     const matchesBatch =
       batchFilter === "ALL" || (n.batch && n.batch.id === batchFilter);
@@ -131,38 +172,38 @@ export const TeacherNoticesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
+      {/* Unified Header Banner */}
       <div className="bg-surface border border-accent rounded-sm p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1">
-            <Bell className="w-3.5 h-3.5" /> Class Circulars & Broadcasts
+            <Bell className="w-3.5 h-3.5" /> Notice Board & Circulars
           </span>
-          <h1 className="text-xl sm:text-2xl font-black text-text-main tracking-tight mt-0.5">
-            Course-Specific Notices
+          <h1 className="text-xl sm:text-2xl font-bold text-text-main tracking-tight mt-0.5">
+            Notice Board & Circulars
           </h1>
           <p className="text-xs text-text-muted mt-1">
-            Publish reminders, class reschedule circulars, and test announcements to your assigned students.
+            Broadcast and manage circulars for your assigned student batches.
           </p>
         </div>
 
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="px-4 py-2 bg-brand-primary text-white text-xs font-bold rounded-sm hover:opacity-90 flex items-center gap-1.5 shadow-xs shrink-0"
+          className="px-4 py-2 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:opacity-90 flex items-center gap-1.5 shadow-xs shrink-0 transition-opacity"
         >
-          <Plus className="w-4 h-4" /> Post New Circular
+          <Plus className="w-4 h-4" /> Post Circular
         </button>
       </div>
 
-      {/* Filter and Search Bar */}
+      {/* Unified Search & Filter Bar */}
       <div className="bg-surface border border-accent rounded-sm p-3.5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative w-full sm:w-72">
+        <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             type="text"
-            placeholder="Search circular title or message..."
+            placeholder="Search notice title, details, or target..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary"
+            className="w-full pl-9 pr-3 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main placeholder:text-text-muted focus:outline-none focus:border-brand-primary"
           />
         </div>
 
@@ -171,23 +212,23 @@ export const TeacherNoticesPage: React.FC = () => {
           <select
             value={batchFilter}
             onChange={(e) => setBatchFilter(e.target.value)}
-            className="px-2.5 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary"
+            className="px-2.5 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary font-medium"
           >
-            <option value="ALL">All Batches</option>
+            <option value="ALL">All Assigned Batches</option>
             {batches.map((b) => (
               <option key={b.id} value={b.id}>
-                {b.name}
+                {b.name} ({b.code})
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Notices Grid */}
+      {/* Unified Notices Grid */}
       {loading ? (
-        <div className="flex items-center justify-center h-48">
+        <div className="flex items-center justify-center h-48 bg-surface border border-accent rounded-sm">
           <div className="flex items-center gap-2 text-xs font-semibold text-text-muted">
-            <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Loading circulars...
+            <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Loading circulars & notices...
           </div>
         </div>
       ) : filteredNotices.length === 0 ? (
@@ -195,68 +236,184 @@ export const TeacherNoticesPage: React.FC = () => {
           <Bell className="w-10 h-10 text-text-muted mx-auto mb-3 opacity-40" />
           <p className="text-sm font-bold text-text-main">No circulars published</p>
           <p className="text-xs text-text-muted mt-1">
-            Click "Post New Circular" to announce schedule shifts, exam guidelines, or materials to your batch.
+            Click "Post Circular" to announce schedule shifts, exam guidelines, or materials to your batch.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredNotices.map((n) => (
-            <div
-              key={n.id}
-              onClick={() => setSelectedNotice(n)}
-              className="bg-surface border border-accent rounded-sm p-5 shadow-xs flex flex-col justify-between hover:border-brand-primary/40 cursor-pointer transition-colors"
-            >
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    {n.pinned && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-brand-primary/10 text-brand-primary">
-                        Pinned
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredNotices.map((n) => {
+            const authorMatch = isAuthor(n);
+            return (
+              <div
+                key={n.id}
+                onClick={() => setSelectedNotice(n)}
+                className={`bg-surface border rounded-sm p-5 shadow-xs flex flex-col justify-between hover:border-brand-primary/40 cursor-pointer transition-colors ${
+                  n.pinned ? "border-brand-primary/50 bg-brand-primary/[0.015]" : "border-accent"
+                }`}
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {n.pinned && (
+                        <span className="text-[10px] font-bold bg-brand-primary/10 text-brand-primary px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                          <Pin className="w-3 h-3 fill-current" /> Pinned
+                        </span>
+                      )}
+                      {n.isPublic ? (
+                        <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                          <Globe className="w-3 h-3" /> Public
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold bg-accent-subtle text-text-muted px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                          <Lock className="w-3 h-3" /> Internal
+                        </span>
+                      )}
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted truncate max-w-[120px]">
+                        {n.batch?.name || n.course?.name || "All Assigned"}
                       </span>
-                    )}
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted">
-                      {n.batch?.name || n.course?.name || "All Assigned"}
+                    </div>
+
+                    <span className="text-xs text-text-muted flex items-center gap-1 shrink-0 font-mono">
+                      <Calendar className="w-3 h-3" />
+                      {new Date(n.publishedAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <span className="text-xs text-text-muted flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(n.publishedAt).toLocaleDateString()}
-                  </span>
-                </div>
 
-                <div>
-                  <h3 className="text-base font-bold text-text-main leading-snug">{n.title}</h3>
-                  <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1.5">
-                    <Users className="w-3 h-3 text-brand-primary" />
-                    Target: {n.batch?.name || n.course?.name || "All Assigned Students"}
+                  <div>
+                    <h3 className="text-base font-bold text-text-main leading-snug line-clamp-2 mt-2">
+                      {n.title}
+                    </h3>
+                    <p className="text-xs text-text-muted mt-1 flex items-center gap-1.5 truncate">
+                      <Users className="w-3 h-3 text-brand-primary shrink-0" />
+                      Target: {n.batch ? `Batch: ${n.batch.name}` : n.course ? `Course: ${n.course.name}` : "All Assigned Students"}
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-text-muted line-clamp-3 leading-relaxed mt-2">
+                    {n.content}
                   </p>
                 </div>
 
-                <p className="text-xs text-text-muted line-clamp-3 leading-relaxed">
-                  {n.content}
-                </p>
-              </div>
-
-              <div className="pt-3 mt-3 border-t border-accent flex items-center justify-between text-xs">
-                <span className="text-[11px] text-text-muted">
-                  By: {n.author?.fullName || "Faculty"}
-                </span>
-                {n.attachmentUrl && (
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-brand-primary">
-                    <Paperclip className="w-3 h-3" /> Attachment attached
+                <div className="pt-3 mt-3 border-t border-accent flex items-center justify-between text-xs">
+                  <span className="text-[11px] text-text-muted truncate max-w-[120px]">
+                    By {n.author?.fullName || "Faculty"}
                   </span>
-                )}
+
+                  <div className="flex items-center gap-1.5">
+                    {n.attachmentUrl && (
+                      <span className="flex items-center gap-1 text-[11px] font-semibold text-brand-primary mr-1">
+                        <Paperclip className="w-3 h-3" />
+                      </span>
+                    )}
+
+                    {authorMatch && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteNotice(n.id, n.title);
+                        }}
+                        title="Delete your circular"
+                        className="p-1.5 rounded-sm border border-accent text-red-500 hover:bg-red-500/10 hover:border-red-500/30 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* Create Circular Modal */}
+      {/* Unified Detail Modal */}
+      {selectedNotice && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto backdrop-blur-xs">
+          <div className="bg-surface border border-accent rounded-sm shadow-xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-4 sm:p-5 border-b border-accent flex items-start justify-between bg-bg-app">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {selectedNotice.pinned && (
+                    <span className="text-[10px] font-bold bg-brand-primary/10 text-brand-primary px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                      <Pin className="w-3 h-3 fill-current" /> Pinned
+                    </span>
+                  )}
+                  {selectedNotice.isPublic ? (
+                    <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                      <Globe className="w-3 h-3" /> Public Landing Page
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold bg-accent-subtle text-text-muted px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                      <Lock className="w-3 h-3" /> Internal Students Only
+                    </span>
+                  )}
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted">
+                    {selectedNotice.batch ? selectedNotice.batch.name : selectedNotice.course ? selectedNotice.course.name : "All Assigned Students"}
+                  </span>
+                </div>
+                <h2 className="text-base sm:text-lg font-bold text-text-main mt-1 leading-snug">
+                  {selectedNotice.title}
+                </h2>
+                <p className="text-[11px] text-text-muted">
+                  Published: {new Date(selectedNotice.publishedAt).toLocaleString()}
+                  {selectedNotice.author && ` • By: ${selectedNotice.author.fullName}`}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedNotice(null)}
+                className="p-1 rounded-sm text-text-muted hover:text-text-main"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="bg-bg-app rounded-sm p-4 border border-accent/60 text-xs text-text-main leading-relaxed whitespace-pre-wrap font-sans">
+                {selectedNotice.content}
+              </div>
+
+              {selectedNotice.attachmentUrl && (
+                <div className="pt-2">
+                  <a
+                    href={selectedNotice.attachmentUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 py-1.5 px-3 bg-brand-primary text-white text-xs font-semibold rounded-sm shadow-xs hover:opacity-90"
+                  >
+                    <Paperclip className="w-3.5 h-3.5" /> Download / View Attachment
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-accent bg-bg-app flex flex-wrap items-center justify-between gap-2">
+              <div>
+                {isAuthor(selectedNotice) && (
+                  <button
+                    onClick={() => handleDeleteNotice(selectedNotice.id, selectedNotice.title)}
+                    className="px-3 py-1.5 bg-surface border border-red-500/30 text-red-500 text-xs font-semibold rounded-sm hover:bg-red-500/10 flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete Circular
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={() => setSelectedNotice(null)}
+                className="px-4 py-1.5 bg-surface border border-accent text-text-main text-xs font-semibold rounded-sm hover:bg-bg-app"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Post Circular Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto backdrop-blur-xs">
           <div className="bg-surface border border-accent rounded-sm shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="p-4 sm:p-5 border-b border-accent flex items-center justify-between bg-bg-app">
+            <div className="p-4 sm:p-5 border-b border-accent flex items-center justify-between bg-surface">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-brand-primary" />
                 <h2 className="text-sm sm:text-base font-bold text-text-main">Broadcast Course Circular</h2>
@@ -269,13 +426,13 @@ export const TeacherNoticesPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCreateNotice} className="p-5 space-y-4">
+            <form onSubmit={handleCreateNotice} className="p-5 space-y-4 text-xs">
               <div>
                 <label className="text-xs font-bold text-text-main block mb-1">Target Batch</label>
                 <select
                   value={form.batchId}
                   onChange={(e) => setForm({ ...form, batchId: e.target.value })}
-                  className="w-full p-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main font-semibold"
+                  className="w-full px-3 py-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main font-semibold focus:outline-none focus:border-brand-primary"
                 >
                   <option value="">All My Assigned Batches</option>
                   {batches.map((b) => (
@@ -294,7 +451,7 @@ export const TeacherNoticesPage: React.FC = () => {
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="e.g. Schedule Change for Sunday Physics Lab"
                   required
-                  className="w-full p-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main"
+                  className="w-full px-3 py-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary"
                 />
               </div>
 
@@ -306,104 +463,39 @@ export const TeacherNoticesPage: React.FC = () => {
                   onChange={(e) => setForm({ ...form, content: e.target.value })}
                   placeholder="Write details for the announcement..."
                   required
-                  className="w-full p-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main"
+                  className="w-full px-3 py-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main leading-relaxed focus:outline-none focus:border-brand-primary"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-text-main block mb-1">Attachment (Optional)</label>
                 <FileUpload
+                  label="Attach File / Routine PDF (Optional)"
                   folder="materials"
-                  accept="application/pdf,image/*"
+                  isImage={false}
+                  accept=".pdf,.doc,.docx,.jpg,.png"
                   onChange={(url: string) => setForm((prev) => ({ ...prev, attachmentUrl: url }))}
                   value={form.attachmentUrl}
                 />
-                {form.attachmentUrl && (
-                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
-                    ✓ Attachment uploaded: {form.attachmentUrl.split("/").pop()}
-                  </p>
-                )}
               </div>
 
               <div className="pt-3 border-t border-accent flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-3 py-1.5 bg-surface border border-accent text-text-main text-xs font-semibold rounded-sm hover:bg-bg-app"
+                  className="px-3.5 py-1.5 bg-surface border border-accent text-text-muted text-xs font-semibold rounded-sm hover:bg-bg-app"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-4 py-1.5 bg-brand-primary text-white text-xs font-bold rounded-sm hover:opacity-90 flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+                  className="px-4 py-1.5 bg-brand-primary text-white text-xs font-semibold rounded-sm hover:opacity-90 flex items-center gap-1.5 shadow-xs disabled:opacity-50"
                 >
                   {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                   Broadcast Notice
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* View Notice Detail Modal */}
-      {selectedNotice && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-surface border border-accent rounded-sm shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="p-4 sm:p-5 border-b border-accent flex items-start justify-between bg-bg-app">
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5">
-                  {selectedNotice.pinned && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-brand-primary/10 text-brand-primary">
-                      Pinned
-                    </span>
-                  )}
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted">
-                    {selectedNotice.batch?.name || selectedNotice.course?.name || "All Assigned Students"}
-                  </span>
-                </div>
-                <h2 className="text-base font-bold text-text-main mt-1">{selectedNotice.title}</h2>
-                <p className="text-[11px] text-text-muted">
-                  Published: {new Date(selectedNotice.publishedAt).toLocaleDateString()}
-                  {selectedNotice.author && ` • By: ${selectedNotice.author.fullName}`}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedNotice(null)}
-                className="p-1 rounded-sm text-text-muted hover:text-text-main"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-4">
-              <div className="bg-bg-app rounded-sm p-4 border border-accent/60 text-xs text-text-main leading-relaxed whitespace-pre-wrap">
-                {selectedNotice.content}
-              </div>
-
-              {selectedNotice.attachmentUrl && (
-                <div className="pt-2">
-                  <a
-                    href={selectedNotice.attachmentUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 py-1.5 px-3 bg-brand-primary text-white text-xs font-bold rounded-sm shadow-xs hover:opacity-90"
-                  >
-                    <Paperclip className="w-3.5 h-3.5" /> View Notice Attachment
-                  </a>
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 border-t border-accent bg-bg-app flex justify-end">
-              <button
-                onClick={() => setSelectedNotice(null)}
-                className="px-4 py-1.5 bg-surface border border-accent text-text-main text-xs font-semibold rounded-sm hover:bg-bg-app"
-              >
-                Close
-              </button>
-            </div>
           </div>
         </div>
       )}

@@ -187,6 +187,16 @@ export class TeacherController {
     }
   }
 
+  static async deleteNotice(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) throw new UnauthorizedError();
+      await TeacherService.deleteTeacherNotice(req.user.userId, req.params.id);
+      ResponseUtil.success(res, null, "Notice deleted successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getTips(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const tips = await TeacherService.getTeacherTips();

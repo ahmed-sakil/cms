@@ -96,6 +96,7 @@ router.post(
   validateRequest(createTeacherNoticeSchema),
   TeacherController.createNotice
 );
+router.delete("/notices/:id", TeacherController.deleteNotice);
 
 // Faculty Tips
 router.get("/tips", TeacherController.getTips);

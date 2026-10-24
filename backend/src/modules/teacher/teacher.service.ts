@@ -824,7 +824,7 @@ export class TeacherService {
       include: {
         batch: { select: { id: true, name: true } },
         course: { select: { id: true, name: true } },
-        author: { select: { fullName: true } },
+        author: { select: { id: true, fullName: true } },
       },
       orderBy: [{ pinned: "desc" }, { publishedAt: "desc" }],
     });
@@ -855,6 +855,20 @@ export class TeacherService {
         batch: { select: { name: true } },
         course: { select: { name: true } },
       },
+    });
+  }
+
+  static async deleteTeacherNotice(userId: string, noticeId: string) {
+    const teacher = await this.getTeacherProfile(userId);
+    const existing = await prisma.publicNotice.findUnique({
+      where: { id: noticeId },
+    });
+    if (!existing) throw new NotFoundError("Notice not found");
+    if (existing.authorId !== teacher.id) {
+      throw new ForbiddenError("You can only delete circulars authored by you");
+    }
+    return prisma.publicNotice.delete({
+      where: { id: noticeId },
     });
   }
 

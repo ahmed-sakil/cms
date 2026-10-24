@@ -5,8 +5,11 @@ import {
   Calendar,
   Paperclip,
   X,
-  Bookmark,
   Loader2,
+  Users,
+  Pin,
+  Globe,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,6 +19,7 @@ interface NoticeRecord {
   content: string;
   priority?: string;
   pinned: boolean;
+  isPublic?: boolean;
   publishedAt: string;
   attachmentUrl?: string | null;
   batch?: { id: string; name: string } | null;
@@ -64,7 +68,8 @@ export const StudentNoticesPage: React.FC = () => {
       n.title.toLowerCase().includes(q) ||
       n.content.toLowerCase().includes(q) ||
       (n.batch?.name && n.batch.name.toLowerCase().includes(q)) ||
-      (n.course?.name && n.course.name.toLowerCase().includes(q));
+      (n.course?.name && n.course.name.toLowerCase().includes(q)) ||
+      (n.branch?.name && n.branch.name.toLowerCase().includes(q));
 
     let matchesScope = true;
     if (scopeFilter === "BATCH") matchesScope = !!n.batch;
@@ -75,59 +80,53 @@ export const StudentNoticesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
+      {/* Unified Header Banner */}
       <div className="bg-surface border border-accent rounded-sm p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1">
-            <Bell className="w-3.5 h-3.5" /> Campus Notices
+            <Bell className="w-3.5 h-3.5" /> Notice Board & Circulars
           </span>
-          <h1 className="text-lg sm:text-xl font-bold text-text-main mt-0.5">
-            Notices & Circulars
+          <h1 className="text-xl sm:text-2xl font-bold text-text-main tracking-tight mt-0.5">
+            Notice Board & Circulars
           </h1>
-          <p className="text-xs text-text-muted mt-0.5">
-            Stay informed with routine updates, exam circulars, and teacher notices.
+          <p className="text-xs text-text-muted mt-1">
+            Official announcements, exam schedules, and circulars for your batch and campus.
           </p>
         </div>
+      </div>
 
-        <div className="relative w-full sm:w-64">
+      {/* Unified Search & Filter Bar */}
+      <div className="bg-surface border border-accent rounded-sm p-3.5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             type="text"
-            placeholder="Search circulars..."
+            placeholder="Search notice title, details, or target..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary"
+            className="w-full pl-9 pr-3 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main placeholder:text-text-muted focus:outline-none focus:border-brand-primary"
           />
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <span className="text-xs text-text-muted font-bold">Audience:</span>
+          <select
+            value={scopeFilter}
+            onChange={(e) => setScopeFilter(e.target.value as "ALL" | "BATCH" | "CAMPUS")}
+            className="px-2.5 py-1.5 bg-bg-app border border-accent rounded-sm text-xs text-text-main focus:outline-none focus:border-brand-primary font-medium"
+          >
+            <option value="ALL">All Circulars</option>
+            <option value="BATCH">My Batch Circulars</option>
+            <option value="CAMPUS">Campus & General Announcements</option>
+          </select>
         </div>
       </div>
 
-      {/* Scope Filters */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <span className="text-xs font-bold text-text-muted shrink-0">Filter:</span>
-        {[
-          { id: "ALL", label: "All Circulars" },
-          { id: "BATCH", label: "My Batch Circulars" },
-          { id: "CAMPUS", label: "Campus & General" },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setScopeFilter(tab.id as "ALL" | "BATCH" | "CAMPUS")}
-            className={`px-3 py-1 text-xs font-bold rounded-sm border whitespace-nowrap transition-colors ${
-              scopeFilter === tab.id
-                ? "bg-brand-primary text-white border-brand-primary shadow-xs"
-                : "bg-surface text-text-muted border-accent hover:text-text-main"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Notices List */}
+      {/* Unified Notices Grid */}
       {loading ? (
-        <div className="flex items-center justify-center h-48">
+        <div className="flex items-center justify-center h-48 bg-surface border border-accent rounded-sm">
           <div className="flex items-center gap-2 text-xs font-semibold text-text-muted">
-            <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Loading circulars...
+            <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> Loading circulars & notices...
           </div>
         </div>
       ) : filtered.length === 0 ? (
@@ -139,52 +138,66 @@ export const StudentNoticesPage: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((item) => (
             <div
               key={item.id}
               onClick={() => setSelectedNotice(item)}
               className={`bg-surface border rounded-sm p-5 shadow-xs flex flex-col justify-between hover:border-brand-primary/40 cursor-pointer transition-colors ${
-                item.pinned ? "border-brand-primary/50 bg-brand-primary/[0.02]" : "border-accent"
+                item.pinned ? "border-brand-primary/50 bg-brand-primary/[0.015]" : "border-accent"
               }`}
             >
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {item.pinned && (
                       <span className="text-[10px] font-bold bg-brand-primary/10 text-brand-primary px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
-                        <Bookmark className="w-3 h-3 fill-current" /> Pinned
+                        <Pin className="w-3 h-3 fill-current" /> Pinned
                       </span>
                     )}
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted">
+                    {item.isPublic ? (
+                      <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                        <Globe className="w-3 h-3" /> Public
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold bg-accent-subtle text-text-muted px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                        <Lock className="w-3 h-3" /> Internal
+                      </span>
+                    )}
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted truncate max-w-[120px]">
                       {item.batch ? item.batch.name : item.course ? item.course.name : item.branch ? item.branch.name : "General"}
                     </span>
                   </div>
-                  <span className="text-xs text-text-muted flex items-center gap-1">
+
+                  <span className="text-xs text-text-muted flex items-center gap-1 shrink-0 font-mono">
                     <Calendar className="w-3 h-3" />
                     {new Date(item.publishedAt).toLocaleDateString()}
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-bold text-text-main leading-snug">{item.title}</h3>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    {item.batch ? `Cohort: ${item.batch.name}` : item.course ? `Course: ${item.course.name}` : item.branch ? `Branch: ${item.branch.name}` : "General Announcement"}
+                  <h3 className="text-base font-bold text-text-main leading-snug line-clamp-2 mt-2">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-text-muted mt-1 flex items-center gap-1.5 truncate">
+                    <Users className="w-3 h-3 text-brand-primary shrink-0" />
+                    Target: {item.batch ? `Cohort: ${item.batch.name}` : item.course ? `Course: ${item.course.name}` : item.branch ? `Branch: ${item.branch.name}` : "General Announcement"}
                   </p>
                 </div>
 
-                <p className="text-xs text-text-muted line-clamp-3 leading-relaxed">
+                <p className="text-xs text-text-muted line-clamp-3 leading-relaxed mt-2">
                   {item.content}
                 </p>
               </div>
 
               <div className="pt-3 mt-3 border-t border-accent flex items-center justify-between text-xs">
-                <span className="text-[11px] text-text-muted">
+                <span className="text-[11px] text-text-muted truncate max-w-[120px]">
                   By {item.author?.fullName || "Faculty Administration"}
                 </span>
+
                 {item.attachmentUrl && (
                   <span className="flex items-center gap-1 text-[11px] font-semibold text-brand-primary">
-                    <Paperclip className="w-3 h-3" /> Attachment
+                    <Paperclip className="w-3 h-3" />
                   </span>
                 )}
               </div>
@@ -193,27 +206,37 @@ export const StudentNoticesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Detail */}
+      {/* Unified Detail Modal */}
       {selectedNotice && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-surface border border-accent rounded-sm shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto backdrop-blur-xs">
+          <div className="bg-surface border border-accent rounded-sm shadow-xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="p-4 sm:p-5 border-b border-accent flex items-start justify-between bg-bg-app">
               <div className="space-y-1">
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   {selectedNotice.pinned && (
                     <span className="text-[10px] font-bold bg-brand-primary/10 text-brand-primary px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
-                      <Bookmark className="w-3 h-3 fill-current" /> Pinned
+                      <Pin className="w-3 h-3 fill-current" /> Pinned
+                    </span>
+                  )}
+                  {selectedNotice.isPublic ? (
+                    <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                      <Globe className="w-3 h-3" /> Public Landing Page
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold bg-accent-subtle text-text-muted px-1.5 py-0.5 rounded-xs flex items-center gap-1 uppercase tracking-wider">
+                      <Lock className="w-3 h-3" /> Internal Students Only
                     </span>
                   )}
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider bg-accent-subtle text-text-muted">
                     {selectedNotice.batch ? selectedNotice.batch.name : selectedNotice.course ? selectedNotice.course.name : selectedNotice.branch ? selectedNotice.branch.name : "General Announcement"}
                   </span>
                 </div>
-                <h2 className="text-base font-bold text-text-main mt-1 leading-snug">
+                <h2 className="text-base sm:text-lg font-bold text-text-main mt-1 leading-snug">
                   {selectedNotice.title}
                 </h2>
                 <p className="text-[11px] text-text-muted">
                   Published: {new Date(selectedNotice.publishedAt).toLocaleString()}
+                  {selectedNotice.author && ` • By: ${selectedNotice.author.fullName}`}
                 </p>
               </div>
               <button
@@ -235,7 +258,7 @@ export const StudentNoticesPage: React.FC = () => {
                     href={selectedNotice.attachmentUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 py-1.5 px-3 bg-brand-primary text-white text-xs font-bold rounded-sm shadow-xs hover:opacity-90"
+                    className="inline-flex items-center gap-1.5 py-1.5 px-3 bg-brand-primary text-white text-xs font-semibold rounded-sm shadow-xs hover:opacity-90"
                   >
                     <Paperclip className="w-3.5 h-3.5" /> Download / View Attachment
                   </a>
