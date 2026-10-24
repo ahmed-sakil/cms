@@ -107,6 +107,21 @@ export const PublicLayout: React.FC = () => {
     }
   };
 
+  const getNavbarPortalLabel = (role?: string) => {
+    switch (role) {
+      case "TEACHER":
+      case "APPLICANT":
+        return "Teacher Portal";
+      case "STUDENT":
+        return "Student Portal";
+      case "SUPER_ADMIN":
+      case "BRANCH_ADMIN":
+      case "STAFF":
+      default:
+        return "Admin Portal";
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
     const fetchOrgData = async () => {
@@ -176,6 +191,7 @@ export const PublicLayout: React.FC = () => {
       "faculty",
       "achievements",
       "results",
+      "upcoming-batches",
       "batches",
       "notices",
     ];
@@ -209,6 +225,7 @@ export const PublicLayout: React.FC = () => {
     { label: "Home", href: "/", icon: GraduationCap },
     { label: "Notice Board", href: "/#notices", icon: BellRing },
     { label: "Available Batches", href: "/#batches", icon: Calendar },
+    { label: "Upcoming Batches", href: "/#upcoming-batches", icon: Calendar },
     { label: "Teacher Panel", href: "/#faculty", icon: Users },
     { label: "Exam Standings", href: "/#results", icon: Trophy },
     { label: "Hall of Fame", href: "/#achievements", icon: Award },
@@ -420,23 +437,20 @@ export const PublicLayout: React.FC = () => {
               <Link
                 to={getPortalPath(currentUser.role)}
                 className="hidden xl:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors shadow-xs"
-                title={`Signed in as ${currentUser.fullName} (${getRoleLabel(currentUser.role)})`}
+                title={`Signed in as ${currentUser.fullName} (${getNavbarPortalLabel(currentUser.role)})`}
               >
                 {currentUser.avatarUrl ? (
                   <img
                     src={currentUser.avatarUrl}
                     alt={currentUser.fullName}
-                    className="w-4 h-4 rounded-full object-cover border border-white/40"
+                    className="w-5 h-5 rounded-full object-cover border border-white/40 shrink-0"
                   />
                 ) : (
-                  <div className="w-4 h-4 rounded-full bg-white/20 text-[10px] flex items-center justify-center font-bold">
+                  <div className="w-5 h-5 rounded-full bg-white/20 text-[10px] flex items-center justify-center font-bold shrink-0">
                     {currentUser.fullName?.[0]?.toUpperCase() || "U"}
                   </div>
                 )}
-                <span>My Portal</span>
-                <span className="text-[10px] opacity-80 px-1 py-0.5 bg-black/20 rounded-xs font-normal">
-                  {getRoleLabel(currentUser.role)}
-                </span>
+                <span>{getNavbarPortalLabel(currentUser.role)}</span>
               </Link>
             ) : (
               <Link

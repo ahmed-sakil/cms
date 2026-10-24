@@ -202,7 +202,7 @@ export class PublicService {
     });
 
     const availableBatches = formattedBatches.filter(
-      (b) => b.status === BatchStatus.ONGOING || (b.status === BatchStatus.UPCOMING && !b.isHouseFull)
+      (b) => b.status === BatchStatus.ONGOING
     );
     const upcomingBatches = formattedBatches.filter((b) => b.status === BatchStatus.UPCOMING);
 

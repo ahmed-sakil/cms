@@ -24,6 +24,7 @@ import {
   Search,
   Download,
   Briefcase,
+  Clock,
 } from "lucide-react";
 import type { PosterSlide, PaymentChannel } from "../../types/index.js";
 
@@ -139,6 +140,7 @@ export const LandingPage: React.FC = () => {
 
   // Core Data Lists
   const [availableBatches, setAvailableBatches] = useState<any[]>([]);
+  const [upcomingBatches, setUpcomingBatches] = useState<any[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [evaluatedExams, setEvaluatedExams] = useState<EvaluatedExam[]>([]);
@@ -192,6 +194,7 @@ export const LandingPage: React.FC = () => {
   const applyLandingPayload = (d: any) => {
     if (d.organization) setOrganization(d.organization);
     if (d.availableBatches) setAvailableBatches(d.availableBatches);
+    if (d.upcomingBatches) setUpcomingBatches(d.upcomingBatches);
     if (d.notices) setNotices(d.notices);
     if (d.branches) setBranches(d.branches);
     if (d.evaluatedExams) setEvaluatedExams(d.evaluatedExams);
@@ -603,6 +606,144 @@ export const LandingPage: React.FC = () => {
                     <div className="p-4 pb-0 flex justify-start items-start">
                       <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider block bg-brand-primary/10 px-2 py-0.5 rounded-xs">
                         {batch.academicClass?.name || batch.course?.name || "Academic Program"}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="p-5 space-y-3.5 flex-1 flex flex-col justify-between">
+                    <div className="space-y-2.5">
+                      <h4 className="font-bold text-base text-text-main group-hover:text-brand-primary transition-colors line-clamp-1">
+                        {batch.title || batch.name}
+                      </h4>
+
+                      <div className="space-y-2 text-xs text-text-muted pt-1">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                          <span>Starts: <strong className="text-text-main">{new Date(batch.startDate).toLocaleDateString()}</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                          <span>Campus: <strong className="text-text-main">{batch.branch?.name || "Main Campus"}</strong></span>
+                        </div>
+                        {((batch.totalClasses ?? 0) > 0 || (batch.totalExams ?? 0) > 0) && (
+                          <div className="flex items-center gap-2">
+                            <BookOpen className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                            <span>{batch.totalClasses || 0} Lectures • {batch.totalExams || 0} Model Exams</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-3.5 border-t border-theme flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Fee</div>
+                        <div className="text-base font-bold text-text-main">
+                          ৳{Number(batch.feeAmount || 0).toLocaleString()}
+                          {batch.feeType && (
+                            <span className="text-[10px] text-text-muted font-normal ml-1">
+                              ({batch.feeType.replace("_", " ")})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <Link
+                        to={`/batches/${batch.id}`}
+                        className="py-1.5 px-3.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors flex items-center gap-1 shadow-xs"
+                      >
+                        <span>Details & Routine</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 2.1 UPCOMING BATCHES */}
+      {/* ========================================================================= */}
+      <section id="upcoming-batches" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
+                Upcoming Batches
+              </h2>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-brand-primary bg-brand-primary/10 border border-brand-primary/20 px-2.5 py-1 rounded-sm self-start sm:self-auto shadow-2xs">
+            {loading ? "..." : upcomingBatches.length} Starting Soon
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {loading ? (
+            [1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className="bg-surface border border-theme rounded-sm overflow-hidden flex flex-col justify-between shadow-xs animate-pulse"
+              >
+                <div className="h-36 w-full bg-accent/40" />
+                <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="h-3 w-24 bg-accent rounded-xs" />
+                    <div className="h-5 w-44 bg-accent rounded-xs" />
+                    <div className="space-y-2 pt-2">
+                      <div className="h-3 w-32 bg-accent/60 rounded-xs" />
+                      <div className="h-3 w-40 bg-accent/60 rounded-xs" />
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t border-theme flex items-center justify-between">
+                    <div className="h-3 w-20 bg-accent/50 rounded-xs" />
+                    <div className="h-7 w-28 bg-accent rounded-sm" />
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <>
+              {upcomingBatches.length === 0 && (
+                <div className="col-span-full text-center py-12 bg-surface border border-theme rounded-sm text-xs text-text-muted">
+                  No upcoming batches announced at this moment. Stay tuned for new session schedules.
+                </div>
+              )}
+              {upcomingBatches.map((batch) => (
+                <div
+                  key={batch.id}
+                  className="bg-surface border border-theme rounded-sm overflow-hidden flex flex-col justify-between hover:border-brand-primary/50 transition-all shadow-xs group"
+                >
+                  {batch.coverImage ? (
+                    <div className="h-40 w-full bg-slate-900 overflow-hidden relative">
+                      <img
+                        src={batch.coverImage}
+                        alt={batch.title || batch.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                      />
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
+                        {batch.academicClass && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary text-white rounded-xs uppercase shadow-xs">
+                            {batch.academicClass.name}
+                          </span>
+                        )}
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-xs border shadow-xs backdrop-blur-xs bg-amber-500/90 text-white border-amber-400">
+                          Starting Soon
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 pb-0 flex justify-between items-start">
+                      <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider block bg-brand-primary/10 px-2 py-0.5 rounded-xs">
+                        {batch.academicClass?.name || batch.course?.name || "Academic Program"}
+                      </span>
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-xs border shadow-xs bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300">
+                        Starting Soon
                       </span>
                     </div>
                   )}
