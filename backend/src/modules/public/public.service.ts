@@ -20,7 +20,7 @@ export class PublicService {
       return landingCache.data;
     }
 
-    const [courses, batchesList, notices, branches, organization, achievements, testimonials, exams, facultyTipsList] = await Promise.all([
+    const [courses, batchesList, notices, branches, organization, achievements, testimonials, exams, facultyTipsList, teachersList] = await Promise.all([
       prisma.course.findMany({
         where: {
           isPublic: true,
@@ -139,6 +139,37 @@ export class PublicService {
         where: { isPublished: true },
         orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
       }),
+      prisma.user.findMany({
+        where: {
+          role: "TEACHER",
+          isActive: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          fullName: true,
+          avatarUrl: true,
+          branch: { select: { id: true, name: true, code: true } },
+          teacherProfile: {
+            select: {
+              id: true,
+              qualification: true,
+              specialization: true,
+              bio: true,
+            },
+          },
+          teacherApplication: {
+            select: {
+              preferredSubject: true,
+              preferredClass: true,
+              bio: true,
+              educationalQualifications: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 12,
+      }),
     ]);
 
     const formattedBatches = batchesList.map((b) => {
@@ -216,6 +247,20 @@ export class PublicService {
       createdAt: t.createdAt.toISOString(),
     }));
 
+    const teachers = teachersList.map((t) => ({
+      id: t.id,
+      fullName: t.fullName,
+      avatarUrl: t.avatarUrl,
+      branchName: t.branch?.name || null,
+      specialization:
+        t.teacherProfile?.specialization ||
+        t.teacherApplication?.preferredSubject ||
+        "Faculty Member",
+      qualification:
+        t.teacherProfile?.qualification || "Distinguished Faculty",
+      bio: t.teacherProfile?.bio || t.teacherApplication?.bio || "",
+    }));
+
     const payload = {
       courses,
       availableBatches,
@@ -228,6 +273,7 @@ export class PublicService {
       evaluatedExams,
       studyTips,
       facultyTips: studyTips,
+      teachers,
     };
 
     landingCache = {
@@ -482,6 +528,53 @@ export class PublicService {
         user.teacherApplication?.educationalQualifications || [],
       batches: user.teacherProfile?.batches || [],
     };
+  }
+
+  static async listTeachers() {
+    const users = await prisma.user.findMany({
+      where: {
+        role: "TEACHER",
+        isActive: true,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        fullName: true,
+        avatarUrl: true,
+        branch: { select: { id: true, name: true, code: true } },
+        teacherProfile: {
+          select: {
+            id: true,
+            qualification: true,
+            specialization: true,
+            bio: true,
+          },
+        },
+        teacherApplication: {
+          select: {
+            preferredSubject: true,
+            preferredClass: true,
+            bio: true,
+            educationalQualifications: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return users.map((t) => ({
+      id: t.id,
+      fullName: t.fullName,
+      avatarUrl: t.avatarUrl,
+      branchName: t.branch?.name || null,
+      specialization:
+        t.teacherProfile?.specialization ||
+        t.teacherApplication?.preferredSubject ||
+        "Faculty Member",
+      qualification:
+        t.teacherProfile?.qualification || "Distinguished Faculty",
+      bio: t.teacherProfile?.bio || t.teacherApplication?.bio || "",
+    }));
   }
 }
 

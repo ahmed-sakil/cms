@@ -84,6 +84,15 @@ export class PublicController {
     }
   }
 
+  static async getTeachers(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await PublicService.listTeachers();
+      ResponseUtil.success(res, data, "Public teachers retrieved successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getFacultyProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const data = await PublicService.getFacultyPublicProfile(req.params.id);

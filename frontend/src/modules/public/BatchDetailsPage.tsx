@@ -135,7 +135,6 @@ export const BatchDetailsPage: React.FC = () => {
   // Current logged in user
   const currentUserStr = localStorage.getItem("cms_user");
   const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
-  const token = localStorage.getItem("cms_token");
 
   useEffect(() => {
     if (!id) return;
@@ -184,7 +183,16 @@ export const BatchDetailsPage: React.FC = () => {
   };
 
   const handleOpenEnrollModal = () => {
-    if (!token || !currentUser) {
+    const liveToken = localStorage.getItem("cms_token");
+    const liveUserStr = localStorage.getItem("cms_user");
+    let liveUser = null;
+    try {
+      liveUser = liveUserStr ? JSON.parse(liveUserStr) : null;
+    } catch {
+      liveUser = null;
+    }
+
+    if (!liveToken || !liveUser) {
       toast.info("Please log in or register as a student to apply for admission.", {
         action: {
           label: "Log In",
@@ -203,7 +211,8 @@ export const BatchDetailsPage: React.FC = () => {
 
   const handleSelfEnroll = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) {
+    const liveToken = localStorage.getItem("cms_token");
+    if (!liveToken) {
       toast.error("Authentication required. Please log in first.");
       navigate(`/login?redirect=/batches/${id}`);
       return;
@@ -224,7 +233,7 @@ export const BatchDetailsPage: React.FC = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${liveToken}`,
         },
         body: JSON.stringify({
           paymentMethod: enrollForm.paymentMethod,

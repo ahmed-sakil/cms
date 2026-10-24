@@ -63,6 +63,36 @@ export const LoginPage: React.FC = () => {
       });
   }, []);
 
+  // Automatic Session Redirect: If already logged in, bypass login view
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem("cms_token");
+      const userStr = localStorage.getItem("cms_user");
+      if (token && userStr) {
+        const user = JSON.parse(userStr);
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirect = searchParams.get("redirect");
+        if (redirect) {
+          navigate(redirect, { replace: true });
+        } else if (
+          user.role === UserRole.SUPER_ADMIN ||
+          user.role === UserRole.BRANCH_ADMIN ||
+          user.role === "STAFF"
+        ) {
+          navigate("/admin", { replace: true });
+        } else if (user.role === UserRole.TEACHER) {
+          navigate("/teacher", { replace: true });
+        } else if (user.role === UserRole.APPLICANT) {
+          navigate("/teacher/application-status", { replace: true });
+        } else {
+          navigate("/student", { replace: true });
+        }
+      }
+    } catch {
+      // Ignore corrupted localStorage
+    }
+  }, [navigate]);
+
   const handleRoleSwitch = (selectedRole: UserRole) => {
     setRole(selectedRole);
   };

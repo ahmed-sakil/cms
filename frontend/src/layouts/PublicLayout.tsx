@@ -19,7 +19,8 @@ import {
   MessageSquare,
   Send,
   ChevronRight,
-  Briefcase,
+  Users,
+  LayoutDashboard,
 } from "lucide-react";
 import { useTheme } from "../lib/theme.js";
 import { setDynamicFavicon } from "../utils/dynamicFavicon.js";
@@ -53,6 +54,59 @@ export const PublicLayout: React.FC = () => {
   const [landingData, setLandingData] = useState<any>(null);
   const [mainBranch, setMainBranch] = useState<MainBranchData | null>(null);
   const [organization, setOrganization] = useState<OrgData | null>(null);
+
+  // Active Session Reader
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("cms_user");
+      const token = localStorage.getItem("cms_token");
+      if (userStr && token) {
+        setCurrentUser(JSON.parse(userStr));
+      } else {
+        setCurrentUser(null);
+      }
+    } catch {
+      setCurrentUser(null);
+    }
+  }, [location.pathname]);
+
+  const getPortalPath = (role?: string) => {
+    switch (role) {
+      case "SUPER_ADMIN":
+      case "BRANCH_ADMIN":
+      case "STAFF":
+        return "/admin";
+      case "TEACHER":
+        return "/teacher";
+      case "APPLICANT":
+        return "/teacher/application-status";
+      case "STUDENT":
+        return "/student";
+      default:
+        return "/student";
+    }
+  };
+
+  const getRoleLabel = (role?: string) => {
+    switch (role) {
+      case "SUPER_ADMIN":
+        return "Admin Portal";
+      case "BRANCH_ADMIN":
+        return "Campus Admin";
+      case "TEACHER":
+        return "Faculty Portal";
+      case "APPLICANT":
+        return "Application";
+      case "STUDENT":
+        return "Student Portal";
+      case "STAFF":
+        return "Staff Desk";
+      default:
+        return "Portal";
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -120,6 +174,7 @@ export const PublicLayout: React.FC = () => {
       "inquiry",
       "reviews",
       "tips",
+      "faculty",
       "achievements",
       "results",
       "upcoming",
@@ -157,6 +212,7 @@ export const PublicLayout: React.FC = () => {
     { label: "Notice Board", href: "/#notices", icon: BellRing },
     { label: "Available Batches", href: "/#batches", icon: Calendar },
     { label: "Upcoming Batches", href: "/#upcoming", icon: Clock },
+    { label: "Teacher Panel", href: "/#faculty", icon: Users },
     { label: "Exam Standings", href: "/#results", icon: Trophy },
     { label: "Hall of Fame", href: "/#achievements", icon: Award },
     { label: "Study Tips", href: "/#tips", icon: BookOpen },
@@ -362,23 +418,38 @@ export const PublicLayout: React.FC = () => {
               {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
             </button>
 
-            {/* Apply as Faculty CTA */}
-            <Link
-              to="/teacher/register"
-              className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface border border-accent hover:border-brand-primary/50 text-text-main rounded-sm transition-colors shadow-xs"
-            >
-              <Briefcase className="w-3.5 h-3.5 text-brand-primary" />
-              <span>Apply as Faculty</span>
-            </Link>
-
-            {/* Login button (Desktop only - in drawer for mobile & tablet) */}
-            <Link
-              to="/login"
-              className="hidden xl:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors shadow-xs"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Login</span>
-            </Link>
+            {/* Active Session Portal CTA / Login button */}
+            {currentUser ? (
+              <Link
+                to={getPortalPath(currentUser.role)}
+                className="hidden xl:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors shadow-xs"
+                title={`Signed in as ${currentUser.fullName} (${getRoleLabel(currentUser.role)})`}
+              >
+                {currentUser.avatarUrl ? (
+                  <img
+                    src={currentUser.avatarUrl}
+                    alt={currentUser.fullName}
+                    className="w-4 h-4 rounded-full object-cover border border-white/40"
+                  />
+                ) : (
+                  <div className="w-4 h-4 rounded-full bg-white/20 text-[10px] flex items-center justify-center font-bold">
+                    {currentUser.fullName?.[0]?.toUpperCase() || "U"}
+                  </div>
+                )}
+                <span>My Portal</span>
+                <span className="text-[10px] opacity-80 px-1 py-0.5 bg-black/20 rounded-xs font-normal">
+                  {getRoleLabel(currentUser.role)}
+                </span>
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="hidden xl:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors shadow-xs"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Login</span>
+              </Link>
+            )}
 
             {/* Mobile Burger Menu Button */}
             <button
@@ -498,32 +569,67 @@ export const PublicLayout: React.FC = () => {
 
           <div className="pt-4 mt-2 border-t border-accent space-y-2">
             <div className="text-[10px] uppercase font-bold tracking-wider text-text-muted px-2">
-              Student & Faculty Access
+              {currentUser ? "Active Session" : "Student & Faculty Access"}
             </div>
-            {/* Mobile Portal Login */}
-            <Link
-              to="/login"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-brand-primary text-white rounded-sm font-bold text-xs hover:bg-brand-hover shadow-xs transition-colors"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>Login</span>
-            </Link>
-            <Link
-              to="/teacher/register"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-surface border border-accent text-text-main rounded-sm font-semibold text-xs hover:border-brand-primary/50 transition-colors"
-            >
-              <Briefcase className="w-3.5 h-3.5 text-brand-primary" />
-              <span>Apply as Faculty Member</span>
-            </Link>
-            <Link
-              to="/register"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-surface border border-accent text-text-main rounded-sm font-semibold text-xs hover:bg-accent transition-colors"
-            >
-              <span>New Student Registration</span>
-            </Link>
+
+            {currentUser ? (
+              <div className="space-y-2">
+                <div className="p-3 bg-surface border border-accent rounded-sm flex items-center gap-3">
+                  {currentUser.avatarUrl ? (
+                    <img
+                      src={currentUser.avatarUrl}
+                      alt={currentUser.fullName}
+                      className="w-9 h-9 rounded-full object-cover border border-accent shrink-0"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-brand-primary/10 text-brand-primary font-bold flex items-center justify-center shrink-0 text-sm">
+                      {currentUser.fullName?.[0]?.toUpperCase() || "U"}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-text-main truncate">
+                      {currentUser.fullName}
+                    </div>
+                    <div className="text-[11px] text-text-muted truncate">
+                      {currentUser.email}
+                    </div>
+                    <div className="mt-1">
+                      <span className="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded-xs bg-brand-primary/10 text-brand-primary">
+                        {getRoleLabel(currentUser.role)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <Link
+                  to={getPortalPath(currentUser.role)}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-brand-primary text-white rounded-sm font-bold text-xs hover:bg-brand-hover shadow-xs transition-colors"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Go to My Portal</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {/* Mobile Portal Login */}
+                <Link
+                  to="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-brand-primary text-white rounded-sm font-bold text-xs hover:bg-brand-hover shadow-xs transition-colors"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Login</span>
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-surface border border-accent text-text-main rounded-sm font-semibold text-xs hover:bg-accent transition-colors"
+                >
+                  <span>New Student Registration</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 

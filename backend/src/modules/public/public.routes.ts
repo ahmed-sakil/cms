@@ -28,7 +28,8 @@ router.get("/faculty-tips", PublicController.listTips);
 router.get("/tips/:id", PublicController.getTipById);
 router.get("/faculty-tips/:id", PublicController.getTipById);
 
-// Public Faculty Member Profile
+// Public Faculty Member Profile & Teachers Panel
+router.get("/teachers", PublicController.getTeachers);
 router.get("/teachers/:id", PublicController.getFacultyProfile);
 
 export default router;

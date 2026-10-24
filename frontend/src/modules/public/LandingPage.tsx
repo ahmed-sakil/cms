@@ -28,8 +28,19 @@ import {
   Search,
   Download,
   DoorOpen,
+  Briefcase,
 } from "lucide-react";
 import type { PosterSlide, PaymentChannel } from "../../types/index.js";
+
+interface TeacherItem {
+  id: string;
+  fullName: string;
+  avatarUrl?: string | null;
+  branchName?: string | null;
+  specialization: string;
+  qualification: string;
+  bio?: string | null;
+}
 
 interface StandingsRecord {
   standing: number;
@@ -142,6 +153,15 @@ export const LandingPage: React.FC = () => {
   const [achievements, setAchievements] = useState<StudentAchievementItem[]>([]);
   const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
   const [studyTips, setStudyTips] = useState<StudyTipItem[]>([]);
+  const [teachers, setTeachers] = useState<TeacherItem[]>([]);
+  const teacherScrollRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollTeachers = (direction: "left" | "right") => {
+    if (teacherScrollRef.current) {
+      const scrollAmount = direction === "left" ? -340 : 340;
+      teacherScrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    }
+  };
 
   // Read parent context from PublicLayout to avoid duplicate network queries
   const outletContext = useOutletContext<{ landingData?: any; isLoading?: boolean }>() || {};
@@ -187,6 +207,7 @@ export const LandingPage: React.FC = () => {
     if (d.achievements) setAchievements(d.achievements);
     if (d.testimonials) setTestimonials(d.testimonials);
     if (d.studyTips) setStudyTips(d.studyTips);
+    if (d.teachers) setTeachers(d.teachers);
   };
 
   useEffect(() => {
@@ -1191,6 +1212,148 @@ export const LandingPage: React.FC = () => {
           </div>
         </section>
       )}
+
+      {/* ========================================================================= */}
+      {/* 6.5. OUR TEACHER PANEL (HORIZONTALLY FLOATING CARDS & JOIN ACTION) */}
+      {/* ========================================================================= */}
+      <section id="faculty" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
+                Our Teacher Panel
+              </h2>
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
+                Meet our dedicated faculty mentors and subject specialists guiding academic excellence.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <button
+              onClick={() => scrollTeachers("left")}
+              className="p-1.5 border border-accent rounded-sm hover:border-brand-primary text-text-muted hover:text-text-main transition-colors bg-surface shadow-2xs"
+              aria-label="Scroll Left"
+              title="Previous Teachers"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => scrollTeachers("right")}
+              className="p-1.5 border border-accent rounded-sm hover:border-brand-primary text-text-muted hover:text-text-main transition-colors bg-surface shadow-2xs"
+              aria-label="Scroll Right"
+              title="Next Teachers"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Horizontally Floating / Scrollable Cards */}
+        {loading ? (
+          <div className="flex gap-4 overflow-hidden py-2">
+            {[1, 2, 3, 4].map((n) => (
+              <div
+                key={n}
+                className="w-[280px] sm:w-[320px] shrink-0 bg-surface border border-theme rounded-sm p-5 space-y-4 shadow-xs animate-pulse"
+              >
+                <div className="w-14 h-14 rounded-full bg-accent/50" />
+                <div className="space-y-2">
+                  <div className="h-4 w-32 bg-accent/60 rounded-xs" />
+                  <div className="h-3 w-24 bg-accent/40 rounded-xs" />
+                  <div className="h-3 w-40 bg-accent/40 rounded-xs" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : teachers.length === 0 ? (
+          <div className="bg-surface border border-dashed border-accent p-8 text-center rounded-sm">
+            <Users className="w-8 h-8 text-text-muted mx-auto mb-2 opacity-50" />
+            <p className="text-xs text-text-muted">Faculty directory is being updated for the upcoming academic session.</p>
+          </div>
+        ) : (
+          <div
+            ref={teacherScrollRef}
+            className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scroll-smooth"
+            style={{ scrollbarWidth: "thin" }}
+          >
+            {teachers.map((t) => (
+              <div
+                key={t.id}
+                className="w-[280px] sm:w-[320px] shrink-0 snap-start bg-surface border border-theme hover:border-brand-primary/60 rounded-sm p-5 shadow-xs flex flex-col justify-between transition-all group"
+              >
+                <div className="space-y-3.5">
+                  <div className="flex items-start gap-3.5">
+                    {t.avatarUrl ? (
+                      <img
+                        src={t.avatarUrl}
+                        alt={t.fullName}
+                        className="w-14 h-14 rounded-full object-cover border-2 border-brand-primary/20 group-hover:border-brand-primary transition-colors shrink-0"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-brand-primary/20 to-brand-primary/10 border border-brand-primary/30 flex items-center justify-center text-brand-primary font-bold text-lg shrink-0">
+                        {t.fullName?.[0]?.toUpperCase() || "T"}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        to={`/faculty/${t.id}`}
+                        className="font-bold text-sm text-text-main group-hover:text-brand-primary transition-colors line-clamp-1 hover:underline"
+                      >
+                        {t.fullName}
+                      </Link>
+                      <div className="text-xs font-semibold text-brand-primary line-clamp-1 mt-0.5">
+                        {t.specialization}
+                      </div>
+                      <div className="text-[11px] text-text-muted line-clamp-1 mt-0.5">
+                        {t.qualification}
+                      </div>
+                    </div>
+                  </div>
+
+                  {t.branchName && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-text-muted pt-2 border-t border-accent/60">
+                      <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                      <span className="truncate">{t.branchName}</span>
+                    </div>
+                  )}
+
+                  {t.bio && (
+                    <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
+                      {t.bio}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-4 mt-2">
+                  <Link
+                    to={`/faculty/${t.id}`}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-surface border border-accent hover:border-brand-primary text-text-main rounded-sm text-xs font-semibold hover:bg-brand-primary hover:text-white transition-all shadow-2xs"
+                  >
+                    <span>View Profile</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Join Our Teacher Panel CTA Button */}
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            to="/teacher/register"
+            className="inline-flex items-center gap-2 px-6 py-2.5 text-xs sm:text-sm font-bold bg-brand-primary text-white rounded-sm hover:bg-brand-hover shadow-sm transition-all"
+          >
+            <Briefcase className="w-4 h-4" />
+            <span>Join Our Teacher Panel</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </section>
 
       {/* ========================================================================= */}
       {/* 7. ACADEMIC TIPS & BLOGS (STUDY STRATEGIES & PROBLEM SOLVING) */}
