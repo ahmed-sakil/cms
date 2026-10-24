@@ -69,7 +69,6 @@ interface ClassLectureItem {
   teacherId: string;
   teacherName: string;
   room: string;
-  topics: string[];
 }
 
 interface ScheduledExamItem {
@@ -208,7 +207,6 @@ export const BatchCurriculumPlanner: React.FC = () => {
               teacherId: matchedTeacher ? matchedTeacher.id : cm.teacherUserId || cm.teacherId || "",
               teacherName: matchedTeacher ? matchedTeacher.fullName : cm.teacherName || "",
               room: cm.room || b.classroom || "Room 101",
-              topics: cm.topics || [],
             };
           })
         );
@@ -343,7 +341,6 @@ export const BatchCurriculumPlanner: React.FC = () => {
           teacherId: assignedMentor?.teacherId || batchData?.teacher?.id || "",
           teacherName: assignedMentor?.teacherName || batchData?.teacher?.fullName || "Assigned Faculty",
           room: classroom,
-          topics: [`Introduction & Concepts`, `Formulae & Practical Applications`],
         });
 
         // Insert an Exam at regular intervals
@@ -457,7 +454,6 @@ export const BatchCurriculumPlanner: React.FC = () => {
         teacherId: defaultMentor?.teacherId || "",
         teacherName: defaultMentor?.teacherName || "",
         room: classroom,
-        topics: [],
       },
     ]);
   };

@@ -30,6 +30,7 @@ export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const referralFromUrl = searchParams.get("ref") || "";
+  const redirect = searchParams.get("redirect");
 
   const [step, setStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
@@ -220,7 +221,11 @@ export const RegisterPage: React.FC = () => {
 
 
       toast.success("Registration successful! Welcome to your student portal.");
-      navigate("/student");
+      if (redirect) {
+        navigate(redirect);
+      } else {
+        navigate("/student");
+      }
     } catch (err: any) {
       toast.error(err.message || "Registration could not be completed. Please try again.");
     } finally {
@@ -256,7 +261,7 @@ export const RegisterPage: React.FC = () => {
       {/* ============================================================ */}
       {/* LEFT COLUMN: BRANDING & REGISTRATION SHOWCASE (Desktop) */}
       {/* ============================================================ */}
-      <div className="hidden lg:flex lg:col-span-5 xl:col-span-4 flex-col justify-between p-8 xl:p-10 bg-surface border-r border-accent relative overflow-hidden">
+      <div className="hidden lg:flex lg:col-span-5 xl:col-span-5 flex-col justify-between p-8 xl:p-12 bg-surface border-r border-accent relative overflow-hidden">
         {/* Subtle decorative glow */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-brand-primary/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-brand-primary/5 rounded-full blur-3xl pointer-events-none" />
@@ -377,27 +382,31 @@ export const RegisterPage: React.FC = () => {
       {/* ============================================================ */}
       {/* RIGHT COLUMN: REGISTRATION FORM */}
       {/* ============================================================ */}
-      <div className="flex-1 lg:col-span-7 xl:col-span-8 flex flex-col justify-center items-center p-4 sm:p-8 lg:p-10 xl:p-12 overflow-y-auto">
+      <div className="flex-1 lg:col-span-7 xl:col-span-7 flex flex-col justify-center items-center p-4 sm:p-8 lg:p-12 xl:p-16 overflow-y-auto">
         <div className="w-full max-w-2xl space-y-5">
           {/* Mobile Header: Logo on Left, Return to Homepage on Right */}
-          <div className="lg:hidden flex items-center justify-between pb-3 border-b border-accent gap-2">
-            <div className="flex items-center gap-2 min-w-0">
+          <div className="lg:hidden flex items-center justify-between pb-3.5 mb-2 border-b border-accent gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
               {orgLoading ? (
                 <>
-                  <div className="w-7 h-7 bg-accent animate-pulse rounded-sm shrink-0" />
+                  <div className="w-8 h-8 bg-accent animate-pulse rounded-sm shrink-0" />
                   <div className="w-24 h-4 bg-accent animate-pulse rounded-sm" />
                 </>
               ) : (
                 <>
                   {orgData?.logo ? (
-                    <img src={orgData.logo} alt={orgData?.name || "Logo"} className="h-7 max-w-[90px] object-contain shrink-0" />
+                    <img
+                      src={orgData.logo}
+                      alt={orgData?.name || "Logo"}
+                      className="h-8 max-w-[100px] object-contain shrink-0"
+                    />
                   ) : (
-                    <div className="w-7 h-7 bg-brand-primary text-white flex items-center justify-center rounded-sm shrink-0">
+                    <div className="w-8 h-8 bg-brand-primary text-white flex items-center justify-center rounded-sm shrink-0">
                       <GraduationCap className="w-4 h-4" />
                     </div>
                   )}
                   {orgData?.name && (
-                    <span className="text-xs font-bold text-text-main truncate max-w-[130px]">
+                    <span className="text-xs font-bold text-text-main truncate max-w-[140px]">
                       {orgData.name}
                     </span>
                   )}
@@ -420,7 +429,7 @@ export const RegisterPage: React.FC = () => {
               Student Admission Registration
             </h1>
             <p className="text-xs text-text-muted">
-              Complete the enrollment form to get your student ID, access study materials, and track exam progress.
+              Complete the enrollment form to get your student ID, admit on a course, access study materials, and track exam progress
             </p>
           </div>
 
@@ -460,7 +469,7 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           {/* Main Form Container */}
-          <div className="bg-surface border border-accent rounded-sm p-6 sm:p-7 shadow-xs">
+          <div className="bg-surface border border-accent rounded-sm p-6 sm:p-8 shadow-xs space-y-5">
           {step === 1 ? (
             /* STEP 1: Account Credentials */
             <form onSubmit={handleStepOneNext} className="space-y-4">
@@ -479,7 +488,7 @@ export const RegisterPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Tanvir Ahmed Chowdhury"
+                  placeholder="Tanvir Ahmed Chowdhury"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:outline-none focus:border-brand-primary"
@@ -495,7 +504,7 @@ export const RegisterPage: React.FC = () => {
                   <input
                     type="email"
                     required
-                    placeholder="student@example.com"
+                    placeholder="student@gmail.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full px-3 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:outline-none focus:border-brand-primary font-mono"
@@ -527,7 +536,7 @@ export const RegisterPage: React.FC = () => {
                     <input
                       type={showPassword ? "text" : "password"}
                       required
-                      placeholder="Min. 8 characters"
+                      placeholder="********"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       className="w-full pl-3 pr-9 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:outline-none focus:border-brand-primary"
@@ -551,7 +560,7 @@ export const RegisterPage: React.FC = () => {
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       required
-                      placeholder="Repeat password"
+                      placeholder="********"
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                       className="w-full pl-3 pr-9 py-2 text-xs bg-bg-app border border-accent rounded-sm focus:outline-none focus:border-brand-primary"
@@ -573,9 +582,6 @@ export const RegisterPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
                     Password Requirements
-                  </span>
-                  <span className="text-[10px] font-mono font-semibold text-text-muted">
-                    {[hasMinLength, hasLetter, hasNumber, hasMatch].filter(Boolean).length}/4 Met
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
@@ -911,17 +917,17 @@ export const RegisterPage: React.FC = () => {
               </div>
             </form>
           )}
-        </div>
 
-        {/* Footer Navigation: Single clean prompt */}
-        <div className="pt-2 text-center text-xs text-text-muted">
-          <span>Already registered with us? </span>
-          <Link
-            to="/login"
-            className="font-bold text-brand-primary hover:underline inline-flex items-center gap-0.5"
-          >
-            Sign In to Portal →
-          </Link>
+          {/* Bottom prompt matching Login */}
+          <div className="pt-3.5 border-t border-accent text-center text-xs">
+            <span className="text-text-muted">Already registered with us? </span>
+            <Link
+              to={redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login"}
+              className="font-bold text-brand-primary hover:underline inline-block ml-1"
+            >
+              Sign In to Portal →
+            </Link>
+          </div>
         </div>
       </div>
     </div>

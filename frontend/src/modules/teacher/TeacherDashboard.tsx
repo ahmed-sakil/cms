@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { apiClient } from "../../lib/apiClient.js";
+import { StatCard } from "../../components/ui/StatCard.js";
 
 export const TeacherDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -88,7 +89,7 @@ export const TeacherDashboard: React.FC = () => {
             to="/teacher/exams"
             className="p-2.5 sm:p-3 bg-bg-app border border-accent rounded-sm hover:border-brand-primary hover:bg-surface transition-all flex flex-col items-center gap-1.5 text-center group"
           >
-            <div className="p-2 bg-emerald-500/10 rounded-sm text-emerald-600 group-hover:scale-105 transition-transform">
+            <div className="p-2 bg-status-success/10 rounded-sm text-status-success group-hover:scale-105 transition-transform">
               <Award className="w-4 h-4" />
             </div>
             <span className="font-bold text-text-main text-xs">Marksheets</span>
@@ -98,7 +99,7 @@ export const TeacherDashboard: React.FC = () => {
             to="/teacher/batches"
             className="p-2.5 sm:p-3 bg-bg-app border border-accent rounded-sm hover:border-brand-primary hover:bg-surface transition-all flex flex-col items-center gap-1.5 text-center group"
           >
-            <div className="p-2 bg-indigo-500/10 rounded-sm text-indigo-600 group-hover:scale-105 transition-transform">
+            <div className="p-2 bg-brand/10 rounded-sm text-brand group-hover:scale-105 transition-transform">
               <Calendar className="w-4 h-4" />
             </div>
             <span className="font-bold text-text-main text-xs">Class Routine</span>
@@ -108,7 +109,7 @@ export const TeacherDashboard: React.FC = () => {
             to="/teacher/materials"
             className="p-2.5 sm:p-3 bg-bg-app border border-accent rounded-sm hover:border-brand-primary hover:bg-surface transition-all flex flex-col items-center gap-1.5 text-center group"
           >
-            <div className="p-2 bg-amber-500/10 rounded-sm text-amber-600 group-hover:scale-105 transition-transform">
+            <div className="p-2 bg-status-warning/10 rounded-sm text-status-warning group-hover:scale-105 transition-transform">
               <FileText className="w-4 h-4" />
             </div>
             <span className="font-bold text-text-main text-xs">Study Notes</span>
@@ -118,7 +119,7 @@ export const TeacherDashboard: React.FC = () => {
             to="/teacher/notices"
             className="col-span-2 sm:col-span-1 p-2.5 sm:p-3 bg-bg-app border border-accent rounded-sm hover:border-brand-primary hover:bg-surface transition-all flex flex-col items-center gap-1.5 text-center group"
           >
-            <div className="p-2 bg-rose-500/10 rounded-sm text-rose-600 group-hover:scale-105 transition-transform">
+            <div className="p-2 bg-status-danger/10 rounded-sm text-status-danger group-hover:scale-105 transition-transform">
               <Bell className="w-4 h-4" />
             </div>
             <span className="font-bold text-text-main text-xs">Notices</span>
@@ -128,37 +129,31 @@ export const TeacherDashboard: React.FC = () => {
 
       {/* KPI Cards (Clean, concise) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-        <div className="bg-surface border border-accent rounded-sm p-3.5 sm:p-4 space-y-1 shadow-xs">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Assigned Batches</span>
-            <Calendar className="w-4 h-4 text-brand-primary" />
-          </div>
-          <div className="text-2xl font-black text-text-main">{metrics.totalBatches}</div>
-        </div>
-
-        <div className="bg-surface border border-accent rounded-sm p-3.5 sm:p-4 space-y-1 shadow-xs">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Enrolled Students</span>
-            <Users className="w-4 h-4 text-emerald-500" />
-          </div>
-          <div className="text-2xl font-black text-text-main">{metrics.totalStudents}</div>
-        </div>
-
-        <div className="bg-surface border border-accent rounded-sm p-3.5 sm:p-4 space-y-1 shadow-xs">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Classes Today</span>
-            <Clock className="w-4 h-4 text-amber-500" />
-          </div>
-          <div className="text-2xl font-black text-text-main">{metrics.todayClassesCount}</div>
-        </div>
-
-        <div className="bg-surface border border-accent rounded-sm p-3.5 sm:p-4 space-y-1 shadow-xs">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Pending Evaluation</span>
-            <AlertCircle className="w-4 h-4 text-rose-500" />
-          </div>
-          <div className="text-2xl font-black text-text-main">{metrics.pendingExamsCount}</div>
-        </div>
+        <StatCard
+          label="Assigned Batches"
+          value={metrics.totalBatches}
+          subtitle="Active cohorts"
+          icon={Calendar}
+        />
+        <StatCard
+          label="Enrolled Students"
+          value={metrics.totalStudents}
+          subtitle="Total classroom strength"
+          icon={Users}
+        />
+        <StatCard
+          label="Classes Today"
+          value={metrics.todayClassesCount}
+          subtitle="Scheduled routines"
+          icon={Clock}
+        />
+        <StatCard
+          label="Pending Evaluation"
+          value={metrics.pendingExamsCount}
+          subtitle="Ungraded marksheets"
+          icon={AlertCircle}
+          trend={metrics.pendingExamsCount > 0 ? "down" : "neutral"}
+        />
       </div>
 
       {/* Main Grid: Today's Routine & Notices */}

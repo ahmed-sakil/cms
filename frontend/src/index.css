@@ -5,26 +5,78 @@
 @layer base {
   :root {
     /* 5 Central Semantic Variables (Light Theme) */
-    --bg-app: #f8fafc;          /* 1. Base Canvas / Background */
-    --surface: #ffffff;         /* 2. Elevated Cards, Modals, Navbars */
-    --text-main: #0f172a;       /* 3. Primary Typography */
-    --text-muted: #64748b;      /* Muted / secondary typography */
-    --brand-primary: #1d4ed8;   /* 4. Brand Action (Buttons, active states) */
-    --brand-hover: #1e40af;     /* Hover state for primary */
-    --accent: #e2e8f0;          /* 5. Borders, Dividers, Card Outlines */
-    --accent-subtle: #f1f5f9;   /* Subtle background fills */
+    --bg-app: #f6f8fb;
+    --bg-app-rgb: 246 248 251;
+
+    --surface: #ffffff;
+    --surface-rgb: 255 255 255;
+
+    --text-main: #0f172a;
+    --text-main-rgb: 15 23 42;
+
+    --text-muted: #64748b;
+    --text-muted-rgb: 100 116 139;
+
+    --brand-primary: #1e40af;
+    --brand-primary-rgb: 30 64 175;
+    --brand-hover: #1d3896;
+
+    --accent: #e2e8f0;
+    --accent-rgb: 226 232 240;
+
+    --accent-subtle: #f1f5f9;
+    --accent-subtle-rgb: 241 245 249;
+
+    /* Semantic Status Tokens (Eye-comfort, low saturation) */
+    --status-success: #15803d;
+    --status-success-rgb: 21 128 61;
+
+    --status-warning: #b45309;
+    --status-warning-rgb: 180 83 9;
+
+    --status-danger: #b91c1c;
+    --status-danger-rgb: 185 28 28;
+
+    --status-info: #0284c7;
+    --status-info-rgb: 2 132 199;
   }
 
   .dark {
-    /* 5 Central Semantic Variables (Dark Theme) */
-    --bg-app: #0b0f19;          /* 1. Base Canvas */
-    --surface: #111827;         /* 2. Elevated Cards & Panels */
-    --text-main: #f8fafc;       /* 3. Primary Typography */
-    --text-muted: #94a3b8;      /* Muted / secondary typography */
-    --brand-primary: #3b82f6;   /* 4. Brand Action */
-    --brand-hover: #60a5fa;     /* Hover state */
-    --accent: #1f2937;          /* 5. Borders & Outlines */
-    --accent-subtle: #172033;   /* Subtle background fills */
+    /* 5 Central Semantic Variables (Dark Theme - Soothing Midnight Slate) */
+    --bg-app: #0b111e;
+    --bg-app-rgb: 11 17 30;
+
+    --surface: #121a2a;
+    --surface-rgb: 18 26 42;
+
+    --text-main: #f1f5f9;
+    --text-main-rgb: 241 245 249;
+
+    --text-muted: #94a3b8;
+    --text-muted-rgb: 148 163 184;
+
+    --brand-primary: #3b82f6;
+    --brand-primary-rgb: 59 130 246;
+    --brand-hover: #60a5fa;
+
+    --accent: #1e293b;
+    --accent-rgb: 30 41 59;
+
+    --accent-subtle: #152033;
+    --accent-subtle-rgb: 21 32 51;
+
+    /* Semantic Status Tokens (Dark Mode) */
+    --status-success: #22c55e;
+    --status-success-rgb: 34 197 94;
+
+    --status-warning: #f59e0b;
+    --status-warning-rgb: 245 158 11;
+
+    --status-danger: #ef4444;
+    --status-danger-rgb: 239 68 68;
+
+    --status-info: #38bdf8;
+    --status-info-rgb: 56 189 248;
   }
 
   html {
@@ -35,15 +87,31 @@
   body {
     background-color: var(--bg-app);
     color: var(--text-main);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
   }
 
-  /* Universal Boxy Styling Rule */
-  * {
-    border-color: var(--accent);
+  /* Tabular numbers for clean financial & grade alignments */
+  .font-mono, [data-tabular="true"] {
+    font-variant-numeric: tabular-nums;
   }
+}
+
+/* Subtle, sleek custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 @keyframes pageEnter {
@@ -59,5 +127,26 @@
 
 .animate-page-enter {
   animation: pageEnter 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Infinite Circular Marquee (Right-to-Left, pauses on hover) */
+@keyframes marqueeLeft {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-left {
+  display: flex;
+  width: max-content;
+  animation: marqueeLeft 32s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-left:hover {
+  animation-play-state: paused;
 }
 

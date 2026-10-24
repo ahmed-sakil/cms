@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { PrintableReceiptModal, ReceiptData } from "../../components/PrintableReceiptModal.js";
 import { formatCurrency, formatDate } from "../../lib/formatters.js";
+import { Badge } from "../../components/ui/Badge.js";
 
 interface StudentInvoice {
   id: string;
@@ -136,13 +137,13 @@ export const StudentFeesPage: React.FC = () => {
           {loading ? (
             <span className="h-6 w-28 bg-accent rounded-xs animate-pulse" />
           ) : totalDue > 0 ? (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300 rounded-sm font-semibold text-xs border border-red-300">
-              <AlertCircle className="w-3.5 h-3.5" /> Due Balance: ৳{totalDue.toLocaleString()}
-            </span>
+            <Badge variant="danger" size="lg" icon={<AlertCircle className="w-3.5 h-3.5" />}>
+              Due Balance: ৳{totalDue.toLocaleString()}
+            </Badge>
           ) : (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300 rounded-sm font-semibold text-xs border border-green-300">
-              <CheckCircle2 className="w-3.5 h-3.5" /> All Dues Cleared
-            </span>
+            <Badge variant="success" size="lg" icon={<CheckCircle2 className="w-3.5 h-3.5" />}>
+              All Dues Cleared
+            </Badge>
           )}
         </div>
       </div>
@@ -167,26 +168,26 @@ export const StudentFeesPage: React.FC = () => {
                 <span className="text-xs font-medium">Total Billed Fees</span>
                 <Receipt className="w-4 h-4 text-brand-primary" />
               </div>
-              <p className="text-2xl font-black text-text-main">{formatCurrency(totalInvoiced)}</p>
+              <p className="text-2xl font-black text-text-main font-mono">{formatCurrency(totalInvoiced)}</p>
               <p className="text-[11px] text-text-muted">Assigned batch fees</p>
             </div>
 
             <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
               <div className="flex justify-between items-center text-text-muted">
-                <span className="text-xs font-medium text-green-700">Total Paid</span>
-                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                <span className="text-xs font-medium text-status-success">Total Paid</span>
+                <CheckCircle2 className="w-4 h-4 text-status-success" />
               </div>
-              <p className="text-2xl font-black text-green-700">{formatCurrency(totalPaid)}</p>
-              <p className="text-[11px] text-green-600 font-medium">Verified payments to date</p>
+              <p className="text-2xl font-black text-status-success font-mono">{formatCurrency(totalPaid)}</p>
+              <p className="text-[11px] text-status-success/80 font-medium">Verified payments to date</p>
             </div>
 
             <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
               <div className="flex justify-between items-center text-text-muted">
-                <span className="text-xs font-medium text-red-600">Current Due Balance</span>
-                <AlertCircle className="w-4 h-4 text-red-600" />
+                <span className="text-xs font-medium text-status-danger">Current Due Balance</span>
+                <AlertCircle className="w-4 h-4 text-status-danger" />
               </div>
-              <p className="text-2xl font-black text-red-600">{formatCurrency(totalDue)}</p>
-              <p className="text-[11px] text-red-600 font-medium">Please clear by due date</p>
+              <p className="text-2xl font-black text-status-danger font-mono">{formatCurrency(totalDue)}</p>
+              <p className="text-[11px] text-status-danger/80 font-medium">Please clear by due date</p>
             </div>
           </>
         )}
@@ -296,27 +297,28 @@ export const StudentFeesPage: React.FC = () => {
                       <td className="py-3 px-4 text-right font-mono font-bold text-text-main">
                         {formatCurrency(inv.totalAmount)}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono text-green-700">
+                      <td className="py-3 px-4 text-right font-mono text-status-success font-semibold">
                         {formatCurrency(inv.paidAmount)}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-red-600">
+                      <td className="py-3 px-4 text-right font-mono font-bold text-status-danger">
                         {formatCurrency(inv.dueAmount)}
                       </td>
                       <td className="py-3 px-4 text-text-muted font-mono">
                         {formatDate(inv.dueDate)}
                       </td>
                       <td className="py-3 px-4">
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-sm ${
+                        <Badge
+                          variant={
                             inv.status === "PAID"
-                              ? "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300"
+                              ? "success"
                               : inv.status === "PARTIALLY_PAID"
-                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-                              : "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300"
-                          }`}
+                              ? "warning"
+                              : "danger"
+                          }
+                          size="sm"
                         >
                           {inv.status}
-                        </span>
+                        </Badge>
                       </td>
                     </tr>
                   ))

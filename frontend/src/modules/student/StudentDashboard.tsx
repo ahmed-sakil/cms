@@ -16,6 +16,8 @@ import {
   User,
 } from "lucide-react";
 import { StudentIdCardModal } from "../../components/StudentIdCardModal.js";
+import { Badge } from "../../components/ui/Badge.js";
+import { StatCard } from "../../components/ui/StatCard.js";
 
 interface NoticeItem {
   id: string;
@@ -206,9 +208,9 @@ export const StudentDashboard: React.FC = () => {
             <span className="text-xs font-bold text-text-main truncate">
               {studentProfile?.user?.fullName || currentUser?.fullName || "Student Member"}
             </span>
-            <span className="text-[10px] font-bold px-1.5 py-0.2 bg-green-100 text-green-800 dark:bg-green-950/60 dark:text-green-300 rounded-xs uppercase tracking-wider">
+            <Badge variant="success" size="sm">
               Enrolled
-            </span>
+            </Badge>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted pt-0.5">
@@ -224,7 +226,7 @@ export const StudentDashboard: React.FC = () => {
 
         <button
           onClick={() => setShowIdCard(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-brand-primary text-white hover:opacity-90 rounded-sm transition-opacity shrink-0 cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-brand-primary text-white hover:opacity-90 rounded-sm transition-opacity shrink-0 cursor-pointer shadow-xs"
         >
           <CreditCard className="w-3.5 h-3.5" /> View Digital ID
         </button>
@@ -232,45 +234,31 @@ export const StudentDashboard: React.FC = () => {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Active Batches */}
-        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[10px] font-bold uppercase tracking-wider">Active Batches</span>
-            <BookOpen className="w-4 h-4 text-brand-primary" />
-          </div>
-          <p className="text-2xl font-bold text-text-main">{batches.length}</p>
-          <p className="text-[10px] text-text-muted">Enrolled courses</p>
-        </div>
-
-        {/* Attendance Rate */}
-        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[10px] font-bold uppercase tracking-wider">Attendance</span>
-            <CalendarCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
-          </div>
-          <p className="text-2xl font-bold text-text-main">{attendanceRate}%</p>
-          <p className="text-[10px] text-text-muted">Physical presence rate</p>
-        </div>
-
-        {/* Recent Exams */}
-        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[10px] font-bold uppercase tracking-wider">Evaluated Exams</span>
-            <Award className="w-4 h-4 text-amber-500" />
-          </div>
-          <p className="text-2xl font-bold text-text-main">{recentExams.length}</p>
-          <p className="text-[10px] text-text-muted">Published scorecards</p>
-        </div>
-
-        {/* Notices */}
-        <div className="bg-surface border border-accent rounded-sm p-4 space-y-1">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[10px] font-bold uppercase tracking-wider">Notices</span>
-            <Bell className="w-4 h-4 text-brand-primary" />
-          </div>
-          <p className="text-2xl font-bold text-text-main">{notices.length}</p>
-          <p className="text-[10px] text-text-muted">Active announcements</p>
-        </div>
+        <StatCard
+          label="Active Batches"
+          value={batches.length}
+          subtitle="Enrolled courses"
+          icon={BookOpen}
+        />
+        <StatCard
+          label="Attendance"
+          value={`${attendanceRate}%`}
+          subtitle="Physical presence rate"
+          icon={CalendarCheck}
+          trend={attendanceRate >= 80 ? "up" : "down"}
+        />
+        <StatCard
+          label="Evaluated Exams"
+          value={recentExams.length}
+          subtitle="Published scorecards"
+          icon={Award}
+        />
+        <StatCard
+          label="Notices"
+          value={notices.length}
+          subtitle="Active announcements"
+          icon={Bell}
+        />
       </div>
 
       {/* Enrolled Batches */}

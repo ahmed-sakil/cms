@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { apiClient } from "../../lib/apiClient.js";
 import { formatCurrency, formatDate, formatNumber } from "../../lib/formatters.js";
+import { StatCard } from "../../components/ui/StatCard.js";
 
 interface AdminMetrics {
   totalStudents: number;
@@ -171,33 +172,17 @@ export const AdminDashboard: React.FC = () => {
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className="bg-surface border border-accent rounded-sm p-4 space-y-2 shadow-xs"
-            >
-              <div className="flex justify-between items-center text-text-muted">
-                <span className="text-xs font-medium">{stat.label}</span>
-                <Icon className="w-4 h-4 text-brand-primary" />
-              </div>
-              {isLoading ? (
-                <div className="space-y-1.5 py-1">
-                  <div className="h-7 w-24 bg-accent animate-pulse rounded-xs" />
-                  <div className="h-3 w-32 bg-accent/60 animate-pulse rounded-xs" />
-                </div>
-              ) : (
-                <>
-                  <p className="text-2xl font-black text-text-main">{stat.value}</p>
-                  <p className="text-[11px] text-green-600 dark:text-green-400 font-medium">
-                    {stat.change}
-                  </p>
-                </>
-              )}
-            </div>
-          );
-        })}
+        {stats.map((stat) => (
+          <StatCard
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            change={stat.change}
+            icon={stat.icon}
+            isLoading={isLoading}
+            trend="up"
+          />
+        ))}
       </div>
 
       {/* Recent Admissions Table */}

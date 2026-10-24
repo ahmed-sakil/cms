@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "../../lib/apiClient.js";
+import { Badge } from "../../components/ui/Badge.js";
 
 type AttendanceStatusType = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
 
@@ -196,23 +197,23 @@ export const TeacherAttendancePage: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div className="bg-surface border border-accent rounded-sm p-3.5 shadow-xs">
           <p className="text-[10px] uppercase font-bold text-text-muted">Total Enrolled</p>
-          <p className="text-xl font-black text-text-main mt-0.5">{roster.length}</p>
+          <p className="text-xl font-black text-text-main mt-0.5 font-mono">{roster.length}</p>
         </div>
         <div className="bg-surface border border-accent rounded-sm p-3.5 shadow-xs">
-          <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Present</p>
-          <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{presentCount}</p>
+          <p className="text-[10px] uppercase font-bold text-status-success">Present</p>
+          <p className="text-xl font-black text-status-success mt-0.5 font-mono">{presentCount}</p>
         </div>
         <div className="bg-surface border border-accent rounded-sm p-3.5 shadow-xs">
-          <p className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400">Absent</p>
-          <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-0.5">{absentCount}</p>
+          <p className="text-[10px] uppercase font-bold text-status-danger">Absent</p>
+          <p className="text-xl font-black text-status-danger mt-0.5 font-mono">{absentCount}</p>
         </div>
         <div className="bg-surface border border-accent rounded-sm p-3.5 shadow-xs">
-          <p className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">Late / Excused</p>
-          <p className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">{lateCount + excusedCount}</p>
+          <p className="text-[10px] uppercase font-bold text-status-warning">Late / Excused</p>
+          <p className="text-xl font-black text-status-warning mt-0.5 font-mono">{lateCount + excusedCount}</p>
         </div>
         <div className="bg-surface border border-accent rounded-sm p-3.5 shadow-xs col-span-2 sm:col-span-1">
           <p className="text-[10px] uppercase font-bold text-brand-primary">Attendance Rate</p>
-          <p className="text-xl font-black text-brand-primary mt-0.5">{attendanceRate}%</p>
+          <p className="text-xl font-black text-brand-primary mt-0.5 font-mono">{attendanceRate}%</p>
         </div>
       </div>
 
@@ -222,12 +223,12 @@ export const TeacherAttendancePage: React.FC = () => {
         <div className="p-4 border-b border-accent bg-bg-app flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-text-main">
-              Roster Marking: {selectedDate}
+              Roster Marking: <span className="font-mono">{selectedDate}</span>
             </span>
             {isCompleted && (
-              <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-xs flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Already Recorded
-              </span>
+              <Badge variant="success" size="sm" icon={<CheckCircle2 className="w-3 h-3" />}>
+                Already Recorded
+              </Badge>
             )}
           </div>
 
@@ -235,21 +236,21 @@ export const TeacherAttendancePage: React.FC = () => {
             <button
               onClick={() => handleMarkAll("PRESENT")}
               disabled={loadingRoster || roster.length === 0}
-              className="px-2.5 py-1 bg-surface hover:bg-bg-app border border-accent text-xs font-bold text-emerald-600 dark:text-emerald-400 rounded-sm"
+              className="px-2.5 py-1 bg-surface hover:bg-bg-app border border-accent text-xs font-bold text-status-success rounded-sm transition-colors cursor-pointer"
             >
               All Present
             </button>
             <button
               onClick={() => handleMarkAll("ABSENT")}
               disabled={loadingRoster || roster.length === 0}
-              className="px-2.5 py-1 bg-surface hover:bg-bg-app border border-accent text-xs font-bold text-rose-600 dark:text-rose-400 rounded-sm"
+              className="px-2.5 py-1 bg-surface hover:bg-bg-app border border-accent text-xs font-bold text-status-danger rounded-sm transition-colors cursor-pointer"
             >
               All Absent
             </button>
             <button
               onClick={handleSaveAttendance}
               disabled={saving || loadingRoster || roster.length === 0}
-              className="px-4 py-1.5 bg-brand-primary text-white text-xs font-bold rounded-sm hover:opacity-90 flex items-center gap-1.5 shadow-xs disabled:opacity-50 ml-auto"
+              className="px-4 py-1.5 bg-brand-primary text-white text-xs font-bold rounded-sm hover:opacity-90 flex items-center gap-1.5 shadow-xs disabled:opacity-50 ml-auto cursor-pointer"
             >
               {saving ? (
                 <>
@@ -305,10 +306,10 @@ export const TeacherAttendancePage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleStatusChange(row.studentId, "PRESENT")}
-                          className={`px-3 py-1 rounded-xs text-[11px] font-bold border transition-colors ${
+                          className={`px-3 py-1 rounded-xs text-[11px] font-bold border transition-colors cursor-pointer ${
                             row.status === "PRESENT"
-                              ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                              : "bg-surface text-text-muted border-accent hover:border-emerald-600/50"
+                              ? "bg-status-success text-white border-status-success shadow-xs"
+                              : "bg-surface text-text-muted border-accent hover:border-status-success/50"
                           }`}
                         >
                           Present
@@ -316,10 +317,10 @@ export const TeacherAttendancePage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleStatusChange(row.studentId, "ABSENT")}
-                          className={`px-3 py-1 rounded-xs text-[11px] font-bold border transition-colors ${
+                          className={`px-3 py-1 rounded-xs text-[11px] font-bold border transition-colors cursor-pointer ${
                             row.status === "ABSENT"
-                              ? "bg-rose-600 text-white border-rose-600 shadow-xs"
-                              : "bg-surface text-text-muted border-accent hover:border-rose-600/50"
+                              ? "bg-status-danger text-white border-status-danger shadow-xs"
+                              : "bg-surface text-text-muted border-accent hover:border-status-danger/50"
                           }`}
                         >
                           Absent
@@ -327,10 +328,10 @@ export const TeacherAttendancePage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleStatusChange(row.studentId, "LATE")}
-                          className={`px-3 py-1 rounded-xs text-[11px] font-bold border transition-colors ${
+                          className={`px-3 py-1 rounded-xs text-[11px] font-bold border transition-colors cursor-pointer ${
                             row.status === "LATE"
-                              ? "bg-amber-600 text-white border-amber-600 shadow-xs"
-                              : "bg-surface text-text-muted border-accent hover:border-amber-600/50"
+                              ? "bg-status-warning text-white border-status-warning shadow-xs"
+                              : "bg-surface text-text-muted border-accent hover:border-status-warning/50"
                           }`}
                         >
                           Late
@@ -338,10 +339,10 @@ export const TeacherAttendancePage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleStatusChange(row.studentId, "EXCUSED")}
-                          className={`px-3 py-1 rounded-xs text-[11px] font-bold border transition-colors ${
+                          className={`px-3 py-1 rounded-xs text-[11px] font-bold border transition-colors cursor-pointer ${
                             row.status === "EXCUSED"
-                              ? "bg-sky-600 text-white border-sky-600 shadow-xs"
-                              : "bg-surface text-text-muted border-accent hover:border-sky-600/50"
+                              ? "bg-status-info text-white border-status-info shadow-xs"
+                              : "bg-surface text-text-muted border-accent hover:border-status-info/50"
                           }`}
                         >
                           Excused

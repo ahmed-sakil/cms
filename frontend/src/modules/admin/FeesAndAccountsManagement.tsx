@@ -231,7 +231,7 @@ export const FeesAndAccountsManagement: React.FC = () => {
             <span className="text-[11px] font-semibold">Total Invoiced</span>
             <Receipt className="w-4 h-4 text-brand-primary" />
           </div>
-          <p className="text-xl font-black text-text-main">
+          <p className="text-xl font-black text-text-main font-mono">
             {formatCurrency(overview.totalBilled)}
           </p>
           <p className="text-[10px] text-text-muted">Gross billed to students</p>
@@ -239,35 +239,35 @@ export const FeesAndAccountsManagement: React.FC = () => {
 
         <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
           <div className="flex justify-between items-center text-text-muted">
-            <span className="text-[11px] font-semibold text-green-700">Fees Collected</span>
-            <TrendingUp className="w-4 h-4 text-green-600" />
+            <span className="text-[11px] font-semibold text-status-success">Fees Collected</span>
+            <TrendingUp className="w-4 h-4 text-status-success" />
           </div>
-          <p className="text-xl font-black text-green-700">
+          <p className="text-xl font-black text-status-success font-mono">
             {formatCurrency(overview.totalCollected)}
           </p>
-          <p className="text-[10px] text-green-600 font-medium">Realized revenue</p>
+          <p className="text-[10px] text-status-success/80 font-medium">Realized revenue</p>
         </div>
 
         <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
           <div className="flex justify-between items-center text-text-muted">
-            <span className="text-[11px] font-semibold text-orange-600">Outstanding Dues</span>
-            <AlertCircle className="w-4 h-4 text-orange-600" />
+            <span className="text-[11px] font-semibold text-status-warning">Outstanding Dues</span>
+            <AlertCircle className="w-4 h-4 text-status-warning" />
           </div>
-          <p className="text-xl font-black text-orange-600">
+          <p className="text-xl font-black text-status-warning font-mono">
             {formatCurrency(overview.totalOutstanding)}
           </p>
-          <p className="text-[10px] text-orange-600 font-medium">Pending student receivables</p>
+          <p className="text-[10px] text-status-warning/80 font-medium">Pending student receivables</p>
         </div>
 
         <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
           <div className="flex justify-between items-center text-text-muted">
-            <span className="text-[11px] font-semibold text-red-600">Total Operational Cost</span>
-            <TrendingDown className="w-4 h-4 text-red-600" />
+            <span className="text-[11px] font-semibold text-status-danger">Total Operational Cost</span>
+            <TrendingDown className="w-4 h-4 text-status-danger" />
           </div>
-          <p className="text-xl font-black text-red-600">
+          <p className="text-xl font-black text-status-danger font-mono">
             {formatCurrency(overview.totalExpenses)}
           </p>
-          <p className="text-[10px] text-red-600 font-medium">Rent, salaries & utilities</p>
+          <p className="text-[10px] text-status-danger/80 font-medium">Rent, salaries & utilities</p>
         </div>
 
         <div className="bg-surface border border-accent rounded-sm p-4 space-y-1 shadow-xs">
@@ -276,8 +276,8 @@ export const FeesAndAccountsManagement: React.FC = () => {
             <DollarSign className="w-4 h-4 text-brand-primary" />
           </div>
           <p
-            className={`text-xl font-black ${
-              overview.netOperatingBalance >= 0 ? "text-green-700" : "text-red-600"
+            className={`text-xl font-black font-mono ${
+              overview.netOperatingBalance >= 0 ? "text-status-success" : "text-status-danger"
             }`}
           >
             {formatCurrency(overview.netOperatingBalance)}

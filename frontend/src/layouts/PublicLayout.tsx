@@ -12,10 +12,7 @@ import {
   Menu,
   X,
   Calendar,
-  BellRing,
   Trophy,
-  BookOpen,
-  MessageSquare,
   Send,
   ChevronRight,
   Users,
@@ -186,14 +183,10 @@ export const PublicLayout: React.FC = () => {
 
     const sectionIds = [
       "inquiry",
-      "reviews",
-      "tips",
       "faculty",
       "achievements",
       "results",
-      "upcoming-batches",
       "batches",
-      "notices",
     ];
 
     const handleScroll = () => {
@@ -223,14 +216,10 @@ export const PublicLayout: React.FC = () => {
 
   const navLinks = [
     { label: "Home", href: "/", icon: GraduationCap },
-    { label: "Notice Board", href: "/#notices", icon: BellRing },
     { label: "Available Batches", href: "/#batches", icon: Calendar },
-    { label: "Upcoming Batches", href: "/#upcoming-batches", icon: Calendar },
     { label: "Teacher Panel", href: "/#faculty", icon: Users },
     { label: "Exam Standings", href: "/#results", icon: Trophy },
     { label: "Hall of Fame", href: "/#achievements", icon: Award },
-    { label: "Study Tips", href: "/#tips", icon: BookOpen },
-    { label: "Reviews", href: "/#reviews", icon: MessageSquare },
     { label: "Admission Inquiry", href: "/#inquiry", icon: Send },
   ];
 
@@ -271,31 +260,31 @@ export const PublicLayout: React.FC = () => {
       {/* ========================================================================= */}
       {/* 1. POLISHED VERY TOP BAR (DYNAMIC FROM DATABASE / SKELETON WHILE LOADING) */}
       {/* ========================================================================= */}
-      <div className="bg-slate-900 text-slate-200 text-[11px] sm:text-xs py-2 px-3 sm:px-6 lg:px-8 border-b border-slate-800 z-50">
+      <div className="bg-surface/90 text-text-muted text-[11px] sm:text-xs py-2 px-3 sm:px-6 lg:px-8 border-b border-accent z-50 transition-colors">
         <div className="w-full max-w-[95vw] mx-auto flex flex-wrap items-center justify-between gap-y-1.5 gap-x-4">
           {/* Left: Main Campus Location & Established Year (Unified Styling) */}
           <div className="flex items-center gap-2.5 sm:gap-4 flex-wrap">
             {isLoading ? (
               <div className="flex items-center gap-3 animate-pulse">
-                <div className="w-16 h-4 bg-slate-800 rounded-xs" />
-                <div className="w-48 h-4 bg-slate-800 rounded-xs" />
+                <div className="w-16 h-4 bg-accent/60 rounded-xs" />
+                <div className="w-48 h-4 bg-accent/60 rounded-xs" />
               </div>
             ) : (
               <>
                 {campusAddress && (
-                  <div className="flex items-center gap-1.5 text-slate-300">
+                  <div className="flex items-center gap-1.5 text-text-muted">
                     <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0" />
                     <span className="max-w-[280px] sm:max-w-none truncate sm:overflow-visible">
                       {mainBranch?.isMainBranch ? "Main Campus" : mainBranch?.name || "Campus"}:{" "}
-                      <strong className="text-white font-medium">{campusAddress}</strong>
+                      <strong className="text-text-main font-medium">{campusAddress}</strong>
                     </span>
                   </div>
                 )}
                 {organization?.establishedYear && (
-                  <div className="flex items-center gap-1.5 text-slate-300">
-                    <span className="text-slate-600 hidden sm:inline">•</span>
+                  <div className="flex items-center gap-1.5 text-text-muted">
+                    <span className="text-text-muted/40 hidden sm:inline">•</span>
                     <span>Est.</span>
-                    <strong className="text-white font-medium">{organization.establishedYear}</strong>
+                    <strong className="text-text-main font-medium">{organization.establishedYear}</strong>
                   </div>
                 )}
               </>
@@ -306,15 +295,15 @@ export const PublicLayout: React.FC = () => {
           <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
             {isLoading ? (
               <div className="flex items-center gap-3 animate-pulse">
-                <div className="w-24 h-4 bg-slate-800 rounded-xs" />
-                <div className="w-28 h-4 bg-slate-800 rounded-xs" />
+                <div className="w-24 h-4 bg-accent/60 rounded-xs" />
+                <div className="w-28 h-4 bg-accent/60 rounded-xs" />
               </div>
             ) : (
               <>
                 {contactPhone && (
                   <a
                     href={`tel:${contactPhone.replace(/[^0-9+]/g, "")}`}
-                    className="inline-flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors"
+                    className="inline-flex items-center gap-1.5 text-text-muted hover:text-text-main transition-colors"
                     title="Call Campus"
                   >
                     <Phone className="w-3.5 h-3.5 text-brand-primary shrink-0" />
@@ -322,12 +311,12 @@ export const PublicLayout: React.FC = () => {
                   </a>
                 )}
                 {contactPhone && contactEmail && (
-                  <span className="hidden sm:inline text-slate-700">|</span>
+                  <span className="hidden sm:inline text-accent">|</span>
                 )}
                 {contactEmail && (
                   <a
                     href={`mailto:${contactEmail}`}
-                    className="hidden sm:inline-flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors"
+                    className="hidden sm:inline-flex items-center gap-1.5 text-text-muted hover:text-text-main transition-colors"
                     title="Email Campus"
                   >
                     <Mail className="w-3.5 h-3.5 text-brand-primary shrink-0" />
@@ -399,10 +388,11 @@ export const PublicLayout: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation Links with Active Scroll Indicator */}
-          <nav className="hidden xl:flex items-center gap-3.5 2xl:gap-5 text-xs font-semibold">
+          <nav className="hidden lg:flex items-center gap-3 xl:gap-4 2xl:gap-5 text-xs font-semibold">
             {navLinks.map((item) => {
               const isActive =
-                (item.href === "/" && !activeSection) || item.href === `/#${activeSection}`;
+                location.pathname === "/" &&
+                ((item.href === "/" && !activeSection) || item.href === `/#${activeSection}`);
               return (
                 <a
                   key={item.label}
@@ -425,7 +415,7 @@ export const PublicLayout: React.FC = () => {
             {/* Theme Toggle (Desktop only - in drawer for mobile & tablet) */}
             <button
               onClick={toggleTheme}
-              className="hidden xl:inline-flex p-2 border border-accent rounded-sm hover:bg-accent transition-colors text-text-muted"
+              className="hidden lg:inline-flex p-2 border border-accent rounded-sm hover:bg-accent transition-colors text-text-muted"
               title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
               aria-label="Toggle Theme"
             >
@@ -436,7 +426,7 @@ export const PublicLayout: React.FC = () => {
             {currentUser ? (
               <Link
                 to={getPortalPath(currentUser.role)}
-                className="hidden xl:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors shadow-xs"
+                className="hidden lg:inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors shadow-xs"
                 title={`Signed in as ${currentUser.fullName} (${getNavbarPortalLabel(currentUser.role)})`}
               >
                 {currentUser.avatarUrl ? (
@@ -455,7 +445,7 @@ export const PublicLayout: React.FC = () => {
             ) : (
               <Link
                 to="/login"
-                className="hidden xl:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors shadow-xs"
+                className="hidden lg:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:bg-brand-hover transition-colors shadow-xs"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span>Login</span>
@@ -466,7 +456,7 @@ export const PublicLayout: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="xl:hidden p-2 border border-accent rounded-sm bg-surface hover:bg-accent transition-colors text-text-main"
+              className="lg:hidden p-2 border border-accent rounded-sm bg-surface hover:bg-accent transition-colors text-text-main"
               aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={isMobileMenuOpen}
             >
@@ -547,7 +537,8 @@ export const PublicLayout: React.FC = () => {
           {navLinks.map((item) => {
             const Icon = item.icon;
             const isActive =
-              (item.href === "/" && !activeSection) || item.href === `/#${activeSection}`;
+              location.pathname === "/" &&
+              ((item.href === "/" && !activeSection) || item.href === `/#${activeSection}`);
             return (
               <a
                 key={item.label}

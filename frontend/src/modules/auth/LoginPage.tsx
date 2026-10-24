@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   GraduationCap,
@@ -24,6 +24,8 @@ import { setDynamicFavicon } from "../../utils/dynamicFavicon.js";
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect");
   const [role, setRole] = useState<UserRole>(UserRole.SUPER_ADMIN);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -285,24 +287,28 @@ export const LoginPage: React.FC = () => {
       <div className="flex-1 lg:col-span-7 xl:col-span-7 flex flex-col justify-center items-center p-4 sm:p-8 lg:p-12 xl:p-16">
         <div className="w-full max-w-md space-y-5">
           {/* Mobile Header: Logo on Left, Return to Homepage on Right */}
-          <div className="lg:hidden flex items-center justify-between pb-3 border-b border-accent gap-2">
-            <div className="flex items-center gap-2 min-w-0">
+          <div className="lg:hidden flex items-center justify-between pb-3.5 mb-2 border-b border-accent gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
               {orgLoading ? (
                 <>
-                  <div className="w-7 h-7 bg-accent animate-pulse rounded-sm shrink-0" />
+                  <div className="w-8 h-8 bg-accent animate-pulse rounded-sm shrink-0" />
                   <div className="w-24 h-4 bg-accent animate-pulse rounded-sm" />
                 </>
               ) : (
                 <>
                   {orgData?.logo ? (
-                    <img src={orgData.logo} alt={orgData?.name || "Logo"} className="h-7 max-w-[90px] object-contain shrink-0" />
+                    <img
+                      src={orgData.logo}
+                      alt={orgData?.name || "Logo"}
+                      className="h-8 max-w-[100px] object-contain shrink-0"
+                    />
                   ) : (
-                    <div className="w-7 h-7 bg-brand-primary text-white flex items-center justify-center rounded-sm shrink-0">
+                    <div className="w-8 h-8 bg-brand-primary text-white flex items-center justify-center rounded-sm shrink-0">
                       <GraduationCap className="w-4 h-4" />
                     </div>
                   )}
                   {orgData?.name && (
-                    <span className="text-xs font-bold text-text-main truncate max-w-[130px]">
+                    <span className="text-xs font-bold text-text-main truncate max-w-[140px]">
                       {orgData.name}
                     </span>
                   )}
@@ -325,7 +331,7 @@ export const LoginPage: React.FC = () => {
               Portal Sign In
             </h1>
             <p className="text-xs text-text-muted">
-              Select your role and authenticate with your registered credentials.
+              Select your role and Login with your email and password.
             </p>
           </div>
 
@@ -336,10 +342,10 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleRoleSwitch(UserRole.SUPER_ADMIN)}
-                className={`py-2 px-1 rounded-sm transition-all flex items-center justify-center gap-1 text-[11px] sm:text-xs ${
+                className={`py-2 px-1 rounded-sm transition-colors flex items-center justify-center gap-1 text-[11px] sm:text-xs outline-none focus:outline-none focus-visible:outline-none focus:ring-0 select-none ${
                   role === UserRole.SUPER_ADMIN
                     ? "bg-surface text-brand-primary shadow-xs border border-accent font-bold"
-                    : "text-text-muted hover:text-text-main"
+                    : "text-text-muted hover:text-text-main border border-transparent"
                 }`}
               >
                 <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
@@ -348,10 +354,10 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleRoleSwitch(UserRole.TEACHER)}
-                className={`py-2 px-1 rounded-sm transition-all flex items-center justify-center gap-1 text-[11px] sm:text-xs ${
+                className={`py-2 px-1 rounded-sm transition-colors flex items-center justify-center gap-1 text-[11px] sm:text-xs outline-none focus:outline-none focus-visible:outline-none focus:ring-0 select-none ${
                   role === UserRole.TEACHER
                     ? "bg-surface text-brand-primary shadow-xs border border-accent font-bold"
-                    : "text-text-muted hover:text-text-main"
+                    : "text-text-muted hover:text-text-main border border-transparent"
                 }`}
               >
                 <UserCheck className="w-3.5 h-3.5 shrink-0" />
@@ -360,10 +366,10 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleRoleSwitch(UserRole.STUDENT)}
-                className={`py-2 px-1 rounded-sm transition-all flex items-center justify-center gap-1 text-[11px] sm:text-xs ${
+                className={`py-2 px-1 rounded-sm transition-colors flex items-center justify-center gap-1 text-[11px] sm:text-xs outline-none focus:outline-none focus-visible:outline-none focus:ring-0 select-none ${
                   role === UserRole.STUDENT
                     ? "bg-surface text-brand-primary shadow-xs border border-accent font-bold"
-                    : "text-text-muted hover:text-text-main"
+                    : "text-text-muted hover:text-text-main border border-transparent"
                 }`}
               >
                 <GraduationCap className="w-3.5 h-3.5 shrink-0" />
@@ -381,10 +387,10 @@ export const LoginPage: React.FC = () => {
                   required
                   placeholder={
                     role === UserRole.STUDENT
-                      ? "student@apexcoaching.com"
+                      ? "student@gmail.com"
                       : role === UserRole.TEACHER
-                      ? "teacher@apexcoaching.com"
-                      : "admin@apexcoaching.com"
+                      ? "teacher@gmail.com"
+                      : "admin@gmail.com"
                   }
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -418,13 +424,9 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() =>
-                      toast.info(
-                        role === UserRole.SUPER_ADMIN
-                          ? "Default password for admin is 'password123'"
-                          : role === UserRole.TEACHER
-                          ? "Default password for demo faculty is 'password123'"
-                          : "For admitted students, your default password is your registered email. You can change it once logged in."
-                      )
+                      toast.info("Password Recovery", {
+                        description: "Please contact your branch physically or through online support to get help.",
+                      })
                     }
                     className="text-[11px] text-brand-primary hover:underline font-medium"
                   >
@@ -445,32 +447,21 @@ export const LoginPage: React.FC = () => {
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    Sign In to {role === UserRole.STUDENT ? "Student" : role === UserRole.TEACHER ? "Faculty" : "Admin"} Console
+                    Login to {role === UserRole.STUDENT ? "Student" : role === UserRole.TEACHER ? "Teacher" : "Admin"} Portal
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
 
-            <div className="pt-3 border-t border-accent space-y-2 text-center text-xs">
-              <div>
-                <span className="text-text-muted">Don't have a student account? </span>
-                <Link
-                  to="/register"
-                  className="font-bold text-brand-primary hover:underline inline-block"
-                >
-                  Register as Student →
-                </Link>
-              </div>
-              <div className="pt-1 border-t border-accent/50">
-                <span className="text-text-muted">Want to teach at our coaching? </span>
-                <Link
-                  to="/teacher/register"
-                  className="font-bold text-brand-primary hover:underline inline-block"
-                >
-                  Apply as Faculty / Teacher →
-                </Link>
-              </div>
+            <div className="pt-3.5 border-t border-accent text-center text-xs">
+              <span className="text-text-muted">Don't have a student account? </span>
+              <Link
+                to={redirect ? `/register?redirect=${encodeURIComponent(redirect)}` : "/register"}
+                className="font-bold text-brand-primary hover:underline inline-block ml-1"
+              >
+                Register as Student →
+              </Link>
             </div>
           </div>
         </div>

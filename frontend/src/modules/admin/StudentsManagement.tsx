@@ -26,6 +26,7 @@ import { Gender, BranchRecord } from "../../types/index.js";
 import { apiClient } from "../../lib/apiClient.js";
 import { FileUpload } from "../../components/common/FileUpload.js";
 import { StudentIdCardModal, StudentIdCardData } from "../../components/StudentIdCardModal.js";
+import { Badge } from "../../components/ui/Badge.js";
 
 export const StudentsManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -366,28 +367,28 @@ export const StudentsManagement: React.FC = () => {
         </div>
 
         {/* Informative Metrics Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-theme">
-          <div className="p-3 bg-bg-app/50 border border-theme rounded-xs">
-            <span className="text-[10px] uppercase font-bold text-text-main/50 block">Total Students</span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-accent">
+          <div className="p-3 bg-bg-app/50 border border-accent rounded-xs">
+            <span className="text-[10px] uppercase font-bold text-text-muted block">Total Students</span>
             <span className="text-xl font-black text-text-main mt-0.5 block font-mono">
               {students.length}
             </span>
           </div>
-          <div className="p-3 bg-bg-app/50 border border-theme rounded-xs">
-            <span className="text-[10px] uppercase font-bold text-text-main/50 block">Active Campuses</span>
+          <div className="p-3 bg-bg-app/50 border border-accent rounded-xs">
+            <span className="text-[10px] uppercase font-bold text-text-muted block">Active Campuses</span>
             <span className="text-xl font-black text-brand-primary mt-0.5 block font-mono">
               {branches.length}
             </span>
           </div>
-          <div className="p-3 bg-bg-app/50 border border-theme rounded-xs">
-            <span className="text-[10px] uppercase font-bold text-text-main/50 block">Academic Batches</span>
-            <span className="text-xl font-black text-emerald-500 mt-0.5 block font-mono">
+          <div className="p-3 bg-bg-app/50 border border-accent rounded-xs">
+            <span className="text-[10px] uppercase font-bold text-text-muted block">Academic Batches</span>
+            <span className="text-xl font-black text-status-success mt-0.5 block font-mono">
               {batches.length}
             </span>
           </div>
-          <div className="p-3 bg-bg-app/50 border border-theme rounded-xs">
-            <span className="text-[10px] uppercase font-bold text-text-main/50 block">Filtered Results</span>
-            <span className="text-xl font-black text-amber-500 mt-0.5 block font-mono">
+          <div className="p-3 bg-bg-app/50 border border-accent rounded-xs">
+            <span className="text-[10px] uppercase font-bold text-text-muted block">Filtered Results</span>
+            <span className="text-xl font-black text-status-warning mt-0.5 block font-mono">
               {filteredStudents.length}
             </span>
           </div>
@@ -587,9 +588,9 @@ export const StudentsManagement: React.FC = () => {
 
                       {/* Status */}
                       <td className="py-3 px-4">
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 rounded-xs">
+                        <Badge variant="success" size="sm">
                           ACTIVE
-                        </span>
+                        </Badge>
                       </td>
 
                       {/* Row Actions */}

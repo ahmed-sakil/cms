@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Calendar,
   Clock,
@@ -15,8 +15,14 @@ import {
   Sparkles,
   X,
   Copy,
-  DoorOpen,
   Trophy,
+  DoorOpen,
+  Check,
+  ChevronRight,
+  Phone,
+  Building2,
+  ShieldCheck,
+  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PaymentMethod, BatchFeeType } from "../../types/index.js";
@@ -39,7 +45,6 @@ interface ClassModule {
   subject?: string;
   teacherId?: string | null;
   room?: string | null;
-  topics?: string[];
 }
 
 interface ScheduledExamItem {
@@ -110,11 +115,12 @@ interface BatchDetail {
 export const BatchDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [batch, setBatch] = useState<BatchDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"modules" | "routine" | "exams" | "faculty" | "admission">("modules");
+  const [activeTab, setActiveTab] = useState<"modules" | "exams" | "routine" | "faculty" | "admission">("modules");
 
   // Payment channels from institution settings
   const [paymentChannels, setPaymentChannels] = useState<any[]>([]);
@@ -123,6 +129,7 @@ export const BatchDetailsPage: React.FC = () => {
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [enrollSuccessData, setEnrollSuccessData] = useState<any | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const [enrollForm, setEnrollForm] = useState({
     paymentMethod: PaymentMethod.BKASH,
@@ -134,13 +141,32 @@ export const BatchDetailsPage: React.FC = () => {
 
   // Current logged in user
   const currentUserStr = localStorage.getItem("cms_user");
-  const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+  let currentUser: any = null;
+  try {
+    currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+  } catch {
+    currentUser = null;
+  }
 
   useEffect(() => {
     if (!id) return;
     fetchBatchDetail();
     fetchOrgDetails();
   }, [id]);
+
+  // Automatically open enrollment modal if redirected after login/register
+  useEffect(() => {
+    if (searchParams.get("enroll") === "true") {
+      const liveToken = localStorage.getItem("cms_token");
+      const liveUser = localStorage.getItem("cms_user");
+      if (liveToken && liveUser) {
+        setIsEnrollModalOpen(true);
+        const p = new URLSearchParams(searchParams);
+        p.delete("enroll");
+        setSearchParams(p, { replace: true });
+      }
+    }
+  }, [searchParams, setSearchParams]);
 
   const fetchBatchDetail = async () => {
     setLoading(true);
@@ -193,12 +219,7 @@ export const BatchDetailsPage: React.FC = () => {
     }
 
     if (!liveToken || !liveUser) {
-      toast.info("Please log in or register as a student to apply for admission.", {
-        action: {
-          label: "Log In",
-          onClick: () => navigate(`/login?redirect=/batches/${id}`),
-        },
-      });
+      navigate(`/login?redirect=${encodeURIComponent(`/batches/${id}?enroll=true`)}`);
       return;
     }
     setIsEnrollModalOpen(true);
@@ -206,7 +227,9 @@ export const BatchDetailsPage: React.FC = () => {
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
+    setCopiedKey(text);
     toast.success(`${label} copied to clipboard!`);
+    setTimeout(() => setCopiedKey(null), 2500);
   };
 
   const handleSelfEnroll = async (e: React.FormEvent) => {
@@ -298,78 +321,101 @@ export const BatchDetailsPage: React.FC = () => {
   const seatPercent = Math.min(100, Math.round((batch.enrolledCount / batch.seatLimit) * 100));
 
   return (
-    <div className="min-h-screen bg-bg-app pb-20">
-      <div className="w-full max-w-[95vw] mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
+    <div className="min-h-screen bg-bg-app text-text-main pb-24">
+      <div className="w-full max-w-[95vw] mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+        {/* Breadcrumb Navigation & Back Link */}
+        <div className="flex items-center justify-between gap-4 text-xs">
+          <div className="flex items-center gap-2 text-text-muted overflow-hidden">
+            <Link to="/" className="hover:text-brand-primary transition-colors shrink-0">
+              Home
+            </Link>
+            <ChevronRight className="w-3 h-3 shrink-0 opacity-50" />
+            <a href="/#batches" className="hover:text-brand-primary transition-colors shrink-0">
+              Batches
+            </a>
+            <ChevronRight className="w-3 h-3 shrink-0 opacity-50" />
+            <span className="text-text-main font-semibold truncate">{batch.title || batch.name}</span>
+          </div>
+
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-accent rounded-sm text-text-muted hover:text-text-main hover:border-brand-primary/40 text-xs font-medium transition-colors shrink-0"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back</span>
+          </button>
+        </div>
+
         {/* Hero Banner Section */}
-        <div className="bg-surface border border-accent rounded-sm overflow-hidden shadow-sm">
+        <div className="bg-surface border border-accent rounded-sm overflow-hidden shadow-xs">
           {batch.coverImage ? (
-            <div className="relative h-64 sm:h-80 w-full bg-slate-900 overflow-hidden">
+            <div className="relative h-64 sm:h-72 lg:h-80 w-full bg-slate-900 overflow-hidden">
               <img
                 src={batch.coverImage}
                 alt={batch.title}
-                className="w-full h-full object-cover opacity-85 hover:scale-105 transition-transform duration-700"
+                className="w-full h-full object-cover opacity-85 hover:scale-102 transition-transform duration-700"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
-              <div className="absolute bottom-6 left-6 right-6 space-y-2 text-white">
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/65 to-transparent" />
+              <div className="absolute bottom-6 left-6 right-6 space-y-2.5 text-white">
                 <div className="flex flex-wrap items-center gap-2">
                   {batch.academicClass && (
                     <span className="px-2.5 py-0.5 text-[11px] font-bold bg-brand-primary text-white rounded-sm tracking-wider uppercase">
                       {batch.academicClass.name}
                     </span>
                   )}
-                  <span className="px-2 py-0.5 text-[11px] font-semibold bg-white/20 backdrop-blur rounded-sm">
+                  <span className="px-2 py-0.5 text-[11px] font-semibold bg-white/20 backdrop-blur rounded-sm flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
                     {batch.branch.name}
                   </span>
                   <span
-                    className={`px-2 py-0.5 text-[11px] font-bold rounded-sm ${
-                      batch.isHouseFull
-                        ? "bg-rose-500 text-white"
-                        : "bg-emerald-500 text-white"
+                    className={`px-2.5 py-0.5 text-[11px] font-bold rounded-sm ${
+                      batch.isHouseFull ? "bg-rose-500 text-white" : "bg-emerald-600 text-white"
                     }`}
                   >
                     {batch.isHouseFull ? "Housefull" : "Admissions Open"}
                   </span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight drop-shadow-sm">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight drop-shadow-sm">
                   {batch.title || batch.name}
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-300 max-w-2xl">
-                  Offline in-person classroom coaching program with physical attendance tracking, weekly model exams, and dedicated faculty mentors.
+                <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                  In-person classroom coaching program with physical biometric attendance, comprehensive syllabus coverage, weekly model evaluations, and dedicated faculty guidance.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="p-6 sm:p-8 bg-gradient-to-r from-brand-primary/10 via-surface to-accent/20 border-b border-accent space-y-3">
+            <div className="p-6 sm:p-8 bg-gradient-to-r from-brand-primary/10 via-surface to-accent/25 border-b border-accent space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 {batch.academicClass && (
                   <span className="px-2.5 py-0.5 text-[11px] font-bold bg-brand-primary text-white rounded-sm tracking-wider uppercase">
                     {batch.academicClass.name}
                   </span>
                 )}
-                <span className="px-2 py-0.5 text-[11px] font-semibold bg-accent rounded-sm text-text-main">
+                <span className="px-2 py-0.5 text-[11px] font-semibold bg-accent rounded-sm text-text-main flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-brand-primary" />
                   {batch.branch.name}
                 </span>
                 <span
-                  className={`px-2 py-0.5 text-[11px] font-bold rounded-sm ${
+                  className={`px-2.5 py-0.5 text-[11px] font-bold rounded-sm ${
                     batch.isHouseFull ? "bg-rose-500 text-white" : "bg-emerald-600 text-white"
                   }`}
                 >
                   {batch.isHouseFull ? "Housefull" : "Admissions Open"}
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-text-main tracking-tight">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-text-main tracking-tight">
                 {batch.title || batch.name}
               </h1>
-              <p className="text-xs sm:text-sm text-text-muted max-w-2xl">
-                Offline in-person classroom coaching program at {batch.branch.name} ({batch.branch.address}).
+              <p className="text-xs sm:text-sm text-text-muted max-w-2xl leading-relaxed">
+                Physical classroom batch conducted at {batch.branch.name} ({batch.branch.address}). Structured syllabus modules and guaranteed classroom seat limits.
               </p>
             </div>
           )}
 
           {/* Seat Capacity Progress & Alert Banner */}
           <div className="p-5 sm:p-6 bg-accent-subtle/30 border-t border-accent">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1.5 flex-1">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+              <div className="space-y-2 flex-1 max-w-3xl">
                 <div className="flex items-center justify-between text-xs font-semibold">
                   <span className="flex items-center gap-1.5 text-text-main">
                     <Users className="w-4 h-4 text-brand-primary" />
@@ -377,7 +423,9 @@ export const BatchDetailsPage: React.FC = () => {
                   </span>
                   <span className="text-text-main">
                     <strong className="text-brand-primary">{batch.enrolledCount}</strong> of {batch.seatLimit} Confirmed Seats
-                    ({batch.availableSeats} remaining)
+                    {" "}(<span className={batch.availableSeats <= 5 ? "text-rose-500 font-bold" : "text-emerald-600 font-bold"}>
+                      {batch.availableSeats} remaining
+                    </span>)
                   </span>
                 </div>
                 <div className="w-full bg-accent h-2.5 rounded-sm overflow-hidden">
@@ -387,17 +435,17 @@ export const BatchDetailsPage: React.FC = () => {
                         ? "bg-rose-500"
                         : seatPercent >= 70
                         ? "bg-amber-500"
-                        : "bg-emerald-500"
+                        : "bg-emerald-600"
                     }`}
                     style={{ width: `${seatPercent}%` }}
                   />
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 self-end sm:self-auto">
-                <div className="text-right">
-                  <div className="text-xs text-text-muted uppercase tracking-wider font-semibold">Program Fee</div>
-                  <div className="text-xl font-bold text-text-main">
+              <div className="flex items-center justify-between lg:justify-end gap-5 pt-2 lg:pt-0 border-t lg:border-t-0 border-accent">
+                <div className="text-left lg:text-right">
+                  <div className="text-[11px] text-text-muted uppercase tracking-wider font-semibold">Program Tuition</div>
+                  <div className="text-2xl font-black text-text-main">
                     ৳{batch.feeAmount.toLocaleString()}
                     <span className="text-xs font-normal text-text-muted ml-1">
                       ({batch.feeType.replace("_", " ")})
@@ -408,14 +456,14 @@ export const BatchDetailsPage: React.FC = () => {
                 <button
                   onClick={handleOpenEnrollModal}
                   disabled={batch.isHouseFull}
-                  className={`px-5 py-2.5 text-xs font-bold rounded-sm shadow-sm transition-all flex items-center gap-1.5 ${
+                  className={`px-6 py-3 text-xs font-bold rounded-sm shadow-sm transition-all flex items-center gap-2 whitespace-nowrap ${
                     batch.isHouseFull
                       ? "bg-accent text-text-muted cursor-not-allowed"
                       : "bg-brand-primary text-white hover:bg-brand-hover"
                   }`}
                 >
                   <Sparkles className="w-4 h-4" />
-                  {batch.isHouseFull ? "Housefull" : "Enroll & Reserve Seat"}
+                  {batch.isHouseFull ? "Batch Housefull" : "Enroll & Reserve Seat"}
                 </button>
               </div>
             </div>
@@ -606,18 +654,6 @@ export const BatchDetailsPage: React.FC = () => {
                             </div>
                           )}
                         </div>
-                        {mod.topics && mod.topics.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 pt-1 border-t border-accent/40">
-                            {mod.topics.map((t, tIdx) => (
-                              <span
-                                key={tIdx}
-                                className="text-[11px] px-2 py-0.5 bg-accent rounded-sm text-text-muted"
-                              >
-                                • {t}
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -864,266 +900,345 @@ export const BatchDetailsPage: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Bottom Campus Assistance Banner */}
+        <div className="bg-surface border border-accent p-6 rounded-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h4 className="text-sm font-bold text-text-main flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-brand-primary" />
+              Need Physical Consultation or Campus Tour?
+            </h4>
+            <p className="text-xs text-text-muted">
+              Visit {batch.branch.name} at {batch.branch.address} during desk hours (9:00 AM - 7:00 PM) to consult with academic counselors.
+            </p>
+          </div>
+          {batch.branch.phone && (
+            <a
+              href={`tel:${batch.branch.phone}`}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-text-main text-xs font-semibold rounded-sm hover:bg-accent/80 transition-colors shrink-0"
+            >
+              <Phone className="w-3.5 h-3.5 text-brand-primary" />
+              Call Branch Helpdesk
+            </a>
+          )}
+        </div>
       </div>
 
       {/* ============================================================ */}
-      {/* SELF-ADMISSION MODAL (STUDENT CHECKOUT) */}
+      {/* SELF-ADMISSION MODAL (REDESIGNED: WIDER FOR LARGE SCREENS) */}
       {/* ============================================================ */}
       {isEnrollModalOpen &&
         createPortal(
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-accent w-full max-w-lg rounded-sm shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-accent flex justify-between items-center bg-accent-subtle/30">
-              <div className="space-y-0.5">
-                <h3 className="font-bold text-sm text-text-main flex items-center gap-1.5">
-                  <GraduationCap className="w-4 h-4 text-brand-primary" />
-                  Admission Checkout: {batch.name}
-                </h3>
-                <p className="text-[11px] text-text-muted">
-                  Campus: {batch.branch.name} • Fee: ৳{batch.feeAmount.toLocaleString()}
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setIsEnrollModalOpen(false);
-                  setEnrollSuccessData(null);
-                }}
-                className="p-1 text-text-muted hover:text-text-main rounded-sm"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-5 overflow-y-auto space-y-4">
-              {enrollSuccessData ? (
-                /* Success View */
-                <div className="py-6 text-center space-y-4">
-                  <div className="w-12 h-12 bg-emerald-500/10 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-6 h-6" />
-                  </div>
-                  <div className="space-y-1">
-                    <h4 className="text-base font-bold text-text-main">
-                      Application Submitted Successfully!
-                    </h4>
-                    <p className="text-xs text-text-muted max-w-sm mx-auto">
-                      Your admission request has been logged and is currently in{" "}
-                      <strong className="text-brand-primary">Pending Verification</strong>.
-                    </p>
-                  </div>
-
-                  <div className="bg-bg-app p-4 border border-accent rounded-sm text-xs text-left space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-text-muted">Student:</span>
-                      <span className="font-semibold text-text-main">{currentUser?.fullName}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-muted">Batch:</span>
-                      <span className="font-semibold text-text-main">{batch.title || batch.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-muted">Transaction ID:</span>
-                      <span className="font-mono font-bold text-brand-primary">{enrollForm.transactionId}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-muted">Amount:</span>
-                      <span className="font-bold text-text-main">৳{enrollForm.paidAmount.toLocaleString()}</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-sm text-[11px] text-amber-900 dark:text-amber-200 text-left">
-                    <strong>Next Steps:</strong> An administrator at {batch.branch.name} will verify your payment details shortly. Once approved, your seat will be permanently locked and an invoice will be generated in your Student Portal.
-                  </div>
-
-                  <div className="pt-2 flex gap-3 justify-center">
-                    <Link
-                      to="/student"
-                      className="px-4 py-2 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:opacity-90"
-                    >
-                      Go to Student Portal
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setIsEnrollModalOpen(false);
-                        setEnrollSuccessData(null);
-                      }}
-                      className="px-4 py-2 text-xs font-semibold border border-accent rounded-sm hover:bg-accent"
-                    >
-                      Close
-                    </button>
-                  </div>
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto">
+            <div className="bg-surface border border-accent w-full max-w-4xl xl:max-w-5xl rounded-sm shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-accent flex justify-between items-center bg-accent-subtle/30">
+                <div className="space-y-0.5">
+                  <h3 className="font-bold text-sm text-text-main flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-brand-primary" />
+                    Admission Checkout: {batch.title || batch.name}
+                  </h3>
+                  <p className="text-[11px] text-text-muted">
+                    Branch: {batch.branch.name} • Fee: ৳{batch.feeAmount.toLocaleString()} ({batch.feeType.replace("_", " ")})
+                  </p>
                 </div>
-              ) : (
-                /* Application Form */
-                <form onSubmit={handleSelfEnroll} className="space-y-4">
-                  {/* Anti-Abuse Seat Warning Banner */}
-                  <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-sm flex items-start gap-2.5 text-amber-900 dark:text-amber-200 text-xs">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div className="space-y-0.5">
-                      <div className="font-bold">Important Notice on Seat Reservation</div>
-                      <p className="text-[11px] leading-relaxed">
-                        Online enrollment requests are verified by campus administrators. If batch seat capacity
-                        is reached before your payment is verified, your admission will be canceled and your fees
-                        will be refunded in full.
+                <button
+                  onClick={() => {
+                    setIsEnrollModalOpen(false);
+                    setEnrollSuccessData(null);
+                  }}
+                  className="p-1.5 text-text-muted hover:text-text-main hover:bg-accent rounded-sm transition-colors"
+                  aria-label="Close modal"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="overflow-y-auto">
+                {enrollSuccessData ? (
+                  /* Success View */
+                  <div className="p-8 sm:p-12 text-center space-y-6 max-w-xl mx-auto">
+                    <div className="w-14 h-14 bg-emerald-500/10 text-emerald-600 rounded-sm flex items-center justify-center mx-auto">
+                      <CheckCircle2 className="w-7 h-7" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <h4 className="text-lg font-bold text-text-main">
+                        Admission Application Submitted!
+                      </h4>
+                      <p className="text-xs text-text-muted leading-relaxed">
+                        Your admission request has been successfully recorded and is now in{" "}
+                        <strong className="text-brand-primary font-bold">Pending Verification</strong>.
                       </p>
                     </div>
-                  </div>
 
-                  {/* Student details display */}
-                  <div className="bg-bg-app p-3 border border-accent rounded-sm text-xs space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-text-muted">Applicant Name:</span>
-                      <span className="font-semibold text-text-main">{currentUser?.fullName}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-muted">Email:</span>
-                      <span className="text-text-main">{currentUser?.email}</span>
-                    </div>
-                  </div>
-
-                  {/* Payment Method Selector */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-text-main">Payment Method</label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {[
-                        { method: PaymentMethod.BKASH, label: "bKash" },
-                        { method: PaymentMethod.NAGAD, label: "Nagad" },
-                        { method: PaymentMethod.ROCKET, label: "Rocket" },
-                        { method: PaymentMethod.CASH, label: "Cash @ Campus" },
-                      ].map((item) => (
-                        <button
-                          key={item.method}
-                          type="button"
-                          onClick={() => setEnrollForm({ ...enrollForm, paymentMethod: item.method })}
-                          className={`py-2 px-1 text-xs font-bold rounded-sm border text-center transition-all ${
-                            enrollForm.paymentMethod === item.method
-                              ? "bg-brand-primary text-white border-brand-primary"
-                              : "bg-surface border-accent text-text-muted hover:border-text-main"
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Matching Payment Channel Number Display */}
-                  {paymentChannels.length > 0 &&
-                    enrollForm.paymentMethod !== PaymentMethod.CASH && (
-                      <div className="p-3 bg-accent-subtle/40 border border-accent rounded-sm text-xs space-y-1">
-                        <span className="text-[10px] text-text-muted uppercase font-bold">
-                          Send Money / Payment to Official Account:
-                        </span>
-                        {paymentChannels
-                          .filter((c) => c.provider === enrollForm.paymentMethod)
-                          .map((ch, idx) => (
-                            <div key={idx} className="flex items-center justify-between font-mono font-bold text-brand-primary pt-0.5">
-                              <span>{ch.accountNumber} ({ch.accountType})</span>
-                              <button
-                                type="button"
-                                onClick={() => handleCopy(ch.accountNumber, "Account number")}
-                                className="text-text-muted hover:text-text-main p-1"
-                              >
-                                <Copy className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ))}
+                    <div className="bg-bg-app p-4 border border-accent rounded-sm text-xs text-left space-y-2.5">
+                      <div className="flex justify-between py-1 border-b border-accent/40">
+                        <span className="text-text-muted">Applicant Student:</span>
+                        <span className="font-semibold text-text-main">{currentUser?.fullName}</span>
                       </div>
-                    )}
+                      <div className="flex justify-between py-1 border-b border-accent/40">
+                        <span className="text-text-muted">Batch:</span>
+                        <span className="font-semibold text-text-main">{batch.title || batch.name}</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-accent/40">
+                        <span className="text-text-muted">Payment Channel:</span>
+                        <span className="font-semibold text-text-main">{enrollForm.paymentMethod}</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-accent/40">
+                        <span className="text-text-muted">Transaction ID:</span>
+                        <span className="font-mono font-bold text-brand-primary">{enrollForm.transactionId}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-text-muted">Paid Amount:</span>
+                        <span className="font-bold text-text-main">৳{enrollForm.paidAmount.toLocaleString()}</span>
+                      </div>
+                    </div>
 
-                  {/* Transaction ID */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-text-main">
-                      {enrollForm.paymentMethod === PaymentMethod.CASH
-                        ? "Deposit Slip / Campus Receipt Number *"
-                        : "TrxID / Transaction Reference ID *"}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder={
-                        enrollForm.paymentMethod === PaymentMethod.CASH
-                          ? "e.g. RCPT-2026-001"
-                          : "e.g. BKA8739482X"
-                      }
-                      value={enrollForm.transactionId}
-                      onChange={(e) => setEnrollForm({ ...enrollForm, transactionId: e.target.value })}
-                      className="w-full text-xs p-2 bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-mono"
-                    />
-                  </div>
+                    <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-sm text-[11px] text-amber-900 dark:text-amber-200 text-left leading-relaxed">
+                      <strong>Next Steps:</strong> An administrator at {batch.branch.name} will verify your transaction against coaching bank/mobile statements. Once approved, your classroom seat will be locked and an official fee invoice will appear in your Student Portal.
+                    </div>
 
-                  {/* Sender Phone */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-text-main">
-                      Sender Phone Number *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. 01712345678"
-                      value={enrollForm.senderPhone}
-                      onChange={(e) => setEnrollForm({ ...enrollForm, senderPhone: e.target.value })}
-                      className="w-full text-xs p-2 bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-mono"
-                    />
-                  </div>
-
-                  {/* Paid Amount */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-text-main">
-                      Paid Amount (BDT) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min={1}
-                      value={enrollForm.paidAmount}
-                      onChange={(e) => setEnrollForm({ ...enrollForm, paidAmount: Number(e.target.value) })}
-                      className="w-full text-xs p-2 bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-bold"
-                    />
-                    <div className="text-[11px] text-text-muted">
-                      Batch Fee: ৳{batch.feeAmount.toLocaleString()} ({batch.feeType.replace("_", " ")})
+                    <div className="pt-2 flex flex-wrap gap-3 justify-center">
+                      <Link
+                        to="/student"
+                        className="px-5 py-2.5 text-xs font-semibold bg-brand-primary text-white rounded-sm hover:opacity-90 shadow-xs"
+                      >
+                        Enter Student Portal
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setIsEnrollModalOpen(false);
+                          setEnrollSuccessData(null);
+                        }}
+                        className="px-5 py-2.5 text-xs font-semibold border border-accent rounded-sm hover:bg-accent text-text-main transition-colors"
+                      >
+                        Close
+                      </button>
                     </div>
                   </div>
+                ) : (
+                  /* 2-Column Checkout Layout on Large Screens */
+                  <form onSubmit={handleSelfEnroll} className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-accent">
+                    {/* Left Column (5 Cols): Payment Channels & Instructions */}
+                    <div className="lg:col-span-5 bg-accent-subtle/25 p-5 sm:p-6 space-y-5">
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-bold text-text-main uppercase tracking-wider">
+                          1. Transfer Fee to Official Account
+                        </h4>
+                        <p className="text-[11px] text-text-muted leading-relaxed">
+                          Please complete your tuition payment using any of our registered accounts below, then enter your transaction details on the right.
+                        </p>
+                      </div>
 
-                  {/* Student Notes */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-text-main">
-                      Notes for Campus Administration (Optional)
-                    </label>
-                    <textarea
-                      rows={2}
-                      placeholder="Optional notes or remarks regarding your payment or guardian info..."
-                      value={enrollForm.studentNotes}
-                      onChange={(e) => setEnrollForm({ ...enrollForm, studentNotes: e.target.value })}
-                      className="w-full text-xs p-2 bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary"
-                    />
-                  </div>
+                      {/* Payment Channels Cards */}
+                      <div className="space-y-2.5">
+                        {paymentChannels && paymentChannels.length > 0 ? (
+                          paymentChannels.map((ch, idx) => (
+                            <div
+                              key={idx}
+                              className={`p-3 rounded-sm border transition-all ${
+                                enrollForm.paymentMethod === ch.provider
+                                  ? "bg-surface border-brand-primary shadow-xs ring-1 ring-brand-primary/20"
+                                  : "bg-surface/60 border-accent hover:border-accent/80"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-brand-primary">
+                                  {ch.provider}
+                                </span>
+                                <span className="text-[10px] text-text-muted uppercase font-semibold">
+                                  {ch.accountType}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="font-mono text-xs font-bold text-text-main">
+                                  {ch.accountNumber}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopy(ch.accountNumber, `${ch.provider} number`)}
+                                  className="p-1 hover:bg-accent rounded-sm text-text-muted hover:text-text-main"
+                                  title="Copy account number"
+                                >
+                                  {copiedKey === ch.accountNumber ? (
+                                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                              {ch.instructions && (
+                                <p className="text-[10px] text-text-muted mt-1 leading-snug">
+                                  {ch.instructions}
+                                </p>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-3 bg-surface border border-accent rounded-sm text-xs text-text-muted">
+                            Visit {batch.branch.name} admissions desk to pay via cash or card.
+                          </div>
+                        )}
+                      </div>
 
-                  {/* Submit Button */}
-                  <div className="pt-2 flex justify-end gap-2 border-t border-accent">
-                    <button
-                      type="button"
-                      onClick={() => setIsEnrollModalOpen(false)}
-                      className="px-4 py-2 text-xs font-semibold border border-accent rounded-sm hover:bg-accent text-text-muted"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="px-5 py-2 text-xs font-bold bg-brand-primary text-white rounded-sm hover:bg-brand-hover shadow-sm disabled:opacity-50 flex items-center gap-1.5"
-                    >
-                      {submitting ? "Submitting Application..." : "Submit Admission Request"}
-                    </button>
-                  </div>
-                </form>
-              )}
+                      {/* Policy Alert Banner */}
+                      <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-sm flex items-start gap-2.5 text-amber-900 dark:text-amber-200 text-xs">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <div className="font-bold text-[11px]">Seat Locking Disclaimer</div>
+                          <p className="text-[10px] leading-relaxed">
+                            Seats are allocated strictly upon verification by campus admins. If batch seats fill up before verification, your payment will be refunded immediately.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column (7 Cols): Form Inputs */}
+                    <div className="lg:col-span-7 p-5 sm:p-6 space-y-4 bg-surface flex flex-col justify-between">
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-bold text-text-main uppercase tracking-wider">
+                            2. Submit Payment Details
+                          </h4>
+                          <p className="text-[11px] text-text-muted">
+                            Provide your transaction ID and the sender number used to make the payment.
+                          </p>
+                        </div>
+
+                        {/* Student Badge */}
+                        <div className="p-3 bg-bg-app border border-accent rounded-sm flex items-center justify-between text-xs">
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] text-text-muted uppercase font-bold">Applying As Student:</span>
+                            <div className="font-bold text-text-main">{currentUser?.fullName}</div>
+                          </div>
+                          <span className="text-[11px] text-text-muted">{currentUser?.email}</span>
+                        </div>
+
+                        {/* Payment Method Selector */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-text-main">Select Payment Method *</label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {[
+                              { method: PaymentMethod.BKASH, label: "bKash" },
+                              { method: PaymentMethod.NAGAD, label: "Nagad" },
+                              { method: PaymentMethod.ROCKET, label: "Rocket" },
+                              { method: PaymentMethod.CASH, label: "Cash @ Desk" },
+                            ].map((item) => (
+                              <button
+                                key={item.method}
+                                type="button"
+                                onClick={() => setEnrollForm({ ...enrollForm, paymentMethod: item.method })}
+                                className={`py-2 px-2 text-xs font-bold rounded-sm border text-center transition-all ${
+                                  enrollForm.paymentMethod === item.method
+                                    ? "bg-brand-primary text-white border-brand-primary shadow-xs"
+                                    : "bg-surface border-accent text-text-muted hover:border-text-main"
+                                }`}
+                              >
+                                {item.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Transaction ID & Sender Phone in 2-col on medium+ */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-text-main">
+                              {enrollForm.paymentMethod === PaymentMethod.CASH
+                                ? "Receipt / Deposit Number *"
+                                : "TrxID / Reference ID *"}
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder={
+                                enrollForm.paymentMethod === PaymentMethod.CASH
+                                  ? "e.g. RCPT-2026-001"
+                                  : "e.g. BKA8739482X"
+                              }
+                              value={enrollForm.transactionId}
+                              onChange={(e) => setEnrollForm({ ...enrollForm, transactionId: e.target.value })}
+                              className="w-full text-xs p-2.5 bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-mono"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-text-main">
+                              Sender Phone Number *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. 01712345678"
+                              value={enrollForm.senderPhone}
+                              onChange={(e) => setEnrollForm({ ...enrollForm, senderPhone: e.target.value })}
+                              className="w-full text-xs p-2.5 bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Paid Amount */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <label className="text-xs font-semibold text-text-main">
+                              Paid Amount (BDT) *
+                            </label>
+                            <span className="text-[11px] text-text-muted">
+                              Batch Fee: <strong>৳{batch.feeAmount.toLocaleString()}</strong> ({batch.feeType.replace("_", " ")})
+                            </span>
+                          </div>
+                          <input
+                            type="number"
+                            required
+                            min={1}
+                            value={enrollForm.paidAmount}
+                            onChange={(e) => setEnrollForm({ ...enrollForm, paidAmount: Number(e.target.value) })}
+                            className="w-full text-xs p-2.5 bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary font-bold"
+                          />
+                        </div>
+
+                        {/* Notes */}
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-text-main">
+                            Notes for Campus Administration (Optional)
+                          </label>
+                          <textarea
+                            rows={2}
+                            placeholder="Optional notes or remarks regarding your payment or guardian info..."
+                            value={enrollForm.studentNotes}
+                            onChange={(e) => setEnrollForm({ ...enrollForm, studentNotes: e.target.value })}
+                            className="w-full text-xs p-2.5 bg-bg-app border border-accent rounded-sm text-text-main focus:outline-none focus:border-brand-primary resize-none"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Modal Footer Buttons */}
+                      <div className="pt-4 mt-2 flex justify-end gap-2.5 border-t border-accent">
+                        <button
+                          type="button"
+                          onClick={() => setIsEnrollModalOpen(false)}
+                          className="px-4 py-2.5 text-xs font-semibold border border-accent rounded-sm hover:bg-accent text-text-muted transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={submitting}
+                          className="px-6 py-2.5 text-xs font-bold bg-brand-primary text-white rounded-sm hover:bg-brand-hover shadow-sm disabled:opacity-50 flex items-center gap-1.5 transition-opacity"
+                        >
+                          <ShieldCheck className="w-4 h-4" />
+                          {submitting ? "Submitting Application..." : "Submit Admission Request"}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

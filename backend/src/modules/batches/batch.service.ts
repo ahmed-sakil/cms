@@ -561,7 +561,6 @@ export class BatchService {
           teacherUserId: teacherUserId || null,
           teacherName: teacherName || undefined,
           room: cm.room || null,
-          topics: cm.topics || [],
         };
       })
     );

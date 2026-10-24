@@ -206,7 +206,6 @@ export const batchCurriculumSchema = z.object({
       teacherId: z.preprocess(emptyToNull, z.string().uuid().nullable().optional()),
       teacherName: z.string().optional(),
       room: z.string().nullable().optional(),
-      topics: z.array(z.string()).optional().default([]),
     })
   ).default([]),
   routine: z.array(

@@ -148,14 +148,14 @@ export const LandingPage: React.FC = () => {
   const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
   const [studyTips, setStudyTips] = useState<StudyTipItem[]>([]);
   const [teachers, setTeachers] = useState<TeacherItem[]>([]);
-  const teacherScrollRef = React.useRef<HTMLDivElement>(null);
-
-  const scrollTeachers = (direction: "left" | "right") => {
-    if (teacherScrollRef.current) {
-      const scrollAmount = direction === "left" ? -340 : 340;
-      teacherScrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+  const marqueeTeachers = React.useMemo(() => {
+    if (teachers.length === 0) return [];
+    let list = [...teachers];
+    while (list.length < 6) {
+      list = [...list, ...teachers];
     }
-  };
+    return list;
+  }, [teachers]);
 
   // Read parent context from PublicLayout to avoid duplicate network queries
   const outletContext = useOutletContext<{ landingData?: any; isLoading?: boolean }>() || {};
@@ -321,7 +321,7 @@ export const LandingPage: React.FC = () => {
           {/* Hero Poster / Banner (2 Columns on Wide Screens) */}
           <div className="xl:col-span-2 flex flex-col justify-between">
             {loading ? (
-              <div className="relative w-full rounded-sm overflow-hidden border border-theme bg-surface shadow-xs h-[240px] xs:h-[300px] sm:h-[400px] md:h-[440px] xl:h-[480px] p-6 sm:p-12 flex flex-col justify-end space-y-3 animate-pulse">
+              <div className="relative w-full rounded-sm overflow-hidden border border-theme bg-surface shadow-xs h-[240px] xs:h-[300px] sm:h-[400px] md:h-[440px] lg:h-[520px] xl:h-[560px] 2xl:h-[600px] p-6 sm:p-12 flex flex-col justify-end space-y-3 animate-pulse">
                 <div className="h-4 w-28 bg-accent rounded-xs" />
                 <div className="h-8 w-3/4 max-w-lg bg-accent rounded-xs" />
                 <div className="h-4 w-1/2 max-w-md bg-accent/60 rounded-xs" />
@@ -332,7 +332,7 @@ export const LandingPage: React.FC = () => {
               </div>
             ) : activeSlides.length > 0 && slide ? (
               <div
-                className="relative w-full rounded-sm overflow-hidden border border-theme bg-slate-950 shadow-md group h-[220px] xs:h-[280px] sm:h-[380px] md:h-[440px] xl:h-[480px]"
+                className="relative w-full rounded-sm overflow-hidden border border-theme bg-slate-950 shadow-md group h-[220px] xs:h-[280px] sm:h-[380px] md:h-[440px] lg:h-[520px] xl:h-[560px] 2xl:h-[600px]"
                 onMouseEnter={() => setIsPlaying(false)}
                 onMouseLeave={() => setIsPlaying(true)}
               >
@@ -414,7 +414,7 @@ export const LandingPage: React.FC = () => {
               </div>
             ) : (
               /* Institutional Branded Hero (Clean, Professional, Zero Fake Photos) */
-              <div className="relative w-full rounded-sm overflow-hidden border border-theme bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white shadow-md p-6 sm:p-10 md:p-12 xl:h-[480px] flex flex-col justify-center">
+              <div className="relative w-full rounded-sm overflow-hidden border border-theme bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white shadow-md p-6 sm:p-10 md:p-12 lg:h-[520px] xl:h-[560px] 2xl:h-[600px] flex flex-col justify-center">
                 <div className="max-w-2xl space-y-3.5">
                   <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-xs bg-brand-primary/20 border border-brand-primary/40 text-brand-primary text-xs font-bold tracking-wide">
                     <Award className="w-3.5 h-3.5" />
@@ -1052,9 +1052,10 @@ export const LandingPage: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* 6.5. OUR TEACHER PANEL (HORIZONTALLY FLOATING CARDS & JOIN ACTION) */}
       {/* ========================================================================= */}
-      <section id="faculty" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
+      {/* 6.5. OUR TEACHER PANEL (CIRCULAR RIGHT-TO-LEFT MARQUEE WITH PAUSE ON HOVER) */}
+      {/* ========================================================================= */}
+      <section id="faculty" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20 overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
           <div className="flex items-start sm:items-center gap-3">
             <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
@@ -1070,27 +1071,15 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto">
-            <button
-              onClick={() => scrollTeachers("left")}
-              className="p-1.5 border border-accent rounded-sm hover:border-brand-primary text-text-muted hover:text-text-main transition-colors bg-surface shadow-2xs"
-              aria-label="Scroll Left"
-              title="Previous Teachers"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => scrollTeachers("right")}
-              className="p-1.5 border border-accent rounded-sm hover:border-brand-primary text-text-muted hover:text-text-main transition-colors bg-surface shadow-2xs"
-              aria-label="Scroll Right"
-              title="Next Teachers"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="text-[11px] text-text-muted bg-surface border border-accent px-2.5 py-1 rounded-xs flex items-center gap-1.5 shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Auto-scrolling • Hover to pause</span>
+            </span>
           </div>
         </div>
 
-        {/* Horizontally Floating / Scrollable Cards */}
+        {/* Circular Auto-Moving Right-to-Left Marquee Track */}
         {loading ? (
           <div className="flex gap-4 overflow-hidden py-2">
             {[1, 2, 3, 4].map((n) => (
@@ -1113,70 +1102,134 @@ export const LandingPage: React.FC = () => {
             <p className="text-xs text-text-muted">Faculty directory is being updated for the upcoming academic session.</p>
           </div>
         ) : (
-          <div
-            ref={teacherScrollRef}
-            className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scroll-smooth"
-            style={{ scrollbarWidth: "thin" }}
-          >
-            {teachers.map((t) => (
-              <div
-                key={t.id}
-                className="w-[280px] sm:w-[320px] shrink-0 snap-start bg-surface border border-theme hover:border-brand-primary/60 rounded-sm p-5 shadow-xs flex flex-col justify-between transition-all group"
-              >
-                <div className="space-y-3.5">
-                  <div className="flex items-start gap-3.5">
-                    {t.avatarUrl ? (
-                      <img
-                        src={t.avatarUrl}
-                        alt={t.fullName}
-                        className="w-14 h-14 rounded-full object-cover border-2 border-brand-primary/20 group-hover:border-brand-primary transition-colors shrink-0"
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-brand-primary/20 to-brand-primary/10 border border-brand-primary/30 flex items-center justify-center text-brand-primary font-bold text-lg shrink-0">
-                        {t.fullName?.[0]?.toUpperCase() || "T"}
+          <div className="relative overflow-hidden w-full py-2">
+            {/* Subtle edge fade masks for smooth entrance and exit */}
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-8 sm:w-16 bg-gradient-to-r from-bg-app to-transparent z-10" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-8 sm:w-16 bg-gradient-to-l from-bg-app to-transparent z-10" />
+
+            <div className="animate-marquee-left flex gap-4 w-max">
+              {/* Set 1: Original / Expanded items */}
+              {marqueeTeachers.map((t, idx) => (
+                <div
+                  key={`track1-${t.id}-${idx}`}
+                  className="w-[280px] sm:w-[320px] shrink-0 bg-surface border border-theme hover:border-brand-primary/60 rounded-sm p-5 shadow-xs flex flex-col justify-between transition-all group"
+                >
+                  <div className="space-y-3.5">
+                    <div className="flex items-start gap-3.5">
+                      {t.avatarUrl ? (
+                        <img
+                          src={t.avatarUrl}
+                          alt={t.fullName}
+                          className="w-14 h-14 rounded-full object-cover border-2 border-brand-primary/20 group-hover:border-brand-primary transition-colors shrink-0"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-brand-primary/20 to-brand-primary/10 border border-brand-primary/30 flex items-center justify-center text-brand-primary font-bold text-lg shrink-0">
+                          {t.fullName?.[0]?.toUpperCase() || "T"}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <Link
+                          to={`/faculty/${t.id}`}
+                          className="font-bold text-sm text-text-main group-hover:text-brand-primary transition-colors line-clamp-1 hover:underline"
+                        >
+                          {t.fullName}
+                        </Link>
+                        <div className="text-xs font-semibold text-brand-primary line-clamp-1 mt-0.5">
+                          {t.specialization}
+                        </div>
+                        <div className="text-[11px] text-text-muted line-clamp-1 mt-0.5">
+                          {t.qualification}
+                        </div>
+                      </div>
+                    </div>
+
+                    {t.branchName && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-text-muted pt-2 border-t border-accent/60">
+                        <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                        <span className="truncate">{t.branchName}</span>
                       </div>
                     )}
-                    <div className="min-w-0 flex-1">
-                      <Link
-                        to={`/faculty/${t.id}`}
-                        className="font-bold text-sm text-text-main group-hover:text-brand-primary transition-colors line-clamp-1 hover:underline"
-                      >
-                        {t.fullName}
-                      </Link>
-                      <div className="text-xs font-semibold text-brand-primary line-clamp-1 mt-0.5">
-                        {t.specialization}
-                      </div>
-                      <div className="text-[11px] text-text-muted line-clamp-1 mt-0.5">
-                        {t.qualification}
-                      </div>
-                    </div>
+
+                    {t.bio && (
+                      <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
+                        {t.bio}
+                      </p>
+                    )}
                   </div>
 
-                  {t.branchName && (
-                    <div className="flex items-center gap-1.5 text-[11px] text-text-muted pt-2 border-t border-accent/60">
-                      <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                      <span className="truncate">{t.branchName}</span>
+                  <div className="pt-4 mt-2">
+                    <Link
+                      to={`/faculty/${t.id}`}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-surface border border-accent hover:border-brand-primary text-text-main rounded-sm text-xs font-semibold hover:bg-brand-primary hover:text-white transition-all shadow-2xs"
+                    >
+                      <span>View Profile</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+
+              {/* Set 2: Duplicate items for seamless circular loop */}
+              {marqueeTeachers.map((t, idx) => (
+                <div
+                  key={`track2-${t.id}-${idx}`}
+                  className="w-[280px] sm:w-[320px] shrink-0 bg-surface border border-theme hover:border-brand-primary/60 rounded-sm p-5 shadow-xs flex flex-col justify-between transition-all group"
+                >
+                  <div className="space-y-3.5">
+                    <div className="flex items-start gap-3.5">
+                      {t.avatarUrl ? (
+                        <img
+                          src={t.avatarUrl}
+                          alt={t.fullName}
+                          className="w-14 h-14 rounded-full object-cover border-2 border-brand-primary/20 group-hover:border-brand-primary transition-colors shrink-0"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-brand-primary/20 to-brand-primary/10 border border-brand-primary/30 flex items-center justify-center text-brand-primary font-bold text-lg shrink-0">
+                          {t.fullName?.[0]?.toUpperCase() || "T"}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <Link
+                          to={`/faculty/${t.id}`}
+                          className="font-bold text-sm text-text-main group-hover:text-brand-primary transition-colors line-clamp-1 hover:underline"
+                        >
+                          {t.fullName}
+                        </Link>
+                        <div className="text-xs font-semibold text-brand-primary line-clamp-1 mt-0.5">
+                          {t.specialization}
+                        </div>
+                        <div className="text-[11px] text-text-muted line-clamp-1 mt-0.5">
+                          {t.qualification}
+                        </div>
+                      </div>
                     </div>
-                  )}
 
-                  {t.bio && (
-                    <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
-                      {t.bio}
-                    </p>
-                  )}
-                </div>
+                    {t.branchName && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-text-muted pt-2 border-t border-accent/60">
+                        <MapPin className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                        <span className="truncate">{t.branchName}</span>
+                      </div>
+                    )}
 
-                <div className="pt-4 mt-2">
-                  <Link
-                    to={`/faculty/${t.id}`}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-surface border border-accent hover:border-brand-primary text-text-main rounded-sm text-xs font-semibold hover:bg-brand-primary hover:text-white transition-all shadow-2xs"
-                  >
-                    <span>View Profile</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
+                    {t.bio && (
+                      <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
+                        {t.bio}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-4 mt-2">
+                    <Link
+                      to={`/faculty/${t.id}`}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-surface border border-accent hover:border-brand-primary text-text-main rounded-sm text-xs font-semibold hover:bg-brand-primary hover:text-white transition-all shadow-2xs"
+                    >
+                      <span>View Profile</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
@@ -1252,214 +1305,204 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ========================================================================= */}
-      {/* 8. PARENTS & STUDENTS COMMENTS / REVIEWS (WITH 5-STAR RATING & PHONE) */}
+      {/* 8 & 9. REVIEWS & DIRECT ADMISSION INQUIRY (SIDE-BY-SIDE ON LARGE SCREENS) */}
       {/* ========================================================================= */}
-      <section id="reviews" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
-          <div className="flex items-start sm:items-center gap-3">
-            <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
-              <MessageSquare className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
-                Parents & Students Comments & Advice
-              </h2>
-              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
-                Transparent reviews, learning experiences, and valuable recommendations from parents and enrolled learners.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
-            <Link
-              to="/reviews"
-              className="px-3 py-1.5 text-xs font-bold bg-surface border border-theme hover:border-brand-primary hover:text-brand-primary text-text-main rounded-sm shadow-xs flex items-center gap-1.5 transition-colors"
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-brand-primary" />
-              <span>View All Reviews</span>
-            </Link>
-            <button
-              onClick={() => setIsReviewModalOpen(true)}
-              className="px-3.5 py-1.5 text-xs font-bold bg-brand-primary text-white rounded-sm hover:bg-brand-hover shadow-xs flex items-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-            >
-              <Star className="w-3.5 h-3.5 fill-current" />
-              <span>Leave Your Advice / Review</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Testimonial Cards - Single Column View */}
-        <div className="flex flex-col gap-3.5 max-w-4xl mx-auto">
-          {loading ? (
-            [1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className="bg-surface border border-theme rounded-sm p-4 sm:p-5 space-y-3 animate-pulse shadow-xs"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-accent shrink-0" />
-                  <div className="space-y-1.5 flex-1">
-                    <div className="h-4 w-32 bg-accent rounded-xs" />
-                    <div className="h-3 w-24 bg-accent/60 rounded-xs" />
-                  </div>
-                  <div className="h-6 w-20 bg-accent rounded-xs shrink-0" />
+      <div className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column (7 cols on lg): Reviews & Advice */}
+          <section id="reviews" className="lg:col-span-7 space-y-5 scroll-mt-20">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
+                  <MessageSquare className="w-5 h-5" />
                 </div>
-                <div className="h-8 w-full bg-accent/40 rounded-xs" />
-              </div>
-            ))
-          ) : (
-            <>
-              {testimonials.slice(0, 3).map((t, idx) => (
-                <div
-                  key={t.id || idx}
-                  className="bg-surface border border-theme rounded-sm p-4 sm:p-5 space-y-3 hover:border-brand-primary/50 transition-colors shadow-2xs"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-theme/60 pb-2.5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-brand-primary/10 text-brand-primary font-bold text-xs flex items-center justify-center shrink-0">
-                        {t.name ? t.name.charAt(0).toUpperCase() : "U"}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-sm text-text-main flex items-center gap-2">
-                          {t.name}
-                          <span className="px-1.5 py-0.5 rounded-xs bg-bg-app border border-theme text-[10px] font-semibold text-brand-primary uppercase">
-                            {t.role || "Student"}
-                          </span>
-                        </h4>
-                        {t.phone && (
-                          <span className="text-[11px] font-mono text-text-muted">
-                            Verified Contact: {t.phone}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Star Rating Badge */}
-                    <div className="flex items-center gap-1.5 self-start sm:self-auto px-2.5 py-1 bg-bg-app border border-theme rounded-xs">
-                      <div className="flex items-center gap-0.5">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star
-                            key={s}
-                            className={`w-3.5 h-3.5 ${
-                              s <= t.rating ? "text-amber-500 fill-amber-500" : "text-slate-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs font-bold text-text-main">{t.rating}.0 / 5</span>
-                    </div>
-                  </div>
-
-                  {/* Message Body */}
-                  <p className="text-xs sm:text-sm text-text-main/90 leading-relaxed italic pl-1">
-                    "{t.message}"
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
+                    Parents & Students Comments
+                  </h2>
+                  <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
+                    Transparent feedback and recommendations from parents and enrolled learners.
                   </p>
                 </div>
-              ))}
+              </div>
 
-              <div className="flex justify-center pt-2">
+              {/* Single prominent "View All Reviews" button + "Leave Review" */}
+              <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
                 <Link
                   to="/reviews"
-                  className="inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-bold bg-surface border border-theme hover:border-brand-primary hover:text-brand-primary text-text-main rounded-sm transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                  className="px-3 py-1.5 text-xs font-bold bg-surface border border-theme hover:border-brand-primary hover:text-brand-primary text-text-main rounded-sm shadow-xs flex items-center gap-1.5 transition-colors"
                 >
                   <MessageSquare className="w-3.5 h-3.5 text-brand-primary" />
-                  <span>View All Reviews & Advice ({testimonials.length > 0 ? `${testimonials.length}` : "All"}) →</span>
+                  <span>View All Reviews ({testimonials.length > 0 ? testimonials.length : ""})</span>
                 </Link>
+                <button
+                  onClick={() => setIsReviewModalOpen(true)}
+                  className="px-3.5 py-1.5 text-xs font-bold bg-brand-primary text-white rounded-sm hover:bg-brand-hover shadow-xs flex items-center gap-1.5 transition-colors focus-visible:outline-none"
+                >
+                  <Star className="w-3.5 h-3.5 fill-current" />
+                  <span>Leave Review</span>
+                </button>
               </div>
+            </div>
 
-              {testimonials.length === 0 && (
-                <div className="p-8 text-center text-xs text-text-muted bg-surface border border-theme rounded-sm">
-                  No reviews recorded yet. Be the first to share your learning experience!
-                </div>
+            {/* Testimonials List */}
+            <div className="flex flex-col gap-3.5">
+              {loading ? (
+                [1, 2, 3].map((n) => (
+                  <div
+                    key={n}
+                    className="bg-surface border border-theme rounded-sm p-4 sm:p-5 space-y-3 animate-pulse shadow-xs"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-accent shrink-0" />
+                      <div className="space-y-1.5 flex-1">
+                        <div className="h-4 w-32 bg-accent rounded-xs" />
+                        <div className="h-3 w-24 bg-accent/60 rounded-xs" />
+                      </div>
+                      <div className="h-6 w-20 bg-accent rounded-xs shrink-0" />
+                    </div>
+                    <div className="h-8 w-full bg-accent/40 rounded-xs" />
+                  </div>
+                ))
+              ) : (
+                <>
+                  {testimonials.slice(0, 3).map((t, idx) => (
+                    <div
+                      key={t.id || idx}
+                      className="bg-surface border border-theme rounded-sm p-4 sm:p-5 space-y-3 hover:border-brand-primary/50 transition-colors shadow-2xs"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-theme/60 pb-2.5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-brand-primary/10 text-brand-primary font-bold text-xs flex items-center justify-center shrink-0">
+                            {t.name ? t.name.charAt(0).toUpperCase() : "U"}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-sm text-text-main flex items-center gap-2">
+                              {t.name}
+                              <span className="px-1.5 py-0.5 rounded-xs bg-bg-app border border-theme text-[10px] font-semibold text-brand-primary uppercase">
+                                {t.role || "Student"}
+                              </span>
+                            </h4>
+                            {t.phone && (
+                              <span className="text-[11px] font-mono text-text-muted">
+                                Verified Contact: {t.phone}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Star Rating Badge */}
+                        <div className="flex items-center gap-1.5 self-start sm:self-auto px-2.5 py-1 bg-bg-app border border-theme rounded-xs">
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star
+                                key={s}
+                                className={`w-3.5 h-3.5 ${
+                                  s <= t.rating ? "text-amber-500 fill-amber-500" : "text-slate-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs font-bold text-text-main">{t.rating}.0 / 5</span>
+                        </div>
+                      </div>
+
+                      {/* Message Body */}
+                      <p className="text-xs sm:text-sm text-text-main/90 leading-relaxed italic pl-1">
+                        "{t.message}"
+                      </p>
+                    </div>
+                  ))}
+
+                  {testimonials.length === 0 && (
+                    <div className="p-8 text-center text-xs text-text-muted bg-surface border border-theme rounded-sm">
+                      No reviews recorded yet. Be the first to share your learning experience!
+                    </div>
+                  )}
+                </>
               )}
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 9. ADMISSION INQUIRY DESK */}
-      {/* ========================================================================= */}
-      <section id="inquiry" className="w-full max-w-[95vw] mx-auto px-2 sm:px-4 lg:px-6 space-y-6 scroll-mt-20">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme pb-4">
-          <div className="flex items-start sm:items-center gap-3">
-            <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
-              <Building2 className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
-                Direct Admission Inquiry & Campus Counseling
-              </h2>
-              <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
-                Have questions regarding batch timings, fee structures, or curriculum? Send us a quick note and our counselor will call you back.
-              </p>
-            </div>
-          </div>
-        </div>
+          </section>
 
-        <div className="bg-surface border border-theme rounded-sm p-6 sm:p-8 shadow-xs">
-          <form onSubmit={handleInquirySubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-text-main">Student Full Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Tanvir Ahmed"
-                  value={inquiry.studentName}
-                  onChange={(e) => setInquiry({ ...inquiry, studentName: e.target.value })}
-                  className="w-full text-xs p-2.5 bg-bg-app border border-theme rounded-sm focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors text-text-main"
-                />
+          {/* Right Column (5 cols on lg): Direct Admission Inquiry Desk */}
+          <section id="inquiry" className="lg:col-span-5 space-y-5 scroll-mt-20">
+            <div className="flex items-start sm:items-center gap-3 border-b border-theme pb-4">
+              <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-sm shrink-0">
+                <Building2 className="w-5 h-5" />
               </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-text-main">Phone Number *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. 01712345678"
-                  value={inquiry.phone}
-                  onChange={(e) => setInquiry({ ...inquiry, phone: e.target.value })}
-                  className="w-full text-xs p-2.5 bg-bg-app border border-theme rounded-sm focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors font-mono text-text-main"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-text-main">Email (Optional)</label>
-                <input
-                  type="email"
-                  placeholder="e.g. student@gmail.com"
-                  value={inquiry.email}
-                  onChange={(e) => setInquiry({ ...inquiry, email: e.target.value })}
-                  className="w-full text-xs p-2.5 bg-bg-app border border-theme rounded-sm focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors text-text-main"
-                />
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
+                  Direct Admission Inquiry
+                </h2>
+                <p className="text-xs sm:text-sm text-text-muted mt-0.5 leading-relaxed">
+                  Have questions regarding batches, fees, or curriculum? Send us a quick note.
+                </p>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-text-main">Your Question / Preferred Batch</label>
-              <textarea
-                rows={3}
-                placeholder="Mention the class level, preferred batch, or question..."
-                value={inquiry.message}
-                onChange={(e) => setInquiry({ ...inquiry, message: e.target.value })}
-                className="w-full text-xs p-2.5 bg-bg-app border border-theme rounded-sm focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors text-text-main"
-              />
-            </div>
+            <div className="bg-surface border border-theme rounded-sm p-5 sm:p-6 shadow-xs">
+              <form onSubmit={handleInquirySubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-text-main">Student Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Tanvir Ahmed"
+                    value={inquiry.studentName}
+                    onChange={(e) => setInquiry({ ...inquiry, studentName: e.target.value })}
+                    className="w-full text-xs p-2.5 bg-bg-app border border-theme rounded-sm focus:outline-none focus:border-brand-primary text-text-main"
+                  />
+                </div>
 
-            <div className="flex justify-end pt-1">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="px-6 py-2.5 bg-brand-primary text-white text-xs font-bold rounded-sm hover:bg-brand-hover active:scale-[0.99] shadow-xs disabled:opacity-50 flex items-center gap-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-              >
-                <Send className="w-3.5 h-3.5" />
-                {submitting ? "Submitting Inquiry..." : "Submit Admission Inquiry"}
-              </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-text-main">Phone Number *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 017XXXXXXXX"
+                      value={inquiry.phone}
+                      onChange={(e) => setInquiry({ ...inquiry, phone: e.target.value })}
+                      className="w-full text-xs p-2.5 bg-bg-app border border-theme rounded-sm focus:outline-none focus:border-brand-primary font-mono text-text-main"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-text-main">Email (Optional)</label>
+                    <input
+                      type="email"
+                      placeholder="student@gmail.com"
+                      value={inquiry.email}
+                      onChange={(e) => setInquiry({ ...inquiry, email: e.target.value })}
+                      className="w-full text-xs p-2.5 bg-bg-app border border-theme rounded-sm focus:outline-none focus:border-brand-primary text-text-main"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-text-main">Question / Preferred Batch</label>
+                  <textarea
+                    rows={4}
+                    placeholder="Mention the class level, preferred batch, or question..."
+                    value={inquiry.message}
+                    onChange={(e) => setInquiry({ ...inquiry, message: e.target.value })}
+                    className="w-full text-xs p-2.5 bg-bg-app border border-theme rounded-sm focus:outline-none focus:border-brand-primary text-text-main resize-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full py-2.5 bg-brand-primary text-white text-xs font-bold rounded-sm hover:bg-brand-hover shadow-xs disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  {submitting ? "Submitting Inquiry..." : "Submit Admission Inquiry"}
+                </button>
+              </form>
             </div>
-          </form>
+          </section>
         </div>
-      </section>
+      </div>
 
       {/* ========================================================================= */}
       {/* 10. COMPREHENSIVE FOOTER WITH CAMPUSES, WHATSAPP, CONTACT & BACK TO TOP */}
