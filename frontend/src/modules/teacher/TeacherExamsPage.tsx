@@ -86,6 +86,16 @@ export const TeacherExamsPage: React.FC = () => {
     }
   };
 
+  const handleBatchSelect = (newBatchId: string) => {
+    const targetBatch = batches.find((b: any) => b.id === newBatchId) as any;
+    const firstSubject = targetBatch?.teacherAssignedSubjects?.[0] || targetBatch?.subjects?.[0] || "";
+    setExamForm((prev) => ({
+      ...prev,
+      batchId: newBatchId,
+      subject: firstSubject,
+    }));
+  };
+
   const fetchBatches = async () => {
     try {
       const res = await apiClient.get<any[]>("/teacher/batches");
@@ -93,7 +103,9 @@ export const TeacherExamsPage: React.FC = () => {
         const batchList = res.data;
         setBatches(batchList);
         if (batchList.length > 0 && !examForm.batchId) {
-          setExamForm((prev) => ({ ...prev, batchId: batchList[0].id }));
+          const firstBatch = batchList[0];
+          const firstSub = firstBatch.teacherAssignedSubjects?.[0] || firstBatch.subjects?.[0] || "";
+          setExamForm((prev) => ({ ...prev, batchId: firstBatch.id, subject: firstSub }));
         }
       }
     } catch {}
@@ -483,12 +495,12 @@ export const TeacherExamsPage: React.FC = () => {
                 <label className="text-xs font-bold text-text-main block mb-1">Target Cohort / Batch *</label>
                 <select
                   value={examForm.batchId}
-                  onChange={(e) => setExamForm({ ...examForm, batchId: e.target.value })}
+                  onChange={(e) => handleBatchSelect(e.target.value)}
                   required
                   className="w-full p-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main font-semibold"
                 >
                   <option value="" disabled>Select cohort...</option>
-                  {batches.map((b) => (
+                  {batches.map((b: any) => (
                     <option key={b.id} value={b.id}>
                       {b.name} ({b.code})
                     </option>
@@ -502,7 +514,7 @@ export const TeacherExamsPage: React.FC = () => {
                   type="text"
                   value={examForm.title}
                   onChange={(e) => setExamForm({ ...examForm, title: e.target.value })}
-                  placeholder="e.g. Physics Chapter 3 Assessment"
+                  placeholder="e.g. Higher Math Chapter 3 Assessment"
                   required
                   className="w-full p-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main"
                 />
@@ -510,14 +522,42 @@ export const TeacherExamsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-text-main block mb-1">Subject</label>
-                  <input
-                    type="text"
-                    value={examForm.subject}
-                    onChange={(e) => setExamForm({ ...examForm, subject: e.target.value })}
-                    placeholder="e.g. Physics"
-                    className="w-full p-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main"
-                  />
+                  <label className="text-xs font-bold text-text-main block mb-1">Course / Subject *</label>
+                  {(() => {
+                    const selBatch = batches.find((b: any) => b.id === examForm.batchId) as any;
+                    const assignedSubs =
+                      selBatch?.teacherAssignedSubjects && selBatch.teacherAssignedSubjects.length > 0
+                        ? selBatch.teacherAssignedSubjects
+                        : selBatch?.subjects || [];
+
+                    if (assignedSubs.length > 0) {
+                      return (
+                        <select
+                          value={examForm.subject}
+                          onChange={(e) => setExamForm({ ...examForm, subject: e.target.value })}
+                          required
+                          className="w-full p-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main font-semibold"
+                        >
+                          <option value="" disabled>Select assigned course...</option>
+                          {assignedSubs.map((sub: string) => (
+                            <option key={sub} value={sub}>
+                              {sub}
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    }
+
+                    return (
+                      <input
+                        type="text"
+                        value={examForm.subject}
+                        onChange={(e) => setExamForm({ ...examForm, subject: e.target.value })}
+                        placeholder="e.g. Higher Mathematics"
+                        className="w-full p-2 bg-bg-app border border-accent rounded-sm text-xs text-text-main"
+                      />
+                    );
+                  })()}
                 </div>
                 <div>
                   <label className="text-xs font-bold text-text-main block mb-1">Exam Type</label>

@@ -225,15 +225,16 @@ export class TeacherService {
     };
   }
 
-  private static isBatchAssignedToTeacher(b: any, teacher: any): boolean {
+  static isBatchAssignedToTeacher(b: any, teacher: any): boolean {
     const profileId = teacher.teacherProfile?.id;
     const teacherUserId = teacher.id;
     const teacherNameLower = (teacher.fullName || "").trim().toLowerCase();
 
-    if (b.teacherId === profileId || b.teacherId === teacherUserId) return true;
-    if (teacher.branchId && b.branchId === teacher.branchId) return true;
+    // 1. Direct lead teacher assignment
+    if (b.teacherId && (b.teacherId === profileId || b.teacherId === teacherUserId)) return true;
 
-    if (Array.isArray(b.subjectTeachers)) {
+    // 2. Assigned in subject teachers
+    if (Array.isArray(b.subjectTeachers) && b.subjectTeachers.length > 0) {
       const match = (b.subjectTeachers as any[]).some(
         (st) =>
           st?.teacherId === profileId ||
@@ -244,7 +245,8 @@ export class TeacherService {
       if (match) return true;
     }
 
-    if (Array.isArray(b.classModules)) {
+    // 3. Assigned in class lectures / modules
+    if (Array.isArray(b.classModules) && b.classModules.length > 0) {
       const match = (b.classModules as any[]).some(
         (cm) =>
           cm?.teacherId === profileId ||
@@ -255,7 +257,8 @@ export class TeacherService {
       if (match) return true;
     }
 
-    if (Array.isArray(b.routine)) {
+    // 4. Assigned in routine slots
+    if (Array.isArray(b.routine) && b.routine.length > 0) {
       const match = (b.routine as any[]).some(
         (r) =>
           r?.teacherId === profileId ||
@@ -263,6 +266,120 @@ export class TeacherService {
           (r?.teacherName && r.teacherName.trim().toLowerCase() === teacherNameLower)
       );
       if (match) return true;
+    }
+
+    // 5. Fallback for open/unassigned batches in branch if no teacher is assigned
+    if (!b.teacherId && (!b.subjectTeachers || (Array.isArray(b.subjectTeachers) && b.subjectTeachers.length === 0))) {
+      if (teacher.branchId && b.branchId === teacher.branchId) return true;
+    }
+
+    return false;
+  }
+
+  static getTeacherAssignedSubjects(batch: any, teacher: any): string[] {
+    const profileId = teacher.teacherProfile?.id;
+    const teacherUserId = teacher.id;
+    const teacherNameLower = (teacher.fullName || "").trim().toLowerCase();
+
+    const assignedSet = new Set<string>();
+
+    const isTeacherMatch = (tId?: string | null, tUserId?: string | null, tName?: string | null) => {
+      if (tId && (tId === profileId || tId === teacherUserId)) return true;
+      if (tUserId && tUserId === teacherUserId) return true;
+      if (tName && tName.trim().toLowerCase() === teacherNameLower) return true;
+      return false;
+    };
+
+    // 1. Check subjectTeachers
+    if (Array.isArray(batch.subjectTeachers)) {
+      for (const st of batch.subjectTeachers) {
+        if (isTeacherMatch(st?.teacherId, st?.teacherUserId, st?.teacherName) && st?.subject) {
+          assignedSet.add(st.subject.trim());
+        }
+      }
+    }
+
+    // 2. Check classModules
+    if (Array.isArray(batch.classModules)) {
+      for (const cm of batch.classModules) {
+        if (isTeacherMatch(cm?.teacherId, cm?.teacherUserId, cm?.teacherName) && cm?.subject) {
+          assignedSet.add(cm.subject.trim());
+        }
+      }
+    }
+
+    // 3. Check routine
+    if (Array.isArray(batch.routine)) {
+      for (const r of batch.routine) {
+        if (isTeacherMatch(r?.teacherId, null, r?.teacherName) && r?.subject) {
+          assignedSet.add(r.subject.trim());
+        }
+      }
+    }
+
+    // 4. If no subjects found specifically from mappings above, check lead mentor role
+    const hasOtherSubjectTeachers = Array.isArray(batch.subjectTeachers) && batch.subjectTeachers.some(
+      (st: any) => !isTeacherMatch(st?.teacherId, st?.teacherUserId, st?.teacherName) && !!st?.subject
+    );
+
+    if (assignedSet.size === 0) {
+      const isLead = batch.teacherId === profileId || batch.teacherId === teacherUserId;
+      if (isLead && !hasOtherSubjectTeachers) {
+        if (Array.isArray(batch.subjects) && batch.subjects.length > 0) {
+          for (const s of batch.subjects) {
+            if (typeof s === "string" && s.trim()) assignedSet.add(s.trim());
+          }
+        } else if (batch.course?.name) {
+          assignedSet.add(batch.course.name.trim());
+        }
+      } else if (isLead && hasOtherSubjectTeachers) {
+        const otherSubjects = new Set(
+          (batch.subjectTeachers as any[])
+            .filter((st: any) => !isTeacherMatch(st?.teacherId, st?.teacherUserId, st?.teacherName) && st?.subject)
+            .map((st: any) => st.subject.trim().toLowerCase())
+        );
+        if (Array.isArray(batch.subjects)) {
+          for (const s of batch.subjects) {
+            if (typeof s === "string" && s.trim() && !otherSubjects.has(s.trim().toLowerCase())) {
+              assignedSet.add(s.trim());
+            }
+          }
+        }
+      }
+    }
+
+    return Array.from(assignedSet);
+  }
+
+  static isExamAssignedToTeacher(exam: any, batch: any, teacher: any): boolean {
+    const teacherSubjects = this.getTeacherAssignedSubjects(batch, teacher).map((s) => s.toLowerCase());
+
+    if (teacherSubjects.length > 0) {
+      if (!exam.subject || !exam.subject.trim()) {
+        return batch.teacherId === teacher.teacherProfile?.id || batch.teacherId === teacher.id;
+      }
+      return teacherSubjects.includes(exam.subject.trim().toLowerCase());
+    }
+
+    return false;
+  }
+
+  static isClassModuleAssignedToTeacher(cm: any, batch: any, teacher: any): boolean {
+    const profileId = teacher.teacherProfile?.id;
+    const teacherUserId = teacher.id;
+    const teacherNameLower = (teacher.fullName || "").trim().toLowerCase();
+
+    if (cm?.teacherId && (cm.teacherId === profileId || cm.teacherId === teacherUserId)) return true;
+    if (cm?.teacherUserId && cm.teacherUserId === teacherUserId) return true;
+    if (cm?.teacherName && cm.teacherName.trim().toLowerCase() === teacherNameLower) return true;
+
+    const teacherSubjects = this.getTeacherAssignedSubjects(batch, teacher).map((s) => s.toLowerCase());
+    if (cm?.subject && teacherSubjects.includes(cm.subject.trim().toLowerCase())) {
+      return true;
+    }
+
+    if (!cm?.teacherId && !cm?.teacherUserId && !cm?.teacherName && !cm?.subject) {
+      return batch.teacherId === profileId || batch.teacherId === teacherUserId;
     }
 
     return false;
@@ -438,11 +555,16 @@ export class TeacherService {
       orderBy: { startDate: "desc" },
     });
 
-    return candidateBatches.filter((b) => this.isBatchAssignedToTeacher(b, teacher));
+    return candidateBatches
+      .filter((b) => this.isBatchAssignedToTeacher(b, teacher))
+      .map((b) => ({
+        ...b,
+        teacherAssignedSubjects: this.getTeacherAssignedSubjects(b, teacher),
+      }));
   }
 
   static async getBatchDetails(userId: string, batchId: string) {
-    const { batch } = await this.assertBatchAccess(userId, batchId);
+    const { teacher, batch } = await this.assertBatchAccess(userId, batchId);
 
     const fullBatch = await prisma.batch.findUnique({
       where: { id: batch.id },
@@ -450,6 +572,7 @@ export class TeacherService {
         course: true,
         academicClass: true,
         branch: true,
+        teacher: true,
         enrollments: {
           where: { status: EnrollmentStatus.ACTIVE },
           include: {
@@ -473,7 +596,24 @@ export class TeacherService {
       },
     });
 
-    return fullBatch;
+    if (!fullBatch) throw new NotFoundError("Batch details not found");
+
+    const teacherAssignedSubjects = this.getTeacherAssignedSubjects(fullBatch, teacher);
+    const teacherExams = (fullBatch.exams || []).filter((ex) =>
+      this.isExamAssignedToTeacher(ex, fullBatch, teacher)
+    );
+
+    const annotatedClassModules = (Array.isArray(fullBatch.classModules) ? fullBatch.classModules : []).map((cm: any) => ({
+      ...cm,
+      isMyModule: this.isClassModuleAssignedToTeacher(cm, fullBatch, teacher),
+    }));
+
+    return {
+      ...fullBatch,
+      exams: teacherExams,
+      teacherAssignedSubjects,
+      classModules: annotatedClassModules,
+    };
   }
 
   static async updateBatchRoutine(
@@ -481,13 +621,58 @@ export class TeacherService {
     batchId: string,
     input: UpdateTeacherRoutineInput
   ) {
-    await this.assertBatchAccess(userId, batchId);
+    const { teacher, batch } = await this.assertBatchAccess(userId, batchId);
+
+    // 1. Strict blocking of routine alteration by teachers
+    if (input.routine !== undefined && Array.isArray(input.routine)) {
+      const existingRoutineStr = JSON.stringify(batch.routine || []);
+      const inputRoutineStr = JSON.stringify(input.routine);
+      if (existingRoutineStr !== inputRoutineStr) {
+        throw new ForbiddenError(
+          "Class routine schedule is set by campus administration and cannot be modified by teachers"
+        );
+      }
+    }
+
+    // 2. Class Modules alteration restriction:
+    // Teachers can only update/complete their own assigned modules.
+    let updatedClassModules = batch.classModules;
+    if (input.classModules !== undefined && Array.isArray(input.classModules)) {
+      const existingModules: any[] = Array.isArray(batch.classModules) ? (batch.classModules as any[]) : [];
+
+      for (let i = 0; i < existingModules.length; i++) {
+        const existingMod = existingModules[i];
+        const isMine = this.isClassModuleAssignedToTeacher(existingMod, batch, teacher);
+        if (!isMine) {
+          const found = input.classModules.find(
+            (cm: any) =>
+              (cm.classNumber && cm.classNumber === existingMod.classNumber) ||
+              (cm.title && cm.title === existingMod.title && cm.subject === existingMod.subject)
+          );
+          if (!found) {
+            throw new ForbiddenError(
+              "You cannot remove class lectures or modules belonging to other courses or instructors"
+            );
+          }
+          if (
+            found.title !== existingMod.title ||
+            found.subject !== existingMod.subject ||
+            found.teacherName !== existingMod.teacherName
+          ) {
+            throw new ForbiddenError(
+              "You are not authorized to modify syllabus modules for other instructors' courses"
+            );
+          }
+        }
+      }
+
+      updatedClassModules = input.classModules;
+    }
 
     return prisma.batch.update({
       where: { id: batchId },
       data: {
-        routine: input.routine as any,
-        classModules: input.classModules !== undefined ? (input.classModules as any) : undefined,
+        ...(updatedClassModules !== undefined && { classModules: updatedClassModules as any }),
       },
     });
   }
@@ -598,14 +783,31 @@ export class TeacherService {
     const batches = await this.getAssignedBatches(userId);
     const batchIds = batches.map((b) => b.id);
 
-    return prisma.exam.findMany({
+    if (batchIds.length === 0) return [];
+
+    const allExams = await prisma.exam.findMany({
       where: { batchId: { in: batchIds } },
       include: {
-        batch: { select: { id: true, name: true, course: { select: { name: true } } } },
+        batch: {
+          select: {
+            id: true,
+            name: true,
+            teacherId: true,
+            subjects: true,
+            subjectTeachers: true,
+            classModules: true,
+            routine: true,
+            course: { select: { id: true, name: true } },
+          },
+        },
         _count: { select: { results: true } },
       },
       orderBy: { examDate: "desc" },
     });
+
+    return allExams.filter((exam) =>
+      this.isExamAssignedToTeacher(exam, exam.batch, teacher)
+    );
   }
 
   static async getExamDetails(userId: string, examId: string) {
@@ -615,6 +817,7 @@ export class TeacherService {
         batch: {
           include: {
             course: true,
+            teacher: true,
             enrollments: {
               where: { status: EnrollmentStatus.ACTIVE },
               include: {
@@ -642,13 +845,35 @@ export class TeacherService {
     });
 
     if (!exam) throw new NotFoundError("Exam not found");
-    await this.assertBatchAccess(userId, exam.batchId);
+    const { teacher, batch } = await this.assertBatchAccess(userId, exam.batchId);
+
+    if (!this.isExamAssignedToTeacher(exam, exam.batch, teacher)) {
+      throw new ForbiddenError(
+        "You are not authorized to view or manage exams for other courses or subjects"
+      );
+    }
 
     return exam;
   }
 
   static async createExam(userId: string, input: CreateTeacherExamInput) {
-    await this.assertBatchAccess(userId, input.batchId);
+    const { teacher, batch } = await this.assertBatchAccess(userId, input.batchId);
+    const assignedSubjects = this.getTeacherAssignedSubjects(batch, teacher);
+
+    if (assignedSubjects.length > 0) {
+      if (input.subject && input.subject.trim()) {
+        const allowed = assignedSubjects.some(
+          (s) => s.toLowerCase() === input.subject?.trim().toLowerCase()
+        );
+        if (!allowed) {
+          throw new ForbiddenError(
+            `You can only create exams for your assigned courses (${assignedSubjects.join(", ")})`
+          );
+        }
+      } else {
+        input.subject = assignedSubjects[0];
+      }
+    }
 
     return prisma.exam.create({
       data: {
@@ -678,6 +903,7 @@ export class TeacherService {
       include: {
         batch: {
           include: {
+            course: true,
             enrollments: {
               where: { status: EnrollmentStatus.ACTIVE },
               select: { studentId: true },
@@ -688,7 +914,13 @@ export class TeacherService {
     });
 
     if (!exam) throw new NotFoundError("Exam not found");
-    await this.assertBatchAccess(userId, exam.batchId);
+    const { teacher, batch } = await this.assertBatchAccess(userId, exam.batchId);
+
+    if (!this.isExamAssignedToTeacher(exam, batch, teacher)) {
+      throw new ForbiddenError(
+        "You are not authorized to evaluate or grade marks for other courses' exams"
+      );
+    }
 
     const totalMarksNum = Number(exam.totalMarks);
     const passMarksNum = Number(exam.passMarks);
@@ -763,10 +995,23 @@ export class TeacherService {
   }
 
   static async toggleExamPublish(userId: string, examId: string, isPublished: boolean) {
-    const exam = await prisma.exam.findUnique({ where: { id: examId } });
+    const exam = await prisma.exam.findUnique({
+      where: { id: examId },
+      include: {
+        batch: {
+          include: { course: true },
+        },
+      },
+    });
     if (!exam) throw new NotFoundError("Exam not found");
 
-    await this.assertBatchAccess(userId, exam.batchId);
+    const { teacher, batch } = await this.assertBatchAccess(userId, exam.batchId);
+
+    if (!this.isExamAssignedToTeacher(exam, batch, teacher)) {
+      throw new ForbiddenError(
+        "You are not authorized to publish or modify other courses' exams"
+      );
+    }
 
     return prisma.exam.update({
       where: { id: examId },
